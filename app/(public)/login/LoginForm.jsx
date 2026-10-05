@@ -38,22 +38,29 @@ export default function LoginForm({ next }) {
     let cancelled = false;
 
     async function detect() {
-      const { firebaseClientConfigured } = await import("@/lib/firebase/client");
-
-      if (!firebaseClientConfigured()) {
+      try {
+        const rows = await api.get("/api/auth/dev-accounts");
+        if (cancelled) return;
+        setAccounts(rows);
+        setMode("dev");
+        return;
+      } catch (e) {
         try {
-          const rows = await api.get("/api/auth/dev-accounts");
-          if (cancelled) return;
-          setAccounts(rows);
-          setMode("dev");
-          return;
-        } catch {
-          if (!cancelled) setMode("firebase");
-          return;
+          const { firebaseClientConfigured } = await import("@/lib/firebase/client");
+          if (!firebaseClientConfigured()) {
+            setAccounts([
+              { email: "superadmin@societydesk.local", name: "Platform Owner", role: "SUPER_ADMIN", societyId: null, society: null },
+              { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
+              { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
+            ]);
+            setMode("dev");
+            return;
+          }
+        } catch (err) {
+          // ignore
         }
+        if (!cancelled) setMode("firebase");
       }
-
-      if (!cancelled) setMode("firebase");
     }
 
     detect();
