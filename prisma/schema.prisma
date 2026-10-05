@@ -1,0 +1,428 @@
+// ---------------------------------------------------------------------------
+// SocietyDesk - Prisma schema
+//
+// DEV:  SQLite (zero setup)
+// PROD: switch provider to "postgresql" and point DATABASE_URL at Postgres.
+//
+// NOTE ON ENUMS: SQLite does not support native enums, so enum-ish columns are
+// String and the allowed values are enforced in JS by lib/constants.js +
+// zod (lib/validation/schemas.js).
+//
+// NOTE ON MONEY: amounts are Int rupees (no paise) to stay JSON-serialisable in
+// Server Components. Move to Decimal before shipping real accounting.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// 12.1 Society  (the tenant root)
+// ---------------------------------------------------------------------------
+model Society {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  address   String?
+  city      String?
+  state     String?
+  pincode   String?
+  phone     String?
+  email     String?
+  logoUrl   String?
+  status    String   @default("ACTIVE") // ACTIVE | INACTIVE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users           User[]
+  flats           Flat[]
+  feeConfigs      FeeConfiguration[]
+  invoices        Invoice[]
+  payments        Payment[]
+  paymentOrders   PaymentOrder[]
+  receipts        Receipt[]
+  complaints      Complaint[]
+  notices         Notice[]
+  auditLogs       AuditLog[]
+
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// 12.2 User
+// ---------------------------------------------------------------------------
+model User {
+  id        String   @id @default(cuid())
+  societyId String?
+  authUid   String?  @unique // Firebase UID, linked on first login
+  name      String
+  email     String   @unique
+  phone     String?
+  role      String   @default("RESIDENT") // SUPER_ADMIN | SOCIETY_ADMIN | RESIDENT
+  status    String   @default("ACTIVE") // ACTIVE | INACTIVE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  society Society? @relation(fields: [societyId], references: [id], onDelete: Cascade)
+
+  flatResidents  FlatResident[]
+  invoices       Invoice[]        @relation("InvoiceCreatedBy")
+  paymentsMade   Payment[]        @relation("PaymentRecordedBy")
+  paymentOrdersInitiated PaymentOrder[]
+  complaintsMade Complaint[]      @relation("ComplaintCreatedBy")
+  complaintsAssigned Complaint[]   @relation("ComplaintAssignedTo")
+  complaintComments ComplaintComment[]
+  noticesPosted  Notice[]         @relation("NoticePostedBy")
+  noticeReads    NoticeRead[]
+  auditLogs      AuditLog[]
+
+  @@index([societyId])
+  @@index([role])
+}
+
+// ---------------------------------------------------------------------------
+// 12.3 Flat
+// ---------------------------------------------------------------------------
+model Flat {
+  id          String   @id @default(cuid())
+  societyId   String
+  flatNumber  String
+  block       String?
+  floor       String?
+  flatType    String? // 1 BHK | 2 BHK | 3 BHK | 4 BHK | PENTHOUSE | SHOP
+  sqFt        Int?
+  parkingSlot String?
+  status      String   @default("OCCUPIED") // OCCUPIED | VACANT
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  society      Society        @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  residents    FlatResident[]
+  invoices     Invoice[]
+  payments     Payment[]
+  paymentOrders PaymentOrder[]
+  complaints   Complaint[]
+
+  @@unique([societyId, flatNumber])
+  @@index([societyId, status])
+}
+
+// ---------------------------------------------------------------------------
+// 12.4 FlatResident  (relationship table, not owner_id/tenant_id columns)
+// ---------------------------------------------------------------------------
+model FlatResident {
+  id            String   @id @default(cuid())
+  societyId     String
+  flatId        String
+  userId        String
+  residentType  String   @default("OWNER") // OWNER | TENANT
+  isPrimary     Boolean  @default(false)
+  startDate     DateTime @default(now())
+  endDate       DateTime?
+  createdAt     DateTime @default(now())
+
+  flat Flat @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([flatId, userId])
+  @@index([societyId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// 13.1 FeeConfiguration  (one row per charge rule)
+// ---------------------------------------------------------------------------
+model FeeConfiguration {
+  id              String   @id @default(cuid())
+  societyId       String
+  name            String // "Monthly Maintenance"
+  type            String   @default("MAINTENANCE") // MAINTENANCE | PARKING | WATER | SINKING_FUND | SPECIAL_FUND | OTHER
+  calculationType String   @default("FIXED") // FIXED | PER_SQFT | FLAT_TYPE
+  amount          Int      @default(0) // used when calculationType = FIXED
+  rate            Float? // used when calculationType = PER_SQFT
+  flatTypeAmounts String? // JSON string, used when calculationType = FLAT_TYPE
+  frequency       String   @default("MONTHLY") // MONTHLY | QUARTERLY | ANNUAL | ONE_TIME
+  appliesToParkingOnly Boolean @default(false)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  society Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+
+  @@index([societyId, active])
+}
+
+// ---------------------------------------------------------------------------
+// 13.2 Invoice
+// ---------------------------------------------------------------------------
+model Invoice {
+  id            String   @id @default(cuid())
+  societyId     String
+  flatId        String
+  invoiceNumber String
+  billingPeriod String // "2026-10"
+  invoiceDate   DateTime @default(now())
+  dueDate       DateTime
+  subtotal      Int      @default(0)
+  previousDue   Int      @default(0)
+  penalty       Int      @default(0)
+  discount      Int      @default(0)
+  totalAmount   Int      @default(0)
+  paidAmount    Int      @default(0)
+  status        String   @default("PENDING") // PENDING | PARTIALLY_PAID | PAID | OVERDUE | CANCELLED
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  society Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  flat    Flat    @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  items   InvoiceItem[]
+  payments Payment[]
+  paymentOrders PaymentOrder[]
+  createdBy User? @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([societyId, invoiceNumber])
+  @@unique([societyId, flatId, billingPeriod])
+  @@index([societyId, status])
+  @@index([societyId, dueDate])
+}
+
+// ---------------------------------------------------------------------------
+// 13.3 InvoiceItem
+// ---------------------------------------------------------------------------
+model InvoiceItem {
+  id        String @id @default(cuid())
+  invoiceId String
+  name      String
+  type      String // MAINTENANCE | PARKING | WATER | SINKING_FUND | SPECIAL_FUND | OTHER
+  amount    Int
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+// ---------------------------------------------------------------------------
+// 13.4 Payment
+// ---------------------------------------------------------------------------
+model Payment {
+  id                    String   @id @default(cuid())
+  societyId             String
+  invoiceId             String
+  flatId                String
+  amount                Int
+  paymentMethod         String // CASH | CHEQUE | BANK_TRANSFER | UPI | RAZORPAY | OTHER
+  transactionReference  String?
+  paymentDate           DateTime @default(now())
+  notes                 String?
+  proofUrl              String?
+  proofPublicId         String?
+  recordedById          String?
+  orderId               String? @unique // set when this payment settled a PaymentOrder
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  society    Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  invoice    Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  flat       Flat    @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  recordedBy User?   @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+  order      PaymentOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  receipts   Receipt[]
+
+  @@index([societyId, paymentDate])
+  @@index([invoiceId])
+}
+
+// ---------------------------------------------------------------------------
+// 13.4a PaymentOrder
+//
+// One row per online payment attempt. Created BEFORE the resident reaches the
+// gateway so an abandoned checkout is still visible to the admin as "pending",
+// and settled exactly once by the verify step.
+// ---------------------------------------------------------------------------
+model PaymentOrder {
+  id                String    @id @default(cuid())
+  societyId         String
+  invoiceId         String
+  flatId            String
+  initiatedById     String
+  amount            Int // rupees, same unit as Payment.amount
+  currency          String    @default("INR")
+  gateway           String // RAZORPAY | MOCK
+  status            String    @default("CREATED") // CREATED | PAID | FAILED | EXPIRED
+  gatewayOrderId    String?   // "order_xxx" from the gateway
+  gatewayPaymentId  String?   // "pay_xxx" once the gateway confirms capture
+  gatewaySignature  String?
+  gatewayMethod     String?   // card | upi | netbanking | wallet ...
+  failureReason     String?
+  receiptUrl        String?   // set once the order settles and a receipt exists
+  expiresAt         DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  society     Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  flat        Flat     @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  initiatedBy User     @relation(fields: [initiatedById], references: [id])
+  payment     Payment?
+
+  @@unique([gateway, gatewayOrderId])
+  @@index([societyId, status])
+  @@index([invoiceId])
+  @@index([flatId])
+}
+
+// ---------------------------------------------------------------------------
+// 13.5 Receipt
+// ---------------------------------------------------------------------------
+model Receipt {
+  id            String   @id @default(cuid())
+  societyId     String
+  paymentId     String
+  receiptNumber String
+  pdfUrl        String?
+  createdAt     DateTime @default(now())
+
+  society Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@unique([paymentId])
+  @@index([societyId, receiptNumber])
+}
+
+// ---------------------------------------------------------------------------
+// 14.1 Complaint
+// ---------------------------------------------------------------------------
+model Complaint {
+  id          String    @id @default(cuid())
+  societyId   String
+  flatId      String
+  createdById String
+  category    String // PLUMBING | ELECTRICAL | CLEANLINESS | PARKING | SECURITY | NOISE | WATER | OTHER
+  title       String
+  description String
+  priority    String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status      String    @default("OPEN") // OPEN | ASSIGNED | IN_PROGRESS | RESOLVED | CLOSED | REOPENED
+  assignedToId String?
+  resolutionNotes String?
+  resolvedAt  DateTime?
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  society     Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  flat        Flat     @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("ComplaintCreatedBy", fields: [createdById], references: [id])
+  assignedTo  User?    @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
+  attachments ComplaintAttachment[]
+  comments    ComplaintComment[]
+
+  @@index([societyId, status])
+  @@index([flatId])
+}
+
+// ---------------------------------------------------------------------------
+// 14.2 ComplaintAttachment
+// ---------------------------------------------------------------------------
+model ComplaintAttachment {
+  id                String   @id @default(cuid())
+  societyId         String
+  complaintId       String
+  fileUrl           String
+  fileName          String
+  cloudinaryPublicId String?
+  resourceType      String   @default("image")
+  createdAt         DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId])
+}
+
+// ---------------------------------------------------------------------------
+// 14.3 ComplaintComment  (timeline entries are comments with a status snapshot)
+// ---------------------------------------------------------------------------
+model ComplaintComment {
+  id          String   @id @default(cuid())
+  societyId   String
+  complaintId String
+  userId      String
+  comment     String
+  eventType   String   @default("COMMENT") // COMMENT | STATUS_CHANGE | ASSIGNMENT
+  createdAt   DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// 15.1 Notice
+// ---------------------------------------------------------------------------
+model Notice {
+  id            String    @id @default(cuid())
+  societyId     String
+  title         String
+  body          String
+  category      String    @default("GENERAL") // GENERAL | URGENT | MAINTENANCE | EVENT | MEETING
+  attachmentUrl String?
+  attachmentPublicId String?
+  attachmentName String?
+  postedById    String
+  status        String    @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  society  Society      @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  postedBy User         @relation("NoticePostedBy", fields: [postedById], references: [id])
+  reads    NoticeRead[]
+
+  @@index([societyId, status])
+}
+
+// ---------------------------------------------------------------------------
+// 15.2 NoticeRead
+// ---------------------------------------------------------------------------
+model NoticeRead {
+  id        String   @id @default(cuid())
+  societyId String
+  noticeId  String
+  userId    String
+  readAt    DateTime @default(now())
+
+  notice Notice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([noticeId, userId])
+  @@index([societyId])
+}
+
+// ---------------------------------------------------------------------------
+// 16. AuditLog
+// ---------------------------------------------------------------------------
+model AuditLog {
+  id         String   @id @default(cuid())
+  societyId  String?
+  userId     String?
+  action     String // INVOICE_CREATED | PAYMENT_RECORDED | ...
+  entityType String
+  entityId   String
+  oldValue   String?
+  newValue   String?
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  society Society? @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id])
+
+  @@index([societyId, createdAt])
+  @@index([entityType, entityId])
+}
