@@ -1,12 +1,8 @@
 // ---------------------------------------------------------------------------
 // SocietyDesk - Prisma schema
 //
-// DEV:  SQLite (zero setup)
-// PROD: switch provider to "postgresql" and point DATABASE_URL at Postgres.
-//
-// NOTE ON ENUMS: SQLite does not support native enums, so enum-ish columns are
-// String and the allowed values are enforced in JS by lib/constants.js +
-// zod (lib/validation/schemas.js).
+// PostgreSQL is used for the application database. Enum-like fields remain
+// String and allowed values are enforced in JS by lib/constants.js + zod.
 //
 // NOTE ON MONEY: amounts are Int rupees (no paise) to stay JSON-serialisable in
 // Server Components. Move to Decimal before shipping real accounting.
@@ -17,8 +13,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------

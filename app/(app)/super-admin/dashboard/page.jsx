@@ -35,7 +35,7 @@ export default async function SuperAdminDashboardPage() {
     <div className="stack">
       <PageHeader
         title="Platform"
-        description="Cross-society counts only. Resident financial data stays inside each society."
+        description="Create societies and assign an admin to manage flats and residents."
         meta={
           <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
             <ShieldCheck className="size-3.5" />

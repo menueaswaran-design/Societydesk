@@ -1615,16 +1615,28 @@ Use:
 
 Firebase Authentication
 
-Client Environment Variables
+Client Config: lib/firebase/config.js
 
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
+The web SDK config (apiKey, authDomain, projectId, storageBucket,
+messagingSenderId, appId, measurementId) is a plain file, not an env var. It is
+public by design - it ships to the browser - so it does not belong in .env.
 
-Server Environment Variables
+lib/firebase/client.js reads it and is responsible for:
+
+- initializing the client SDK and exposing firebaseClientConfigured()
+- mirroring the signed-in user into the __session cookie, which middleware and
+  Server Components read (they never see an Authorization header)
+- starting Firebase Analytics in the browser only
+
+The session sync itself lives in components/FirebaseBootstrap.jsx, mounted once
+from app/layout.jsx.
+
+Server Environment Variables (optional)
 
 FIREBASE_PROJECT_ID=
-FIREBASE_CLIENT_
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+
+Only needed for privileged Admin calls (user management, revocation checks).
+Without them ID tokens are still verified, using the project id from
+lib/firebase/config.js.

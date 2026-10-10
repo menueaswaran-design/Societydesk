@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, User, ShieldCheck, Loader2, Mail, Lock, ArrowRight, FlaskConical } from "lucide-react";
@@ -23,9 +23,16 @@ const ROLE_BLURB = {
   RESIDENT: "Sees their own dues, complaints and notices",
 };
 
+const FALLBACK_ACCOUNTS = [
+  { email: "superadmin@societydesk.local", name: "Platform Owner", role: "SUPER_ADMIN", societyId: null, society: null },
+  { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
+  { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
+];
+
 export default function LoginForm({ next }) {
   const router = useRouter();
   const [mode, setMode] = useState("loading"); // loading | dev | firebase
+  const [firebaseAvailable, setFirebaseAvailable] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [pending, setPending] = useState(null);
   const [error, setError] = useState(null);
@@ -33,41 +40,42 @@ export default function LoginForm({ next }) {
 
   const [form, setForm] = useState({ email: "", password: "" });
 
-  // Decide which sign-in experience to show.
+  const loadDevAccounts = useCallback(async () => {
+    setMode("loading");
+    try {
+      const rows = await api.get("/api/auth/dev-accounts");
+      setAccounts(rows);
+    } catch {
+      setAccounts(FALLBACK_ACCOUNTS);
+    }
+    setMode("dev");
+  }, []);
+
+  // Decide which sign-in experience to show: real Firebase when it is
+  // configured in lib/firebase/config.js, otherwise the seeded dev accounts.
   useEffect(() => {
     let cancelled = false;
 
     async function detect() {
+      let configured = false;
       try {
-        const rows = await api.get("/api/auth/dev-accounts");
-        if (cancelled) return;
-        setAccounts(rows);
-        setMode("dev");
-        return;
-      } catch (e) {
-        try {
-          const { firebaseClientConfigured } = await import("@/lib/firebase/client");
-          if (!firebaseClientConfigured()) {
-            setAccounts([
-              { email: "superadmin@societydesk.local", name: "Platform Owner", role: "SUPER_ADMIN", societyId: null, society: null },
-              { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
-              { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
-            ]);
-            setMode("dev");
-            return;
-          }
-        } catch (err) {
-          // ignore
-        }
-        if (!cancelled) setMode("firebase");
+        const { firebaseClientConfigured } = await import("@/lib/firebase/client");
+        configured = firebaseClientConfigured();
+      } catch {
+        configured = false;
       }
+      if (cancelled) return;
+
+      setFirebaseAvailable(configured);
+      if (configured) setMode("firebase");
+      else await loadDevAccounts();
     }
 
     detect();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadDevAccounts]);
 
   function go(nextPath) {
     router.push(nextPath || "/");
@@ -93,13 +101,16 @@ export default function LoginForm({ next }) {
     setPending("firebase");
 
     try {
-      const { getFirebaseClient, signInWithEmailAndPassword } = await import(
+      const { getFirebaseClient, signInWithEmailAndPassword, syncSessionCookie } = await import(
         "@/lib/firebase/client"
       );
       const auth = getFirebaseClient();
       if (!auth) throw new Error("Firebase is not configured");
 
-      await signInWithEmailAndPassword(auth, form.email, form.password);
+      const credential = await signInWithEmailAndPassword(auth, form.email, form.password);
+      // Middleware only looks at the __session cookie, so it has to exist
+      // before the navigation or the redirect would bounce straight back here.
+      await syncSessionCookie(credential.user);
       go(next || "/");
     } catch (err) {
       setError(firebaseMessage(err));
@@ -121,8 +132,22 @@ export default function LoginForm({ next }) {
         <div className="flex items-start gap-3 rounded-xl bg-amber-50 px-4 py-3 text-[13px] text-amber-900 ring-1 ring-amber-200/80">
           <FlaskConical className="mt-0.5 size-4 shrink-0 text-amber-600" />
           <p>
-            <span className="font-semibold">Development mode.</span> Firebase is not configured, so
-            pick a seeded account to explore each role.
+            <span className="font-semibold">Development mode.</span>{" "}
+            {firebaseAvailable
+              ? "Seeded accounts are a shortcut for exploring each role."
+              : "Firebase is not configured, so pick a seeded account to explore each role."}
+            {firebaseAvailable ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setMode("firebase");
+                }}
+                className="ml-1 font-semibold text-brand-700 underline-offset-2 hover:underline"
+              >
+                Sign in with email
+              </button>
+            ) : null}
           </p>
         </div>
 
@@ -205,6 +230,15 @@ export default function LoginForm({ next }) {
         <Link href="/forgot-password" className="font-semibold text-brand-700 hover:text-brand-800">
           Forgot password?
         </Link>
+      </p>
+      <p className="mt-2 text-center text-xs text-slate-400">
+        <button
+          type="button"
+          onClick={loadDevAccounts}
+          className="underline-offset-2 hover:text-brand-700 hover:underline"
+        >
+          Use a demo account
+        </button>
       </p>
     </form>
   );

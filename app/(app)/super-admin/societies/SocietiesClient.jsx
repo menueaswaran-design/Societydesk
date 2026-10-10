@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building, Plus, Search, Pencil, Power } from "lucide-react";
+import { Building, Plus, Search, Pencil, Power, Lock } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Table, { Td } from "@/components/ui/Table";
@@ -24,6 +24,7 @@ const BLANK = {
   email: "",
   adminName: "",
   adminEmail: "",
+  adminPassword: "",
 };
 
 export default function SocietiesClient({ societies, admins }) {
@@ -187,8 +188,8 @@ export default function SocietiesClient({ societies, admins }) {
 
       {admins.length === 0 ? (
         <p className="text-xs text-slate-500">
-          No society admins exist yet. Set an admin name and email when creating a society and the
-          account is created with it.
+          No society admins exist yet. Set an admin name, email and password when creating a
+          society and the login account is created with it.
         </p>
       ) : (
         <p className="text-xs text-slate-500">{admins.length} society admins across all tenants.</p>
@@ -227,6 +228,7 @@ function SocietyEditor({ society, onClose }) {
             email: society.email ?? "",
             adminName: "",
             adminEmail: "",
+            adminPassword: "",
           }
         : BLANK
     );
@@ -280,7 +282,7 @@ function SocietyEditor({ society, onClose }) {
       description={
         isEdit
           ? "Changing the code affects new invoice and receipt numbers."
-          : "A first admin account is created with the society so it is never ownerless."
+            : "Create the society and its first admin. The email and password you set here become the admin's sign-in credentials."
       }
       footer={
         <>
@@ -387,10 +389,24 @@ function SocietyEditor({ society, onClose }) {
                     hint="They sign in with this"
                   />
                 </div>
+                <div className="mt-3">
+                  <Input
+                    id="adminPassword"
+                    label="Admin password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={form.adminPassword}
+                    onChange={set("adminPassword")}
+                    error={errors.adminPassword}
+                    hint="Min 6 characters — this becomes their login"
+                    prefix={<Lock />}
+                  />
+                </div>
               </div>
 
               <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                Both fields are needed to create the admin. Leave them blank to add one later.
+                All three admin fields are needed to create the login. Leave them blank to add an
+                admin later.
               </p>
             </>
           )}

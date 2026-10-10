@@ -1,4 +1,5 @@
 import "./globals.css";
+import FirebaseBootstrap from "@/components/FirebaseBootstrap";
 
 export const metadata = {
   title: {
@@ -20,7 +21,10 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        <FirebaseBootstrap />
+        {children}
+      </body>
     </html>
   );
 }
