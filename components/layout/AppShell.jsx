@@ -13,6 +13,7 @@ import {
   CreditCard,
   AlertTriangle,
   Megaphone,
+  Receipt,
   ShieldCheck,
   UserCircle,
   LogOut,
@@ -71,7 +72,10 @@ const NAV = {
   FLAT_ADMIN: [
     {
       label: "My flat",
-      items: [{ href: "/admin/residents", label: "Residents", icon: Users }],
+      items: [
+        { href: "/admin/residents", label: "Residents", icon: Users },
+        { href: "/admin/billing/payments", label: "Flat Payments", icon: CreditCard },
+      ],
     },
   ],
   RESIDENT: [
@@ -80,10 +84,10 @@ const NAV = {
       items: [{ href: "/resident/dashboard", label: "Dashboard", icon: LayoutDashboard }],
     },
     {
-      label: "My account",
+      label: "Maintenance & Dues",
       items: [
-        { href: "/resident/invoices", label: "Invoices", icon: FileText },
-        { href: "/resident/payments", label: "Payments", icon: CreditCard },
+        { href: "/resident/invoices", label: "Pay Maintenance", icon: CreditCard },
+        { href: "/resident/payments", label: "Payment Receipts", icon: Receipt },
         { href: "/resident/complaints", label: "Complaints", icon: AlertTriangle },
         { href: "/resident/notices", label: "Notices", icon: Megaphone },
       ],
@@ -99,7 +103,7 @@ const NAV = {
       items: [
         { href: "/super-admin/dashboard", label: "Overview", icon: LayoutDashboard },
         { href: "/super-admin/societies", label: "Societies", icon: Building },
-        { href: "/super-admin/team", label: "Admins", icon: ShieldCheck },
+        { href: "/super-admin/team", label: "Society Admins", icon: ShieldCheck },
       ],
     },
   ],
@@ -153,13 +157,13 @@ export default function AppShell({ user, society, flats, children }) {
   }
 
   const nav = (
-    <nav className="flex-1 space-y-8 overflow-y-auto px-4 py-6">
+    <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className="mb-3 px-3 text-xs font-semibold tracking-[0.08em] text-white/40 uppercase">
+          <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-white/40 uppercase">
             {group.label}
           </p>
-          <ul className="space-y-1">
+          <ul className="space-y-0.5">
             {group.items.map((item) => (
               <li key={item.href}>
                 <NavLink item={item} pathname={pathname} />
@@ -172,17 +176,17 @@ export default function AppShell({ user, society, flats, children }) {
   );
 
   const identity = (
-    <div className="flex items-center gap-3 px-5 py-5">
+    <div className="flex items-center gap-3 px-4 py-3.5">
       <span className="relative inline-flex">
-        <span className="relative inline-flex size-10 items-center justify-center rounded-lg bg-white text-sm font-bold tracking-tight text-primary-900">
+        <span className="relative inline-flex size-8.5 items-center justify-center rounded-lg bg-white text-xs font-bold tracking-tight text-primary-900">
           SD
         </span>
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold text-white">
+        <p className="truncate text-sm font-semibold text-white">
           {society?.name ?? "SocietyDesk"}
         </p>
-        <p className="truncate text-xs text-white/45">
+        <p className="truncate text-[11px] text-white/45">
           {society?.code ? `${society.code} · ` : ""}
           {titleCase(user.role)}
         </p>
@@ -193,7 +197,7 @@ export default function AppShell({ user, society, flats, children }) {
   return (
     <div className="flex min-h-screen">
       {/* ------------------------------------------------------------ sidebar */}
-      <aside className="brand-canvas sticky top-0 hidden h-screen w-72 shrink-0 flex-col lg:flex">
+      <aside className="brand-canvas sticky top-0 hidden h-screen w-64 shrink-0 flex-col lg:flex">
         <div className="border-b border-white/10">{identity}</div>
         {nav}
         <UserPanel user={user} flats={flatLabel} onSignOut={signOut} />
@@ -227,27 +231,27 @@ export default function AppShell({ user, society, flats, children }) {
       {/* --------------------------------------------------------------- main */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-          <div className="flex h-[72px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+          <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8">
             <button
               onClick={() => setDrawer(true)}
               aria-label="Open menu"
-              className="-ml-1 inline-flex size-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/5 hover:text-slate-900 lg:hidden"
+              className="-ml-1 inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-900/5 hover:text-slate-900 lg:hidden"
             >
-              <Menu className="size-5" />
+              <Menu className="size-4.5" />
             </button>
 
             <div className="flex min-w-0 items-center gap-2 lg:hidden">
-              <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary-800 text-[11px] font-bold text-white">
+              <span className="inline-flex size-7.5 items-center justify-center rounded-md bg-primary-800 text-[10px] font-bold text-white">
                 SD
               </span>
-              <span className="truncate text-sm font-semibold text-slate-800">
+              <span className="truncate text-xs font-semibold text-slate-800">
                 {society?.name ?? "SocietyDesk"}
               </span>
             </div>
 
             <div className="hidden min-w-0 items-center gap-2 lg:flex">
               <Building className="size-4 shrink-0 text-primary-500" />
-              <p className="truncate text-sm text-slate-500">
+              <p className="truncate text-xs text-slate-500">
                 {society ? (
                   <>
                     <span className="font-semibold text-slate-700">{society.name}</span>
@@ -260,7 +264,7 @@ export default function AppShell({ user, society, flats, children }) {
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <Badge tone={ROLE_TONE[user.role] ?? "slate"} className="hidden sm:inline-flex">
+              <Badge tone={ROLE_TONE[user.role] ?? "slate"} className="hidden sm:inline-flex text-[11px] py-0.5 px-2">
                 {titleCase(user.role)}
               </Badge>
 
@@ -272,11 +276,11 @@ export default function AppShell({ user, society, flats, children }) {
                   className="flex items-center gap-2 rounded-lg py-1 pr-2 pl-1 transition-colors hover:bg-slate-900/5 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
                 >
                   <Avatar name={user.name} size="sm" />
-                  <span className="hidden max-w-32 truncate text-sm font-semibold text-slate-700 sm:block">
+                  <span className="hidden max-w-32 truncate text-xs font-semibold text-slate-700 sm:block">
                     {user.name}
                   </span>
                   <ChevronDown
-                    className={`size-4 text-slate-400 transition-transform duration-200 ${menu ? "rotate-180" : ""}`}
+                    className={`size-3.5 text-slate-400 transition-transform duration-200 ${menu ? "rotate-180" : ""}`}
                   />
                 </button>
 
@@ -293,7 +297,7 @@ export default function AppShell({ user, society, flats, children }) {
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 px-4 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
           <div className="mx-auto w-full max-w-[90rem]">{children}</div>
         </main>
       </div>
@@ -310,20 +314,20 @@ function NavLink({ item, pathname }) {
   return (
     <Link
       href={item.href}
-                className={`group relative flex items-center gap-3.5 rounded-lg px-3 py-2.5 text-[15px] font-medium transition-all duration-150 ${
-                  active
-                    ? "bg-white/10 text-white"
-                    : "text-white/70 hover:bg-white/5 hover:text-white"
-                }`}
+      className={`group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
+        active
+          ? "bg-white/10 text-white"
+          : "text-white/70 hover:bg-white/5 hover:text-white"
+      }`}
     >
       {active ? (
         <span
           aria-hidden="true"
-          className="absolute top-1/2 -left-3 h-6 w-1 -translate-y-1/2 rounded-r-full bg-linear-to-b from-brand-300 to-accent-400"
+          className="absolute top-1/2 -left-2.5 h-5 w-1 -translate-y-1/2 rounded-r-full bg-linear-to-b from-brand-300 to-accent-400"
         />
       ) : null}
       <Icon
-        className={`size-5 shrink-0 transition-colors ${active ? "text-brand-200" : "text-white/45 group-hover:text-white/80"}`}
+        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-200" : "text-white/45 group-hover:text-white/80"}`}
       />
       {item.label}
     </Link>
@@ -334,23 +338,23 @@ function NavLink({ item, pathname }) {
 
 function UserPanel({ user, flats, onSignOut }) {
   return (
-    <div className="border-t border-white/10 p-4">
-      <div className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-3 ring-1 ring-white/8">
-        <Avatar name={user.name} size="md" ring />
+    <div className="border-t border-white/10 p-3">
+      <div className="flex items-center gap-2.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/8">
+        <Avatar name={user.name} size="sm" ring />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold text-white">{user.name}</p>
-          <p className="truncate text-xs text-white/45">{titleCase(user.role)}</p>
+          <p className="truncate text-xs font-semibold text-white">{user.name}</p>
+          <p className="truncate text-[11px] text-white/45">{titleCase(user.role)}</p>
         </div>
         <button
           onClick={onSignOut}
           aria-label="Sign out"
           title="Sign out"
-          className="inline-flex size-9 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
+          className="inline-flex size-7.5 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
         >
-          <LogOut className="size-4.5" />
+          <LogOut className="size-3.5" />
         </button>
       </div>
-      {flats ? <p className="mt-2.5 truncate px-3 text-xs text-white/35">{flats}</p> : null}
+      {flats ? <p className="mt-2 truncate px-2.5 text-[11px] text-white/35">{flats}</p> : null}
     </div>
   );
 }
@@ -415,5 +419,5 @@ function UserMenu({ user, flats, onSignOut, onClose }) {
     </div>
   );
 
-  return typeof document === "undefined" ? content : createPortal(content, document.body);
+  return content;
 }

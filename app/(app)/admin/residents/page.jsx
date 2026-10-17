@@ -24,7 +24,7 @@ export default async function AdminResidentsPage() {
   const flatWhere = { societyId: user.societyId };
   if (flatAdmin) flatWhere.id = { in: managedFlatIds };
 
-  const [residents, flats] = await Promise.all([
+  const [residents, flats, totalSocietyFlats] = await Promise.all([
     prisma.user.findMany({
       where: residentWhere,
       include: {
@@ -40,7 +40,15 @@ export default async function AdminResidentsPage() {
       select: { id: true, flatNumber: true, block: true },
       orderBy: [{ block: "asc" }, { flatNumber: "asc" }],
     }),
+    prisma.flat.count({ where: { societyId: user.societyId } }),
   ]);
 
-  return <ResidentsClient residents={residents} flats={flats} />;
+  return (
+    <ResidentsClient
+      userRole={user.role}
+      totalSocietyFlats={totalSocietyFlats}
+      residents={residents}
+      flats={flats}
+    />
+  );
 }

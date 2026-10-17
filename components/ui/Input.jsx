@@ -1,16 +1,16 @@
 import { ChevronDown } from "lucide-react";
 
 const BASE =
-  "w-full rounded-lg bg-white text-[14px] text-slate-900 ring-1 ring-slate-300 transition-[box-shadow,border-color] duration-150 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
+  "w-full rounded-lg bg-white text-[13px] text-slate-900 ring-1 ring-slate-300 transition-[box-shadow,border-color] duration-150 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
 
 const FIELD =
-  "h-11 px-3 focus:border-transparent aria-[invalid=true]:ring-rose-400 aria-[invalid=true]:focus:ring-rose-400";
+  "h-9.5 px-3 focus:border-transparent aria-[invalid=true]:ring-rose-400 aria-[invalid=true]:focus:ring-rose-400";
 
 function Shell({ label, error, hint, id, required, className = "", children, htmlFor }) {
   return (
     <div className={className}>
       {label ? (
-        <label htmlFor={htmlFor ?? id} className="mb-1.5 flex items-center gap-1 text-[13px] font-medium text-slate-700">
+        <label htmlFor={htmlFor ?? id} className="mb-1 flex items-center gap-1 text-xs font-medium text-slate-700">
           {label}
           {required ? <span className="text-rose-500">*</span> : null}
         </label>

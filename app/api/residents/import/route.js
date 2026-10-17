@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { requireSocietyAdmin, resolveSocietyScope } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
-import { unprocessable } from "@/lib/errors";
+import { unprocessable, forbidden } from "@/lib/errors";
 import { residentImportSchema } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,13 @@ const POSTImpl = handler(async (req) => {
   const user = await getSessionUser(req);
   requireSocietyAdmin(user);
   const societyId = resolveSocietyScope(user, null);
+
+  const flatCount = await prisma.flat.count({ where: { societyId } });
+  if (flatCount > 1) {
+    throw forbidden(
+      "Societies with multiple flats must use Flat Admins to manage residents. Please assign Flat Admins for each flat."
+    );
+  }
 
   const { rows } = residentImportSchema.parse(await readJson(req));
 

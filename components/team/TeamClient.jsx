@@ -27,7 +27,7 @@ const ROLE_TONE = {
 };
 
 const ROLE_OPTIONS = {
-  super: [ROLES.SOCIETY_ADMIN, ROLES.SECURITY_ADMIN],
+  super: [ROLES.SOCIETY_ADMIN],
   society: [ROLES.FLAT_ADMIN],
 };
 
@@ -124,16 +124,23 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
   return (
     <div className="stack">
       <PageHeader
-        title={isSuper ? "Admins" : "Flat admins"}
+        title={isSuper ? "Society Admins" : "Flat Admins"}
         description={
           isSuper
-            ? "Add a society admin or a security admin to a society. Each gets their own sign-in."
-            : "Flat admins manage the residents of a single flat. Each gets their own sign-in."
+            ? "Manage and add society admins across societies. Super admins only manage society admins."
+            : "Flat admins manage the residents of their assigned flat. Each gets their own sign-in."
+        }
+        meta={
+          isSuper ? (
+            <span className="text-[11px] font-semibold text-slate-500">
+              <span className="text-brand-700">{staff.length} society admin{staff.length === 1 ? "" : "s"}</span> total
+            </span>
+          ) : null
         }
         actions={
           <Button onClick={openNew}>
             <Plus />
-            {isSuper ? "Add admin" : "Add flat admin"}
+            {isSuper ? "Add society admin" : "Add flat admin"}
           </Button>
         }
       />
@@ -239,7 +246,7 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={isSuper ? "Add admin" : "Add flat admin"}
+        title={isSuper ? "Add society admin" : "Add flat admin"}
         description="They sign in with this email and password. The account is linked to Firebase immediately."
         footer={
           <>
@@ -247,7 +254,7 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
               Cancel
             </Button>
             <Button onClick={save} loading={saving}>
-              {isSuper ? "Add admin" : "Add flat admin"}
+              {isSuper ? "Add society admin" : "Add flat admin"}
             </Button>
           </>
         }
@@ -286,13 +293,13 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
 
           {isSuper ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Select id="role" label="Role" value={form.role} onChange={set("role")} error={errors.role}>
-                {roleOptions.map((r) => (
-                  <option key={r} value={r}>
-                    {titleCase(r)}
-                  </option>
-                ))}
-              </Select>
+              <Input
+                id="role"
+                label="Role"
+                value="Society Admin"
+                readOnly
+                disabled
+              />
               <Select
                 id="societyId"
                 label="Society"

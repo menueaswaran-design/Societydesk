@@ -23,11 +23,13 @@ const GETImpl = handler(async (req) => {
     throw forbidden("Admin access required");
   }
 
-  const where = { role: { in: MANAGED_ROLES } };
+  const where = {};
   if (isSuperAdmin(user)) {
+    where.role = ROLES.SOCIETY_ADMIN;
     const societyId = req.nextUrl.searchParams.get("societyId");
     if (societyId) where.societyId = String(societyId);
   } else {
+    where.role = ROLES.FLAT_ADMIN;
     where.societyId = user.societyId;
   }
 
@@ -49,7 +51,7 @@ const GETImpl = handler(async (req) => {
 /**
  * POST /api/staff
  *
- * SUPER_ADMIN  -> SOCIETY_ADMIN | SECURITY_ADMIN (choose a society)
+ * SUPER_ADMIN  -> SOCIETY_ADMIN only (choose a society)
  * SOCIETY_ADMIN -> FLAT_ADMIN (choose one of their flats)
  *
  * The Firebase login is provisioned first (it cannot join the Postgres
@@ -64,8 +66,8 @@ const POSTImpl = handler(async (req) => {
   let flatId = null;
 
   if (isSuperAdmin(user)) {
-    if (![ROLES.SOCIETY_ADMIN, ROLES.SECURITY_ADMIN].includes(body.role)) {
-      throw forbidden("Super admins can add society admins and security admins");
+    if (body.role !== ROLES.SOCIETY_ADMIN) {
+      throw forbidden("Super admins can only add society admins");
     }
     if (!body.societyId) throw badRequest("Choose which society this admin belongs to");
     const society = await prisma.society.findUnique({ where: { id: body.societyId } });

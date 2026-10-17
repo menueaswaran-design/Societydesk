@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Clock, CreditCard, Download, Receipt, Info } from "lucide-react";
+import { Clock, CreditCard, Download, Receipt, Info, ArrowRight } from "lucide-react";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
+import Button, { TextAction } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
 import { CardNote } from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
-import { TextAction } from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import PayCheckoutButton from "@/components/billing/PayCheckoutButton";
 import { openDocument } from "@/lib/client/api";
@@ -54,13 +55,39 @@ export default function ResidentPaymentsClient({ payments, pendingOrders = [], s
 
   return (
     <div className="stack">
+      {/* Route Clarity Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <Link
+          href="/resident/invoices"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+        >
+          <CreditCard className="size-3.5" />
+          Pay Monthly Bills
+        </Link>
+        <Link
+          href="/resident/payments"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-800 px-3.5 py-1.5 text-xs font-semibold text-white shadow-soft"
+        >
+          <Receipt className="size-3.5" />
+          Payment Receipts & History
+        </Link>
+      </div>
+
       <PageHeader
-        title="My payments"
-        description="A complete history of everything paid against your flats, with a receipt for each."
+        title="Payment Receipts & History"
+        description="A complete history of everything paid against your flats, with a downloadable receipt for each transaction."
         meta={
           <span className="text-[11px] font-semibold text-slate-500">
             {summary.count} {summary.count === 1 ? "payment" : "payments"} recorded
           </span>
+        }
+        actions={
+          <Link href="/resident/invoices">
+            <Button>
+              <CreditCard />
+              Pay monthly bills
+            </Button>
+          </Link>
         }
       />
 

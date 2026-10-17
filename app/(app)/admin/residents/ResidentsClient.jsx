@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Upload, Search, Pencil, LogOut, Users, CheckCircle2, FileSpreadsheet } from "lucide-react";
+import Link from "next/link";
+import { Plus, Upload, Search, Pencil, LogOut, Users, CheckCircle2, FileSpreadsheet, ShieldCheck, ArrowRight, Wallet } from "lucide-react";
 import Button, { IconButton } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
@@ -16,6 +17,7 @@ import SearchInput from "@/components/ui/SearchInput";
 import Tabs from "@/components/ui/Tabs";
 import Avatar from "@/components/ui/Avatar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { api, fieldErrors } from "@/lib/client/api";
 import { RESIDENT_TYPE } from "@/lib/constants";
 import { titleCase } from "@/lib/format";
@@ -34,8 +36,18 @@ const EMPTY = {
   isPrimary: true,
 };
 
-export default function ResidentsClient({ residents, flats }) {
+export default function ResidentsClient({
+  residents,
+  flats,
+  userRole = "SOCIETY_ADMIN",
+  totalSocietyFlats = 1,
+}) {
   const router = useRouter();
+  const isSocietyAdmin = userRole === "SOCIETY_ADMIN";
+  const isFlatAdmin = userRole === "FLAT_ADMIN";
+  const hasMultipleFlats = totalSocietyFlats > 1;
+  const canDirectlyManageResidents = isFlatAdmin || (isSocietyAdmin && !hasMultipleFlats);
+
   const [tab, setTab] = useState("list");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -45,6 +57,7 @@ export default function ResidentsClient({ residents, flats }) {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [vacating, setVacating] = useState(null);
+  const [paymentResident, setPaymentResident] = useState(null);
 
   const activeCount = residents.filter((r) => r.status === "ACTIVE").length;
 
@@ -122,30 +135,66 @@ export default function ResidentsClient({ residents, flats }) {
   return (
     <div className="stack">
       <PageHeader
-        title="Residents"
-        description="Everyone who lives in your society. They sign in with the email you record here."
+        title={isFlatAdmin ? "My Flat Residents" : "Residents"}
+        description={
+          isFlatAdmin
+            ? "Manage residents occupying your assigned flat."
+            : hasMultipleFlats
+            ? `This society has ${totalSocietyFlats} flats. Resident onboarding and management is handled by Flat Admins.`
+            : "Everyone who lives in your flat. They sign in with the email you record here."
+        }
         meta={
           <span className="text-[11px] font-semibold text-slate-500">
             <span className="text-emerald-700">{activeCount} active</span> · {residents.length} total
           </span>
         }
         actions={
-          <Button onClick={openNew}>
-            <Plus />
-            Add resident
-          </Button>
+          canDirectlyManageResidents ? (
+            <Button onClick={openNew}>
+              <Plus />
+              Add resident
+            </Button>
+          ) : (
+            <Button as="a" href="/admin/team">
+              <Plus />
+              Assign Flat Admin
+            </Button>
+          )
         }
       />
 
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        className="self-start"
-        tabs={[
-          { key: "list", label: "Residents", icon: Users, count: residents.length },
-          { key: "import", label: "Bulk import", icon: Upload },
-        ]}
-      />
+      {isSocietyAdmin && hasMultipleFlats ? (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 text-indigo-950">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 size-5 shrink-0 text-indigo-600" />
+            <div>
+              <p className="font-semibold text-sm">Flat Admin Management Active</p>
+              <p className="mt-0.5 text-xs text-indigo-700">
+                This society has {totalSocietyFlats} flats. Each flat&apos;s residents are onboarded and managed by their assigned Flat Admin.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/team"
+            className="inline-flex items-center gap-1.5 shrink-0 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-2xs"
+          >
+            <span>Create / Assign Flat Admins</span>
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+      ) : null}
+
+      {canDirectlyManageResidents ? (
+        <Tabs
+          value={tab}
+          onChange={setTab}
+          className="self-start"
+          tabs={[
+            { key: "list", label: "Residents", icon: Users, count: residents.length },
+            { key: "import", label: "Bulk import", icon: Upload },
+          ]}
+        />
+      ) : null}
 
       {tab === "import" ? (
         <ImportPanel onDone={() => { setTab("list"); router.refresh(); }} />
@@ -239,20 +288,31 @@ export default function ResidentsClient({ residents, flats }) {
                       <StatusBadge status={r.status} />
                     </Td>
                     <Td align="right">
-                      <RowActions>
-                        <IconButton variant="brand" label={`Edit ${r.name}`} onClick={() => openEdit(r)}>
-                          <Pencil />
-                        </IconButton>
-                        {r.status === "ACTIVE" ? (
+                      {canDirectlyManageResidents ? (
+                        <RowActions>
                           <IconButton
-                            variant="warning"
-                            label={`Vacate ${r.name}`}
-                            onClick={() => setVacating(r)}
+                            variant="success"
+                            label={`Record payment received from ${r.name}`}
+                            onClick={() => setPaymentResident(r)}
                           >
-                            <LogOut />
+                            <Wallet />
                           </IconButton>
-                        ) : null}
-                      </RowActions>
+                          <IconButton variant="brand" label={`Edit ${r.name}`} onClick={() => openEdit(r)}>
+                            <Pencil />
+                          </IconButton>
+                          {r.status === "ACTIVE" ? (
+                            <IconButton
+                              variant="warning"
+                              label={`Vacate ${r.name}`}
+                              onClick={() => setVacating(r)}
+                            >
+                              <LogOut />
+                            </IconButton>
+                          ) : null}
+                        </RowActions>
+                      ) : (
+                        <span className="text-[11px] font-medium text-slate-400 italic">Managed by Flat Admin</span>
+                      )}
                     </Td>
                   </Tr>
                 );
@@ -367,6 +427,20 @@ export default function ResidentsClient({ residents, flats }) {
           </>
         }
       />
+
+      {paymentResident ? (
+        <RecordPaymentModal
+          open={Boolean(paymentResident)}
+          onClose={() => setPaymentResident(null)}
+          flatId={paymentResident.flatResidents[0]?.flat.id}
+          flatLabel={
+            paymentResident.flatResidents[0]?.flat
+              ? `${paymentResident.flatResidents[0].flat.block ? `${paymentResident.flatResidents[0].flat.block}-` : ""}${paymentResident.flatResidents[0].flat.flatNumber}`
+              : ""
+          }
+          residentName={paymentResident.name}
+        />
+      ) : null}
     </div>
   );
 }

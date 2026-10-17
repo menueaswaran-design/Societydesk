@@ -1,5 +1,12 @@
+import { Inter } from "next/font/google";
 import "./globals.css";
 import FirebaseBootstrap from "@/components/FirebaseBootstrap";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata = {
   title: {
@@ -20,8 +27,8 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen">
+    <html lang="en" className={inter.variable}>
+      <body className={`${inter.className} min-h-screen text-slate-900 bg-[#F8FAFC] antialiased`}>
         <FirebaseBootstrap />
         {children}
       </body>

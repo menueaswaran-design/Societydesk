@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, User, ShieldCheck, Loader2, Mail, Lock, ArrowRight, FlaskConical } from "lucide-react";
+import { Building2, User, ShieldCheck, Loader2, Mail, Lock, ArrowRight, ArrowLeft, FlaskConical } from "lucide-react";
 import Button, { Spinner } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/Feedback";
@@ -24,7 +24,7 @@ const ROLE_BLURB = {
 };
 
 const FALLBACK_ACCOUNTS = [
-  { email: "superadmin@societydesk.local", name: "Platform Owner", role: "SUPER_ADMIN", societyId: null, society: null },
+  { email: "kumarvignesh865@gmail.com", name: "Kumar Vignesh", role: "SUPER_ADMIN", societyId: null, society: null },
   { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
   { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
 ];
@@ -87,7 +87,7 @@ export default function LoginForm({ next }) {
     setError(null);
     try {
       const user = await api.post("/api/auth/dev-login", { email });
-      go(next || homeForRole(user.role));
+      go(next && next !== "/" ? next : homeForRole(user.role));
     } catch (err) {
       setError(err.message);
       setPending(null);
@@ -111,7 +111,22 @@ export default function LoginForm({ next }) {
       // Middleware only looks at the __session cookie, so it has to exist
       // before the navigation or the redirect would bounce straight back here.
       await syncSessionCookie(credential.user);
-      go(next || "/");
+
+      let target = next && next !== "/" ? next : null;
+      if (!target) {
+        try {
+          const me = await api.get("/api/auth/me");
+          const role = me?.user?.role || me?.role;
+          target = homeForRole(role);
+        } catch {
+          if (form.email.toLowerCase().includes("superadmin") || form.email.toLowerCase() === "kumarvignesh865@gmail.com") {
+            target = "/super-admin/dashboard";
+          } else {
+            target = "/admin/dashboard";
+          }
+        }
+      }
+      go(target);
     } catch (err) {
       setError(firebaseMessage(err));
       setPending(null);
@@ -168,14 +183,14 @@ export default function LoginForm({ next }) {
                   <Icon className="size-4.5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-slate-900">
+                  <span className="block text-sm font-semibold text-slate-900 leading-tight">
                     {acc.name}
                   </span>
-                  <span className="mt-0.5 block truncate text-xs text-slate-500">
+                  <span className="mt-0.5 block text-xs text-slate-500 leading-tight">
                     {titleCase(acc.role)}
                     {acc.society ? ` · ${acc.society.name}` : " · Platform"}
                   </span>
-                  <span className="mt-0.5 block truncate text-[11px] text-slate-400">
+                  <span className="mt-1 block text-[11px] text-slate-400 leading-normal">
                     {ROLE_BLURB[acc.role]}
                   </span>
                 </span>
@@ -187,6 +202,16 @@ export default function LoginForm({ next }) {
               </button>
             );
           })}
+        </div>
+
+        <div className="pt-2 text-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900"
+          >
+            <ArrowLeft className="size-3.5" />
+            Back to landing page
+          </Link>
         </div>
       </div>
     );
@@ -231,7 +256,14 @@ export default function LoginForm({ next }) {
           Forgot password?
         </Link>
       </p>
-      <p className="mt-2 text-center text-xs text-slate-400">
+      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 font-semibold text-slate-500 transition-colors hover:text-slate-900"
+        >
+          <ArrowLeft className="size-3.5" />
+          Back to landing page
+        </Link>
         <button
           type="button"
           onClick={loadDevAccounts}
@@ -239,7 +271,7 @@ export default function LoginForm({ next }) {
         >
           Use a demo account
         </button>
-      </p>
+      </div>
     </form>
   );
 }

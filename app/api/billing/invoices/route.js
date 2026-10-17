@@ -24,9 +24,13 @@ const GETImpl = handler(async (req) => {
   const where = { societyId };
   if (status) where.status = status;
   if (period) where.billingPeriod = period;
-  if (flatId) where.flatId = flatId;
   if (!isStaff(user)) {
-    where.flatId = { in: await getResidentFlatIds(user.id) };
+    const flatIds = await getResidentFlatIds(user.id);
+    if (flatId) {
+      where.flatId = flatIds.includes(flatId) ? flatId : { in: [] };
+    } else {
+      where.flatId = { in: flatIds };
+    }
   }
 
   const [total, invoices, agg] = await Promise.all([

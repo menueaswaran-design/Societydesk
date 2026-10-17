@@ -108,34 +108,34 @@ export default async function AdminDashboardPage() {
         }
       />
 
-      <Card className="p-6 sm:p-8">
-        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[auto_1fr]">
+      <Card className="p-5 sm:p-6">
+        <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[auto_1fr]">
           <ProgressRing
             value={collection.collectionRate}
             tone={collection.collectionRate >= 90 ? "green" : collection.collectionRate >= 60 ? "amber" : "rose"}
-            size={164}
-            thickness={14}
+            size={144}
+            thickness={12}
             caption="of billed amount collected"
           />
 
           <div className="w-full min-w-0">
             <p className="label-xs">Collection this month</p>
-            <div className="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <div className="mt-2.5 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
-                <p className="text-[13px] text-slate-500">Billed</p>
-                <p className="tabular mt-1 text-[26px] leading-none font-semibold text-slate-900">
+                <p className="text-xs text-slate-500">Billed</p>
+                <p className="tabular mt-1 text-2xl font-bold tracking-tight text-slate-900">
                   {formatMoney(collection.billed)}
                 </p>
               </div>
               <div>
-                <p className="text-[13px] text-slate-500">Collected</p>
-                <p className="tabular mt-1 text-[26px] leading-none font-semibold text-emerald-600">
+                <p className="text-xs text-slate-500">Collected</p>
+                <p className="tabular mt-1 text-2xl font-bold tracking-tight text-emerald-600">
                   {formatMoney(collection.collected)}
                 </p>
               </div>
               <div>
-                <p className="text-[13px] text-slate-500">Outstanding</p>
-                <p className="tabular mt-1 text-[26px] leading-none font-semibold text-amber-600">
+                <p className="text-xs text-slate-500">Outstanding</p>
+                <p className="tabular mt-1 text-2xl font-bold tracking-tight text-amber-600">
                   {formatMoney(collection.outstanding)}
                 </p>
               </div>
@@ -176,19 +176,18 @@ export default async function AdminDashboardPage() {
 
       <QuickActions items={quickActions} />
 
-      <Card className="px-6 py-5 sm:px-8">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4">
+      <Card className="px-5 py-4 sm:px-6">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-4 md:grid-cols-4">
           {chips.map((c) => (
-            <div key={c.label} className="flex items-start gap-3">
-              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                <c.icon className="size-5" />
+            <div key={c.label} className="flex items-start gap-2.5">
+              <span className="inline-flex size-8.5 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <c.icon className="size-4" />
               </span>
               <div className="min-w-0">
-                <p className="label-xs">{c.label}</p>
-                <p className="tabular mt-1 truncate text-lg font-semibold text-slate-900">
+                <p className="tabular text-base font-bold text-slate-900 leading-tight">
                   {c.value}
                 </p>
-                <p className="mt-0.5 truncate text-xs text-slate-500">{c.hint}</p>
+                <p className="mt-0.5 text-xs text-slate-500 leading-normal">{c.hint}</p>
               </div>
             </div>
           ))}

@@ -31,7 +31,7 @@ export default async function SuperAdminDashboardPage() {
 
   const data = await getPlatformDashboard();
   const { cards } = data;
-  const adminCount = (cards.usersByRole.SOCIETY_ADMIN ?? 0) + (cards.usersByRole.SUPER_ADMIN ?? 0);
+  const societyAdminCount = cards.usersByRole.SOCIETY_ADMIN ?? 0;
 
   const snapshot = [
     {
@@ -47,9 +47,9 @@ export default async function SuperAdminDashboardPage() {
       icon: Users,
     },
     {
-      label: "Admins",
-      value: adminCount,
-      hint: "Society admins + owners",
+      label: "Society Admins",
+      value: societyAdminCount,
+      hint: "Active society admins",
       icon: ShieldCheck,
     },
     {
@@ -89,8 +89,8 @@ export default async function SuperAdminDashboardPage() {
     },
     {
       href: "/super-admin/team",
-      title: "Admins",
-      caption: "Review society admins",
+      title: "Society Admins",
+      caption: `${societyAdminCount} across platform`,
       icon: ShieldCheck,
       tone: "violet",
     },
@@ -116,18 +116,18 @@ export default async function SuperAdminDashboardPage() {
         }
       />
 
-      <Card className="p-6 sm:p-8">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 xl:grid-cols-6">
+      <Card className="p-5 sm:p-6">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-6 sm:grid-cols-3 xl:grid-cols-6">
           {snapshot.map((s) => (
             <div key={s.label}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <s.icon className="size-4 text-slate-400" />
                 <p className="label-xs">{s.label}</p>
               </div>
-              <p className="tabular mt-2 text-[30px] leading-none font-semibold text-slate-900">
+              <p className="tabular mt-2 text-2xl font-bold tracking-tight text-slate-900">
                 {s.value}
               </p>
-              <p className="mt-1.5 text-xs text-slate-500">{s.hint}</p>
+              <p className="mt-1 text-xs text-slate-500">{s.hint}</p>
             </div>
           ))}
         </div>

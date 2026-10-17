@@ -77,7 +77,7 @@
 
   /* Type */
   --font-sans:
-    "Inter", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -103,16 +103,16 @@
   html {
     -webkit-text-size-adjust: 100%;
     scrollbar-gutter: stable;
-    font-size: 16px;
+    font-size: 15px;
   }
 
   body {
     @apply text-slate-900 antialiased;
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    background-color: #F6F8FB;
-    font-size: 0.9375rem;
-    line-height: 1.6;
+    background-color: #F8FAFC;
+    font-size: 0.875rem;
+    line-height: 1.5;
   }
 
   h1,
@@ -165,7 +165,7 @@
 
 /* Page canvas block, one per section. */
 @utility stack {
-  @apply space-y-8;
+  @apply space-y-5 sm:space-y-6;
 }
 
 /* Numbers line up in tables and money columns. */
@@ -184,7 +184,7 @@
 }
 
 @utility row-item {
-  @apply flex items-center justify-between gap-4 px-5 py-3;
+  @apply flex items-center justify-between gap-4 px-4 py-2.5;
 }
 
 /* Professional sidebar - clean, solid navy */

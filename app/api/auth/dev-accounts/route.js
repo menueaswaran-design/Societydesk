@@ -13,7 +13,7 @@ const GETImpl = handler(async () => {
   if (!devBypassEnabled()) {
     // For demo purposes without DB, return fallback accounts
     return ok([
-      { email: "superadmin@societydesk.local", name: "Platform Owner", role: "SUPER_ADMIN", societyId: null, society: null },
+      { email: "kumarvignesh865@gmail.com", name: "Kumar Vignesh", role: "SUPER_ADMIN", societyId: null, society: null },
       { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
       { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
     ]);
@@ -21,7 +21,12 @@ const GETImpl = handler(async () => {
 
   try {
     const users = await prisma.user.findMany({
-      where: { authUid: { startsWith: "dev-" } },
+      where: {
+        OR: [
+          { authUid: { startsWith: "dev-" } },
+          { email: "kumarvignesh865@gmail.com" },
+        ],
+      },
       select: { email: true, name: true, role: true, societyId: true, society: { select: { name: true } } },
       orderBy: { role: "asc" },
     });
@@ -29,7 +34,7 @@ const GETImpl = handler(async () => {
   } catch (e) {
     // Fallback if DB not accessible
     return ok([
-      { email: "superadmin@societydesk.local", name: "Platform Owner", role: "SUPER_ADMIN", societyId: null, society: null },
+      { email: "kumarvignesh865@gmail.com", name: "Kumar Vignesh", role: "SUPER_ADMIN", societyId: null, society: null },
       { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
       { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
     ]);

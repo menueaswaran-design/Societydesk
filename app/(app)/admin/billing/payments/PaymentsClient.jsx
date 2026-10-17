@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, CreditCard, FileDown, Search, Receipt, Undo2, Info, Landmark } from "lucide-react";
+import { Clock, CreditCard, FileDown, Search, Receipt, Undo2, Info, Landmark, Plus } from "lucide-react";
 import Button, { IconButton, TextAction } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
@@ -15,6 +15,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
 import { FilterChips } from "@/components/ui/FilterPills";
 import CollectPaymentButton from "@/components/billing/CollectPaymentButton";
+import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { api, fieldErrors, openDocument } from "@/lib/client/api";
 import { formatDate, formatMoney, formatPeriod, titleCase } from "@/lib/format";
 
@@ -24,6 +25,7 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
   const [method, setMethod] = useState("");
   const [editing, setEditing] = useState(null);
   const [reversing, setReversing] = useState(null);
+  const [recordingOpen, setRecordingOpen] = useState(false);
   const [docError, setDocError] = useState(null);
 
   const methods = useMemo(
@@ -77,6 +79,12 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
           <span className="text-[11px] font-semibold text-slate-500">
             {visible.length} of {payments.length} shown
           </span>
+        }
+        actions={
+          <Button onClick={() => setRecordingOpen(true)}>
+            <Plus />
+            Record payment
+          </Button>
         }
       />
 
@@ -278,6 +286,7 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
 
       <EditModal payment={editing} onClose={() => setEditing(null)} />
       <ReverseModal payment={reversing} onClose={() => setReversing(null)} />
+      <RecordPaymentModal open={recordingOpen} onClose={() => setRecordingOpen(false)} />
     </div>
   );
 }

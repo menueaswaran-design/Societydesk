@@ -12,18 +12,18 @@ export function Card({ className = "", hover = false, children, ...props }) {
 export function CardHeader({ title, subtitle, action, icon: Icon, className = "" }) {
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5 ${className}`}
+      className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5 ${className}`}
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2.5">
         {Icon ? (
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 [&_svg]:size-4.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 [&_svg]:size-4">
             <Icon />
           </span>
         ) : null}
         <div className="min-w-0">
-          <h2 className="truncate text-[17px] font-semibold text-slate-900">{title}</h2>
+          <h2 className="truncate text-sm font-semibold text-slate-900 sm:text-[15px]">{title}</h2>
           {subtitle ? (
-            <p className="mt-0.5 truncate text-[13px] text-slate-500">{subtitle}</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">{subtitle}</p>
           ) : null}
         </div>
       </div>
@@ -33,7 +33,7 @@ export function CardHeader({ title, subtitle, action, icon: Icon, className = ""
 }
 
 export function CardBody({ className = "", children }) {
-  return <div className={`px-6 py-5 ${className}`}>{children}</div>;
+  return <div className={`px-5 py-4 ${className}`}>{children}</div>;
 }
 
 /** Neutral inset block used for summaries, amounts and inline notices. */
@@ -79,7 +79,7 @@ export function StatLine({ label, value, tone = "default" }) {
     brand: "text-brand-700",
   };
   return (
-    <div className="flex items-center justify-between gap-3 text-[15px]">
+    <div className="flex items-center justify-between gap-3 text-[13px] sm:text-sm">
       <span className="text-slate-500">{label}</span>
       <span className={`tabular font-semibold ${tones[tone] ?? tones.default}`}>{value}</span>
     </div>

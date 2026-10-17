@@ -69,6 +69,17 @@ const POSTImpl = handler(async (req) => {
 
   const body = residentCreateSchema.parse(await readJson(req));
 
+  // If society has multiple flats, flat admins must add residents.
+  // If society has only 1 flat, society admin can add residents directly.
+  if (isSocietyAdmin(user)) {
+    const flatCount = await prisma.flat.count({ where: { societyId } });
+    if (flatCount > 1) {
+      throw forbidden(
+        "Societies with multiple flats must use Flat Admins to manage residents. Please assign a Flat Admin for this flat."
+      );
+    }
+  }
+
   // A flat admin may only add residents to the flat they manage.
   if (isFlatAdmin(user)) {
     const managedFlatIds = await getResidentFlatIds(user.id);

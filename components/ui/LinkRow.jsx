@@ -13,9 +13,9 @@ export default function LinkRow({ href, title, caption, icon: Icon, className = 
         </span>
       ) : null}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-semibold text-slate-800">{title}</span>
+        <span className="block text-[13px] font-semibold text-slate-800 leading-snug">{title}</span>
         {caption ? (
-          <span className="mt-0.5 block truncate text-xs text-slate-500">{caption}</span>
+          <span className="mt-0.5 block text-xs text-slate-500 leading-snug">{caption}</span>
         ) : null}
       </span>
       <span className="shrink-0 text-xs font-semibold text-brand-600 transition-transform duration-150 group-hover:translate-x-0.5">

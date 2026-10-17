@@ -1,5 +1,6 @@
 import { getServerSession } from "@/lib/auth/server";
 import { requirePageRole } from "@/lib/auth/guard";
+import { getResidentFlatIds } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { PAYMENT_METHOD } from "@/lib/constants";
 import PaymentsClient from "./PaymentsClient";
@@ -9,14 +10,20 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentsPage() {
   const user = await getServerSession();
-  requirePageRole(user, "SOCIETY_ADMIN");
+  requirePageRole(user, ["SOCIETY_ADMIN", "FLAT_ADMIN"]);
+
+  const isFlatAdmin = user.role === "FLAT_ADMIN";
+  const assignedFlatIds = isFlatAdmin ? await getResidentFlatIds(user.id) : null;
+  const where = assignedFlatIds
+    ? { societyId: user.societyId, flatId: { in: assignedFlatIds } }
+    : { societyId: user.societyId };
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [payments, totals, monthTotals, methodTotals, pendingOrders] = await Promise.all([
     prisma.payment.findMany({
-      where: { societyId: user.societyId },
+      where,
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
         invoice: { select: { id: true, invoiceNumber: true, billingPeriod: true } },
@@ -27,18 +34,18 @@ export default async function AdminPaymentsPage() {
       take: 300,
     }),
     prisma.payment.aggregate({
-      where: { societyId: user.societyId },
+      where,
       _sum: { amount: true },
       _count: { _all: true },
     }),
     prisma.payment.aggregate({
-      where: { societyId: user.societyId, paymentDate: { gte: monthStart } },
+      where: { ...where, paymentDate: { gte: monthStart } },
       _sum: { amount: true },
       _count: { _all: true },
     }),
     prisma.payment.groupBy({
       by: ["paymentMethod"],
-      where: { societyId: user.societyId },
+      where,
       _sum: { amount: true },
       _count: { _all: true },
     }),
@@ -46,7 +53,7 @@ export default async function AdminPaymentsPage() {
     // none of this money has arrived yet - mixing the two would overstate
     // collections.
     prisma.paymentOrder.findMany({
-      where: { societyId: user.societyId, status: { in: ["CREATED", "EXPIRED"] } },
+      where: { ...where, status: { in: ["CREATED", "EXPIRED"] } },
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
         invoice: { select: { id: true, invoiceNumber: true } },

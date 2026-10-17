@@ -9,13 +9,13 @@ export default function PageHeader({ title, description, actions, meta, classNam
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-[30px] leading-tight font-semibold text-slate-900 sm:text-[34px]">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             {title}
           </h1>
           {meta}
         </div>
         {description ? (
-          <p className="mt-1.5 text-[15px] text-slate-500">{description}</p>
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">{description}</p>
         ) : null}
       </div>
       {actions ? (

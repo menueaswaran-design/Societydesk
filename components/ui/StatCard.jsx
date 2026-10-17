@@ -49,25 +49,25 @@ export function StatCard({
 
   return (
     <div
-      className={`surface animate-rise group relative overflow-hidden p-6 transition-shadow duration-150 hover:shadow-lift ${className}`}
+      className={`surface animate-rise group relative overflow-hidden p-5 transition-shadow duration-150 hover:shadow-lift ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="label-xs">{label}</p>
         {Icon ? (
           <span
-            className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 [&_svg]:size-5 ${t.chip}`}
+            className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105 [&_svg]:size-4.5 ${t.chip}`}
           >
             <Icon />
           </span>
         ) : null}
       </div>
 
-      <p className={`tabular mt-4 text-[30px] leading-none font-semibold tracking-tight ${t.value}`}>
+      <p className={`tabular mt-3 text-2xl font-bold tracking-tight ${t.value}`}>
         {value}
       </p>
 
-      {hint ? <p className="mt-2.5 text-[13px] text-slate-500">{hint}</p> : null}
-      {footer ? <div className="mt-4">{footer}</div> : null}
+      {hint ? <p className="mt-1.5 text-xs text-slate-500">{hint}</p> : null}
+      {footer ? <div className="mt-3">{footer}</div> : null}
     </div>
   );
 }

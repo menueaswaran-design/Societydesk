@@ -57,18 +57,100 @@ export default function ResidentInvoicesClient({ invoices }) {
   const overdue = invoices.filter((i) => i.outstanding > 0 && i.status === "OVERDUE").length;
   const flatCount = new Set(invoices.map((i) => i.flatId)).size;
 
+  const dueInvoices = useMemo(() => invoices.filter((i) => i.outstanding > 0), [invoices]);
+
   return (
     <div className="stack">
+      {/* Route Clarity Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <Link
+          href="/resident/invoices"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-800 px-3.5 py-1.5 text-xs font-semibold text-white shadow-soft"
+        >
+          <CreditCard className="size-3.5" />
+          Pay Monthly Bills
+        </Link>
+        <Link
+          href="/resident/payments"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+        >
+          <Receipt className="size-3.5" />
+          Payment Receipts & History
+        </Link>
+      </div>
+
       <PageHeader
-        title="My invoices"
-        description="Every bill raised against the flats linked to your account."
+        title="Monthly Maintenance Bills"
+        description="View bills for each month and pay securely online via Razorpay (UPI, Cards, Net Banking)."
         meta={
           <span className="text-[11px] font-semibold text-slate-500">
-            {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"} · {flatCount}{" "}
+            {invoices.length} {invoices.length === 1 ? "bill" : "bills"} · {flatCount}{" "}
             {flatCount === 1 ? "flat" : "flats"}
           </span>
         }
       />
+
+      {/* Due monthly maintenance spotlight */}
+      {dueInvoices.length > 0 ? (
+        <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-4 sm:p-5 shadow-soft">
+          <div className="flex items-center justify-between gap-3 border-b border-amber-200/60 pb-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                Action Required · Due Maintenance
+              </p>
+              <p className="text-xs text-amber-700">
+                You have {dueInvoices.length} monthly bill{dueInvoices.length === 1 ? "" : "s"} ready for payment
+              </p>
+            </div>
+            <span className="tabular text-lg font-bold text-amber-900">
+              Total Due: {formatMoney(outstanding)}
+            </span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {dueInvoices.map((inv) => {
+              const flatLabel = [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
+                .join("")
+                .replace(/-+$/, "");
+              return (
+                <div
+                  key={inv.id}
+                  className="flex flex-col justify-between rounded-lg bg-white p-3.5 ring-1 ring-amber-200 shadow-xs"
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-900">
+                        {formatPeriod(inv.billingPeriod)} Maintenance
+                      </span>
+                      <StatusBadge status={inv.status} />
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      {inv.invoiceNumber} {flatLabel ? `· Flat ${flatLabel}` : ""}
+                    </p>
+                    <div className="mt-2.5 flex items-baseline justify-between border-t border-slate-100 pt-2">
+                      <span className="text-xs text-slate-500">Due {formatDate(inv.dueDate)}</span>
+                      <span className="tabular text-base font-bold text-slate-900">
+                        {formatMoney(inv.outstanding)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <PayCheckoutButton
+                      invoiceId={inv.id}
+                      invoiceNumber={inv.invoiceNumber}
+                      amount={inv.outstanding}
+                      flatLabel={flatLabel}
+                      label="Pay via Razorpay"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total billed" value={formatMoney(billed)} icon={FileText} />
@@ -80,19 +162,12 @@ export default function ResidentInvoicesClient({ invoices }) {
           icon={Wallet}
         />
         <StatCard
-          label="Overdue invoices"
+          label="Overdue bills"
           value={overdue}
           tone={overdue > 0 ? "red" : "default"}
           icon={AlertOctagon}
         />
       </div>
-
-      {outstanding > 0 ? (
-        <CardNote tone="brand" icon={Info} title="Paying your dues">
-          Settle online with UPI, net banking or a card using <strong>Pay now</strong>, or pay at the
-          society office and have it recorded against the invoice.
-        </CardNote>
-      ) : null}
 
       <div className="surface overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 p-4">

@@ -11,7 +11,7 @@ import Button from "@/components/ui/Button";
 import PayCheckoutButton from "@/components/billing/PayCheckoutButton";
 import Welcome from "@/components/dashboard/Welcome";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { Wallet, AlertTriangle, Megaphone, CreditCard, FileText, Home, CheckCircle2, ArrowUpRight } from "lucide-react";
+import { Wallet, AlertTriangle, Megaphone, CreditCard, FileText, Home, CheckCircle2, ArrowUpRight, Receipt } from "lucide-react";
 
 export const metadata = { title: "My Dashboard" };
 export const dynamic = "force-dynamic";
@@ -46,7 +46,7 @@ export default async function ResidentDashboardPage() {
 
   const quickActions = [
     {
-      href: "/resident/payments",
+      href: "/resident/invoices",
       title: "Pay maintenance",
       caption: due ? `${formatMoney(due.outstanding)} payable` : "All dues are cleared",
       icon: Wallet,
@@ -73,13 +73,10 @@ export default async function ResidentDashboardPage() {
       badge: data.unreadNoticeCount > 0 ? `${data.unreadNoticeCount} new` : undefined,
     },
     {
-      href: "/resident/invoices",
-      title: "View invoices",
-      caption:
-        data.unpaidInvoices > 0
-          ? `${data.unpaidInvoices} outstanding bill${data.unpaidInvoices === 1 ? "" : "s"}`
-          : "Bills and receipts",
-      icon: FileText,
+      href: "/resident/payments",
+      title: "Payment receipts",
+      caption: "View and download receipts",
+      icon: Receipt,
       tone: "sky",
     },
   ];

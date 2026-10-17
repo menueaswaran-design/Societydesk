@@ -18,10 +18,10 @@ const VARIANTS = {
 };
 
 const SIZES = {
-  xs: "h-8 gap-1.5 px-3 text-xs",
-  sm: "h-9 gap-1.5 px-3.5 text-[13px]",
-  md: "h-11 gap-2 px-4.5 text-[15px]",
-  lg: "h-12 gap-2 px-5 text-base",
+  xs: "h-7.5 gap-1.5 px-2.5 text-xs font-medium",
+  sm: "h-8.5 gap-1.5 px-3 text-xs font-medium",
+  md: "h-9.5 gap-2 px-3.5 text-[13px] font-medium",
+  lg: "h-10 gap-2 px-4 text-sm font-semibold",
 };
 
 export default function Button({

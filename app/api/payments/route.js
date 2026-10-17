@@ -1,6 +1,7 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireSocietyAdmin, resolveSocietyScope, getResidentFlatIds, isStaff } from "@/lib/auth/permissions";
+import { resolveSocietyScope, getResidentFlatIds, isStaff, isFlatAdmin } from "@/lib/auth/permissions";
+import { forbidden } from "@/lib/errors";
 import { prisma } from "@/lib/db/prisma";
 import { recordPayment } from "@/lib/billing/invoice";
 import { paymentCreateSchema } from "@/lib/validation/schemas";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/payments
- * Admin: society-wide. Resident: their own flats' payments.
+ * Admin: society-wide. Flat admin / Resident: their own flats' payments.
  */
 const GETImpl = handler(async (req) => {
   const user = await getSessionUser(req);
@@ -19,7 +20,9 @@ const GETImpl = handler(async (req) => {
   const pageSize = Math.min(200, Number(sp.get("pageSize") || 25));
 
   const where = { societyId };
-  if (!isStaff(user)) where.flatId = { in: await getResidentFlatIds(user.id) };
+  if (isFlatAdmin(user) || !isStaff(user)) {
+    where.flatId = { in: await getResidentFlatIds(user.id) };
+  }
   if (sp.get("flatId")) where.flatId = sp.get("flatId");
   if (sp.get("invoiceId")) where.invoiceId = sp.get("invoiceId");
 
@@ -54,13 +57,27 @@ const GETImpl = handler(async (req) => {
 /**
  * POST /api/payments  (section 21)
  * Records a payment, updates the invoice balance/status and issues a receipt.
+ * Permitted for Society Admins, and Flat Admins for their assigned flat.
  */
 const POSTImpl = handler(async (req) => {
   const user = await getSessionUser(req);
-  requireSocietyAdmin(user);
+  if (!isStaff(user) && !isFlatAdmin(user)) {
+    throw forbidden("Staff or flat admin access required");
+  }
   const societyId = resolveSocietyScope(user, null);
 
   const body = paymentCreateSchema.parse(await readJson(req));
+
+  if (isFlatAdmin(user)) {
+    const assignedFlatIds = await getResidentFlatIds(user.id);
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: body.invoiceId },
+      select: { flatId: true, societyId: true },
+    });
+    if (!invoice || invoice.societyId !== societyId || !assignedFlatIds.includes(invoice.flatId)) {
+      throw forbidden("You can only record payments for your assigned flat");
+    }
+  }
 
   const result = await recordPayment({
     societyId,
