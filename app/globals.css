@@ -111,8 +111,8 @@
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     background-color: #F6F8FB;
-    font-size: 0.875rem;
-    line-height: 1.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
   }
 
   h1,
@@ -165,7 +165,7 @@
 
 /* Page canvas block, one per section. */
 @utility stack {
-  @apply space-y-6;
+  @apply space-y-8;
 }
 
 /* Numbers line up in tables and money columns. */
@@ -175,7 +175,7 @@
 }
 
 @utility label-xs {
-  @apply text-[11px] font-semibold tracking-[0.08em] text-slate-500 uppercase;
+  @apply text-xs font-semibold tracking-[0.06em] text-slate-500 uppercase;
 }
 
 /* Vertical rhythm for definition lists and summary rows. */

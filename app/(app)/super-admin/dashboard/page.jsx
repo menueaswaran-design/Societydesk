@@ -4,21 +4,22 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { getPlatformDashboard } from "@/lib/queries/dashboard";
 import { formatDate } from "@/lib/format";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { StatCard } from "@/components/ui/StatCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/Feedback";
-import PageHeader from "@/components/ui/PageHeader";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
 import Button from "@/components/ui/Button";
+import Welcome from "@/components/dashboard/Welcome";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 import {
+  Plus,
   Building2,
+  Building,
   Users,
+  ShieldCheck,
   Home,
   FileText,
   AlertTriangle,
   ArrowUpRight,
-  ShieldCheck,
-  Plus,
 } from "lucide-react";
 
 export const metadata = { title: "Platform" };
@@ -30,53 +31,109 @@ export default async function SuperAdminDashboardPage() {
 
   const data = await getPlatformDashboard();
   const { cards } = data;
+  const adminCount = (cards.usersByRole.SOCIETY_ADMIN ?? 0) + (cards.usersByRole.SUPER_ADMIN ?? 0);
+
+  const snapshot = [
+    {
+      label: "Societies",
+      value: cards.societies,
+      hint: `${cards.activeSocieties} active · ${cards.inactiveSocieties} inactive`,
+      icon: Building,
+    },
+    {
+      label: "Residents",
+      value: cards.usersByRole.RESIDENT ?? 0,
+      hint: "Accounts on the platform",
+      icon: Users,
+    },
+    {
+      label: "Admins",
+      value: adminCount,
+      hint: "Society admins + owners",
+      icon: ShieldCheck,
+    },
+    {
+      label: "Flats",
+      value: cards.flats,
+      hint: "Across every society",
+      icon: Home,
+    },
+    {
+      label: "Invoices raised",
+      value: cards.invoices,
+      hint: "Bills sent to residents",
+      icon: FileText,
+    },
+    {
+      label: "Complaints",
+      value: cards.complaints,
+      hint: "Raised by residents",
+      icon: AlertTriangle,
+    },
+  ];
+
+  const quickActions = [
+    {
+      href: "/super-admin/societies",
+      title: "Create society",
+      caption: "Onboard a new housing society",
+      icon: Plus,
+      tone: "brand",
+    },
+    {
+      href: "/super-admin/societies",
+      title: "Manage societies",
+      caption: `${cards.societies} on the platform`,
+      icon: Building2,
+      tone: "sky",
+    },
+    {
+      href: "/super-admin/team",
+      title: "Admins",
+      caption: "Review society admins",
+      icon: ShieldCheck,
+      tone: "violet",
+    },
+  ];
 
   return (
     <div className="stack">
-      <PageHeader
-        title="Platform"
+      <Welcome
+        eyebrow="Platform"
+        title="Platform overview"
         description="Create societies and assign an admin to manage flats and residents."
-        meta={
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
-            <ShieldCheck className="size-3.5" />
+        badge={
+          <span className="inline-flex items-center gap-1.5">
+            <ShieldCheck className="size-4 text-brand-300" />
             Platform owner
           </span>
         }
         actions={
-          <Button as="a" href="/super-admin/societies" variant="secondary" size="sm">
+          <Button as="a" href="/super-admin/societies" variant="secondary" size="lg">
             <Plus />
             New society
           </Button>
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Societies"
-          value={cards.societies}
-          hint={`${cards.activeSocieties} active · ${cards.inactiveSocieties} inactive`}
-          icon={Building2}
-          tone="brand"
-        />
-        <StatCard
-          label="Residents"
-          value={cards.usersByRole.RESIDENT ?? 0}
-          hint="Resident accounts on the platform"
-          icon={Users}
-        />
-        <StatCard
-          label="Admins"
-          value={(cards.usersByRole.SOCIETY_ADMIN ?? 0) + (cards.usersByRole.SUPER_ADMIN ?? 0)}
-          hint="Society admins + platform owners"
-          icon={ShieldCheck}
-        />
-        <StatCard label="Flats" value={cards.flats} hint="Across every society" icon={Home} />
-      </div>
+      <Card className="p-6 sm:p-8">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 xl:grid-cols-6">
+          {snapshot.map((s) => (
+            <div key={s.label}>
+              <div className="flex items-center gap-2">
+                <s.icon className="size-4 text-slate-400" />
+                <p className="label-xs">{s.label}</p>
+              </div>
+              <p className="tabular mt-2 text-[30px] leading-none font-semibold text-slate-900">
+                {s.value}
+              </p>
+              <p className="mt-1.5 text-xs text-slate-500">{s.hint}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCard label="Invoices raised" value={cards.invoices} icon={FileText} tone="blue" />
-        <StatCard label="Complaints raised" value={cards.complaints} icon={AlertTriangle} tone="violet" />
-      </div>
+      <QuickActions items={quickActions} />
 
       <Card>
         <CardHeader
@@ -86,10 +143,10 @@ export default async function SuperAdminDashboardPage() {
           action={
             <Link
               href="/super-admin/societies"
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50"
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-brand-700 transition-colors hover:bg-brand-50"
             >
               Manage societies
-              <ArrowUpRight className="size-3.5" />
+              <ArrowUpRight className="size-4" />
             </Link>
           }
         />

@@ -1,17 +1,27 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireSocietyAdmin, resolveSocietyScope } from "@/lib/auth/permissions";
+import { requireResidentManager, resolveSocietyScope, getResidentFlatIds, isFlatAdmin } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
-import { notFound, badRequest } from "@/lib/errors";
+import { notFound, badRequest, forbidden } from "@/lib/errors";
 import { residentUpdateSchema } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
+
+/** A flat admin may only touch residents linked to a flat they manage. */
+async function assertFlatAdminAccess(user, residentId) {
+  if (!isFlatAdmin(user)) return;
+  const managedFlatIds = await getResidentFlatIds(user.id);
+  const link = await prisma.flatResident.findFirst({
+    where: { userId: residentId, endDate: null, flatId: { in: managedFlatIds } },
+  });
+  if (!link) throw forbidden("You can only manage residents in the flat you manage");
+}
 
 
 /** GET /api/residents/:id */
 const GETImpl = handler(async (req, { params }) => {
   const user = await getSessionUser(req);
-  requireSocietyAdmin(user);
+  requireResidentManager(user);
   const societyId = resolveSocietyScope(user, null);
   const { id } = await params;
 
@@ -25,6 +35,7 @@ const GETImpl = handler(async (req, { params }) => {
     },
   });
   if (!resident) throw notFound("Resident");
+  await assertFlatAdminAccess(user, resident.id);
 
   return ok(resident);
 });
@@ -32,7 +43,7 @@ const GETImpl = handler(async (req, { params }) => {
 /** PATCH /api/residents/:id - update profile / status / flat mapping. */
 const PATCHImpl = handler(async (req, { params }) => {
   const user = await getSessionUser(req);
-  requireSocietyAdmin(user);
+  requireResidentManager(user);
   const societyId = resolveSocietyScope(user, null);
   const { id } = await params;
 
@@ -40,6 +51,15 @@ const PATCHImpl = handler(async (req, { params }) => {
 
   const existing = await prisma.user.findFirst({ where: { id, societyId } });
   if (!existing) throw notFound("Resident");
+  await assertFlatAdminAccess(user, existing.id);
+
+  // A flat admin cannot move a resident out of the flat they manage.
+  if (isFlatAdmin(user) && body.flatId) {
+    const managedFlatIds = await getResidentFlatIds(user.id);
+    if (!managedFlatIds.includes(body.flatId)) {
+      throw forbidden("You can only manage residents in the flat you manage");
+    }
+  }
 
   const updated = await prisma.$transaction(async (tx) => {
     const row = await tx.user.update({
@@ -111,7 +131,7 @@ const PATCHImpl = handler(async (req, { params }) => {
 /** DELETE /api/residents/:id - vacate the flat, never delete billing history. */
 const DELETEImpl = handler(async (req, { params }) => {
   const user = await getSessionUser(req);
-  requireSocietyAdmin(user);
+  requireResidentManager(user);
   const societyId = resolveSocietyScope(user, null);
   const { id } = await params;
 
@@ -119,6 +139,7 @@ const DELETEImpl = handler(async (req, { params }) => {
 
   const existing = await prisma.user.findFirst({ where: { id, societyId } });
   if (!existing) throw notFound("Resident");
+  await assertFlatAdminAccess(user, existing.id);
 
   await prisma.$transaction(async (tx) => {
     await tx.flatResident.updateMany({

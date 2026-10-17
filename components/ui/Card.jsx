@@ -12,16 +12,16 @@ export function Card({ className = "", hover = false, children, ...props }) {
 export function CardHeader({ title, subtitle, action, icon: Icon, className = "" }) {
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 ${className}`}
+      className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5 ${className}`}
     >
       <div className="flex min-w-0 items-center gap-3">
         {Icon ? (
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 [&_svg]:size-4">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 [&_svg]:size-4.5">
             <Icon />
           </span>
         ) : null}
         <div className="min-w-0">
-          <h2 className="truncate text-[16px] font-semibold text-slate-900">{title}</h2>
+          <h2 className="truncate text-[17px] font-semibold text-slate-900">{title}</h2>
           {subtitle ? (
             <p className="mt-0.5 truncate text-[13px] text-slate-500">{subtitle}</p>
           ) : null}
@@ -33,7 +33,7 @@ export function CardHeader({ title, subtitle, action, icon: Icon, className = ""
 }
 
 export function CardBody({ className = "", children }) {
-  return <div className={`px-5 py-4 ${className}`}>{children}</div>;
+  return <div className={`px-6 py-5 ${className}`}>{children}</div>;
 }
 
 /** Neutral inset block used for summaries, amounts and inline notices. */
@@ -55,7 +55,7 @@ export function CardNote({ tone = "slate", icon: Icon, title, children, classNam
 
   return (
     <div
-      className={`flex gap-3 rounded-lg px-4 py-3 text-sm ring-1 ${tones[tone] ?? tones.slate} ${className}`}
+      className={`flex gap-3 rounded-lg px-4 py-3.5 text-sm ring-1 ${tones[tone] ?? tones.slate} ${className}`}
     >
       {Icon ? <Icon className={`mt-0.5 size-4 shrink-0 ${iconTones[tone]}`} /> : null}
       <div className="min-w-0 flex-1">
@@ -79,7 +79,7 @@ export function StatLine({ label, value, tone = "default" }) {
     brand: "text-brand-700",
   };
   return (
-    <div className="flex items-center justify-between gap-3 text-sm">
+    <div className="flex items-center justify-between gap-3 text-[15px]">
       <span className="text-slate-500">{label}</span>
       <span className={`tabular font-semibold ${tones[tone] ?? tones.default}`}>{value}</span>
     </div>

@@ -1,6 +1,6 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireSocietyAdmin, resolveSocietyScope, getResidentFlatIds, isStaff, requireFlatAccess } from "@/lib/auth/permissions";
+import { resolveSocietyScope, getResidentFlatIds, isComplaintManager, requireFlatAccess } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { badRequest } from "@/lib/errors";
@@ -17,7 +17,7 @@ const GETImpl = handler(async (req) => {
 
   const where = { societyId };
   if (status) where.status = status;
-  if (!isStaff(user)) where.flatId = { in: await getResidentFlatIds(user.id) };
+  if (!isComplaintManager(user)) where.flatId = { in: await getResidentFlatIds(user.id) };
   if (sp.get("priority")) where.priority = sp.get("priority");
   if (q) {
     where.OR = [{ title: { contains: q } }, { description: { contains: q } }];
@@ -56,7 +56,7 @@ const POSTImpl = handler(async (req) => {
 
   let flatId = body.flatId;
 
-  if (isStaff(user)) {
+  if (isComplaintManager(user)) {
     if (!flatId) throw badRequest("Select the flat this complaint is for");
     await requireFlatAccess(user, flatId, { societyId });
   } else {

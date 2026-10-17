@@ -1,6 +1,6 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { resolveSocietyScope, requireFlatAccess, isStaff } from "@/lib/auth/permissions";
+import { resolveSocietyScope, requireFlatAccess, isComplaintManager } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { notFound, forbidden, badRequest } from "@/lib/errors";
@@ -23,14 +23,14 @@ const POSTImpl = handler(async (req, { params }) => {
   const complaint = await prisma.complaint.findFirst({ where: { id, societyId } });
   if (!complaint) throw notFound("Complaint");
 
-  if (!isStaff(user)) {
+  if (!isComplaintManager(user)) {
     await requireFlatAccess(user, complaint.flatId, { societyId });
     if (complaint.createdById !== user.id) {
       throw forbidden("You can only comment on your own complaint");
     }
   }
 
-  if (["CLOSED"].includes(complaint.status) && !isStaff(user)) {
+  if (["CLOSED"].includes(complaint.status) && !isComplaintManager(user)) {
     throw badRequest("This complaint is closed");
   }
 

@@ -1,6 +1,6 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireSocietyAdmin, resolveSocietyScope } from "@/lib/auth/permissions";
+import { requireComplaintManager, resolveSocietyScope } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { notFound, badRequest } from "@/lib/errors";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  */
 const POSTImpl = handler(async (req, { params }) => {
   const user = await getSessionUser(req);
-  requireSocietyAdmin(user);
+  requireComplaintManager(user);
   const societyId = resolveSocietyScope(user, null);
   const { id } = await params;
 

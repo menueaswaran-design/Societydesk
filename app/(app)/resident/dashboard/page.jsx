@@ -3,26 +3,25 @@ import { getServerSession } from "@/lib/auth/server";
 import { requirePageRole } from "@/lib/auth/guard";
 import { getResidentDashboard } from "@/lib/queries/dashboard";
 import { formatDate, formatMoney, formatPeriod, titleCase } from "@/lib/format";
-import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, StatLine } from "@/components/ui/Card";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/Feedback";
-import PageHeader from "@/components/ui/PageHeader";
 import { ProgressRing } from "@/components/ui/Progress";
+import Button from "@/components/ui/Button";
 import PayCheckoutButton from "@/components/billing/PayCheckoutButton";
-import {
-  Wallet,
-  AlertTriangle,
-  Megaphone,
-  CreditCard,
-  Home,
-  ArrowUpRight,
-  FileText,
-  Sparkles,
-} from "lucide-react";
+import Welcome from "@/components/dashboard/Welcome";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { Wallet, AlertTriangle, Megaphone, CreditCard, FileText, Home, CheckCircle2, ArrowUpRight } from "lucide-react";
 
 export const metadata = { title: "My Dashboard" };
 export const dynamic = "force-dynamic";
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 export default async function ResidentDashboardPage() {
   const user = await getServerSession();
@@ -41,184 +40,161 @@ export default async function ResidentDashboardPage() {
     ? labelFor(data.currentDue.flatId, data.currentDue.flat?.flatNumber)
     : "";
 
+  const due = data.currentDue;
+  const paidPct =
+    due && due.totalAmount > 0 ? Math.round((due.paidAmount / due.totalAmount) * 100) : 100;
+
+  const quickActions = [
+    {
+      href: "/resident/payments",
+      title: "Pay maintenance",
+      caption: due ? `${formatMoney(due.outstanding)} payable` : "All dues are cleared",
+      icon: Wallet,
+      tone: due ? (due.isOverdue ? "red" : "amber") : "green",
+      badge: due ? "Pay now" : "Clear",
+    },
+    {
+      href: "/resident/complaints",
+      title: "Raise a complaint",
+      caption:
+        data.activeComplaints.length > 0
+          ? `${data.activeComplaints.length} active in your flat`
+          : "Something needs fixing?",
+      icon: AlertTriangle,
+      tone: data.activeComplaints.length > 0 ? "red" : "brand",
+    },
+    {
+      href: "/resident/notices",
+      title: "Read notices",
+      caption:
+        data.unreadNoticeCount > 0 ? `${data.unreadNoticeCount} new for you` : "You're all caught up",
+      icon: Megaphone,
+      tone: "violet",
+      badge: data.unreadNoticeCount > 0 ? `${data.unreadNoticeCount} new` : undefined,
+    },
+    {
+      href: "/resident/invoices",
+      title: "View invoices",
+      caption:
+        data.unpaidInvoices > 0
+          ? `${data.unpaidInvoices} outstanding bill${data.unpaidInvoices === 1 ? "" : "s"}`
+          : "Bills and receipts",
+      icon: FileText,
+      tone: "sky",
+    },
+  ];
+
   return (
     <div className="stack">
-      <PageHeader
-        title={`Hello, ${firstName}`}
+      <Welcome
+        eyebrow={flatLabels.join(", ") || "Your home"}
+        title={`${greeting()}, ${firstName}`}
         description={
-          flatLabels.length
-            ? `${flatLabels.join(", ")} · everything for your home in one place`
+          data.flats.length
+            ? "Everything you need for your home, in one place."
             : "Your resident portal"
         }
-        meta={
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700">
-            <Sparkles className="size-3.5" />
-            Resident
-          </span>
+        badge={
+          data.unreadNoticeCount > 0
+            ? `${data.unreadNoticeCount} unread notice${data.unreadNoticeCount === 1 ? "" : "s"}`
+            : "All caught up"
+        }
+        actions={
+          due ? (
+            <PayCheckoutButton
+              invoiceId={due.id}
+              invoiceNumber={due.invoiceNumber}
+              amount={due.outstanding}
+              flatLabel={dueFlatLabel}
+              size="lg"
+              label="Pay now"
+            />
+          ) : (
+            <Button as="a" href="/resident/invoices" variant="secondary" size="lg">
+              View invoices
+            </Button>
+          )
         }
       />
 
-      {/* No flat: the resident cannot do anything else, so say so plainly. */}
       {!data.flats.length ? (
         <Card>
-          <EmptyState
-            icon={Home}
-            title="No flat is linked to your account"
-            description={data.message}
-          />
+          <EmptyState icon={Home} title="No flat is linked to your account" description={data.message} />
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              label="Current due"
-              value={formatMoney(data.currentDue?.outstanding ?? 0)}
-              hint={
-                data.currentDue ? `Due ${formatDate(data.currentDue.dueDate)}` : "Nothing outstanding"
-              }
-              tone={data.currentDue ? (data.currentDue.isOverdue ? "red" : "amber") : "green"}
-              icon={Wallet}
-            />
-            <StatCard
-              label="Total outstanding"
-              value={formatMoney(data.totalOutstanding)}
-              hint={`${data.unpaidInvoices} unpaid ${data.unpaidInvoices === 1 ? "invoice" : "invoices"}`}
-              tone={data.totalOutstanding > 0 ? "amber" : "green"}
-              icon={FileText}
-            />
-            <StatCard
-              label="Active complaints"
-              value={data.activeComplaints.length}
-              hint={
-                data.activeComplaints.some((c) => c.status === "RESOLVED")
-                  ? "One waiting on your confirmation"
-                  : "None waiting on you"
-              }
-              tone={data.activeComplaints.length > 0 ? "blue" : "default"}
-              icon={AlertTriangle}
-            />
-            <StatCard
-              label="Unread notices"
-              value={data.unreadNoticeCount}
-              hint={data.unreadNoticeCount > 0 ? "Tap through to clear" : "All caught up"}
-              tone={data.unreadNoticeCount > 0 ? "violet" : "default"}
-              icon={Megaphone}
-            />
-          </div>
+          {due ? (
+            <Card className="p-6 sm:p-8">
+              <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[auto_1fr_auto]">
+                <ProgressRing
+                  value={paidPct}
+                  tone={due.isOverdue ? "rose" : "amber"}
+                  size={154}
+                  thickness={13}
+                  label={formatMoney(due.outstanding)}
+                  caption="still payable"
+                />
 
-          <Card className="overflow-hidden">
-            <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[auto_1fr_1fr] lg:items-center">
-              {data.currentDue ? (
-                <div className="flex items-center gap-6">
-                  <ProgressRing
-                    value={
-                      data.currentDue.totalAmount > 0
-                        ? (data.currentDue.paidAmount / data.currentDue.totalAmount) * 100
-                        : 100
-                    }
-                    tone={data.currentDue.isOverdue ? "rose" : "amber"}
-                    size={132}
-                    thickness={11}
-                    label={formatMoney(data.currentDue.outstanding)}
-                    caption="still payable"
-                  />
-                </div>
-              ) : (
-                <ProgressRing value={100} tone="green" size={132} thickness={11} caption="all settled" />
-              )}
-
-              {data.currentDue ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="label-xs">Current due</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">
-                      Invoice {data.currentDue.invoiceNumber}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatPeriod(data.currentDue.billingPeriod)} · {dueFlatLabel}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-900/5">
-                    <StatLine label="Billed" value={formatMoney(data.currentDue.totalAmount)} tone="muted" />
-                    <StatLine label="Paid so far" value={formatMoney(data.currentDue.paidAmount)} tone="green" />
+                <div className="min-w-0">
+                  <p className="label-xs">Your maintenance</p>
+                  <p className="mt-1 text-xl font-semibold text-slate-900">
+                    Invoice {due.invoiceNumber}
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-slate-500">
+                    {formatPeriod(due.billingPeriod)} · {dueFlatLabel} · Due {formatDate(due.dueDate)}
+                  </p>
+                  <div className="mt-4 max-w-md space-y-2 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-900/5">
+                    <StatLine label="Billed" value={formatMoney(due.totalAmount)} tone="muted" />
+                    <StatLine label="Paid so far" value={formatMoney(due.paidAmount)} tone="green" />
                     <StatLine
                       label="Payable"
-                      value={formatMoney(data.currentDue.outstanding)}
-                      tone={data.currentDue.isOverdue ? "rose" : "amber"}
+                      value={formatMoney(due.outstanding)}
+                      tone={due.isOverdue ? "rose" : "amber"}
                     />
                   </div>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-lg font-semibold text-slate-900">You are all settled</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    No pending maintenance for your flat. New invoices will appear here.
-                  </p>
+
+                <div className="flex flex-col gap-3 lg:items-end">
+                  <StatusBadge status={due.isOverdue ? "OVERDUE" : due.status} />
+                  <PayCheckoutButton
+                    invoiceId={due.id}
+                    invoiceNumber={due.invoiceNumber}
+                    amount={due.outstanding}
+                    flatLabel={dueFlatLabel}
+                    size="lg"
+                    label="Pay now"
+                  />
+                  <Link
+                    href="/resident/invoices"
+                    className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-700 transition-colors hover:text-brand-800"
+                  >
+                    All invoices
+                    <ArrowUpRight className="size-4" />
+                  </Link>
                 </div>
-              )}
-
-              <div className="flex flex-col gap-2 lg:items-end lg:justify-center">
-                {data.currentDue ? (
-                  <>
-                    <StatusBadge status={data.currentDue.isOverdue ? "OVERDUE" : data.currentDue.status} />
-                    <PayCheckoutButton
-                      invoiceId={data.currentDue.id}
-                      invoiceNumber={data.currentDue.invoiceNumber}
-                      amount={data.currentDue.outstanding}
-                      flatLabel={dueFlatLabel}
-                      size="lg"
-                      label="Pay now"
-                    />
-                  </>
-                ) : null}
-                <Link
-                  href="/resident/invoices"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 transition-colors hover:text-brand-800"
-                >
-                  All invoices
-                  <ArrowUpRight className="size-3.5" />
-                </Link>
               </div>
-            </div>
-          </Card>
-
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <Card>
-              <CardHeader
-                title="Active complaints"
-                subtitle="Not yet closed"
-                icon={AlertTriangle}
-                action={<ViewAll href="/resident/complaints" />}
-              />
-              {data.activeComplaints.length === 0 ? (
-                <EmptyState
-                  icon={AlertTriangle}
-                  title="Nothing reported"
-                  description="Raise a complaint if something in your flat needs attention."
-                  compact
-                />
-              ) : (
-                <ul className="divide-y divide-slate-100">
-                  {data.activeComplaints.map((c) => (
-                    <li
-                      key={c.id}
-                      className="flex items-start justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50/70"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-900">{c.title}</p>
-                        <p className="truncate text-xs text-slate-500">
-                          {titleCase(c.category)} · {formatDate(c.createdAt)}
-                          {c.assignedTo?.name ? ` · ${c.assignedTo.name}` : ""}
-                        </p>
-                      </div>
-                      <StatusBadge status={c.status} />
-                    </li>
-                  ))}
-                </ul>
-              )}
             </Card>
+          ) : (
+            <Card className="flex flex-col items-start gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
+              <span className="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-600/15">
+                <CheckCircle2 className="size-7" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xl font-semibold text-slate-900">You are all settled</p>
+                <p className="mt-1 text-[15px] text-slate-500">
+                  No pending maintenance for your home right now. New invoices will show up here
+                  automatically.
+                </p>
+              </div>
+              <Button as="a" href="/resident/invoices" variant="secondary">
+                View invoices
+              </Button>
+            </Card>
+          )}
 
+          <QuickActions items={quickActions} />
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <Card>
               <CardHeader
                 title="Latest notices"
@@ -233,23 +209,23 @@ export default async function ResidentDashboardPage() {
                   {data.notices.map((n) => (
                     <li
                       key={n.id}
-                      className="flex items-start justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50/70"
+                      className="flex items-start justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70"
                     >
                       <div className="min-w-0">
                         <p
-                          className={`truncate text-sm ${
+                          className={`truncate text-[15px] ${
                             n.readByMe ? "font-medium text-slate-600" : "font-semibold text-slate-900"
                           }`}
                         >
                           {n.title}
                         </p>
-                        <p className="truncate text-xs text-slate-500">
+                        <p className="mt-0.5 truncate text-[13px] text-slate-500">
                           {titleCase(n.category)} ·{" "}
                           {n.publishedAt ? formatDate(n.publishedAt) : formatDate(n.createdAt)}
                         </p>
                       </div>
                       {!n.readByMe ? (
-                        <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-500" />
+                        <span className="mt-2 size-2.5 shrink-0 rounded-full bg-brand-500" />
                       ) : null}
                     </li>
                   ))}
@@ -257,7 +233,7 @@ export default async function ResidentDashboardPage() {
               )}
             </Card>
 
-            <Card className="xl:col-span-2">
+            <Card>
               <CardHeader
                 title="Recent payments"
                 subtitle="Your last 6 receipts"
@@ -271,18 +247,18 @@ export default async function ResidentDashboardPage() {
                   {data.recentPayments.map((p) => (
                     <li
                       key={p.id}
-                      className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50/70"
+                      className="flex items-center justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-900">
+                        <p className="truncate text-[15px] font-semibold text-slate-900">
                           {formatPeriod(p.invoice?.billingPeriod)}
                         </p>
-                        <p className="truncate text-xs text-slate-500">
+                        <p className="mt-0.5 truncate text-[13px] text-slate-500">
                           {p.receipts?.[0]?.receiptNumber ?? p.invoice?.invoiceNumber} ·{" "}
                           {formatDate(p.paymentDate)}
                         </p>
                       </div>
-                      <p className="tabular shrink-0 text-sm font-semibold text-emerald-600">
+                      <p className="tabular shrink-0 text-[15px] font-semibold text-emerald-600">
                         {formatMoney(p.amount)}
                       </p>
                     </li>
@@ -291,6 +267,34 @@ export default async function ResidentDashboardPage() {
               )}
             </Card>
           </div>
+
+          {data.activeComplaints.length > 0 ? (
+            <Card>
+              <CardHeader
+                title="Your active complaints"
+                subtitle="Not yet closed"
+                icon={AlertTriangle}
+                action={<ViewAll href="/resident/complaints" />}
+              />
+              <ul className="divide-y divide-slate-100">
+                {data.activeComplaints.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex items-start justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold text-slate-900">{c.title}</p>
+                      <p className="mt-0.5 truncate text-[13px] text-slate-500">
+                        {titleCase(c.category)} · {formatDate(c.createdAt)}
+                        {c.assignedTo?.name ? ` · ${c.assignedTo.name}` : ""}
+                      </p>
+                    </div>
+                    <StatusBadge status={c.status} />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
         </>
       )}
     </div>
@@ -301,10 +305,10 @@ function ViewAll({ href }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50"
+      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-brand-700 transition-colors hover:bg-brand-50"
     >
       View all
-      <ArrowUpRight className="size-3.5" />
+      <ArrowUpRight className="size-4" />
     </Link>
   );
 }

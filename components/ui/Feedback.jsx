@@ -9,16 +9,16 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center px-6 text-center ${compact ? "py-8" : "py-16"}`}
+      className={`flex flex-col items-center justify-center px-6 text-center ${compact ? "py-10" : "py-20"}`}
     >
-      <span className="relative mb-4 inline-flex">
-        <span className="relative inline-flex size-12 items-center justify-center rounded-lg bg-slate-100 text-slate-500 ring-1 ring-slate-200 [&_svg]:size-5">
+      <span className="relative mb-5 inline-flex">
+        <span className="relative inline-flex size-14 items-center justify-center rounded-xl bg-slate-100 text-slate-500 ring-1 ring-slate-200 [&_svg]:size-6">
           <Icon />
         </span>
       </span>
-      <p className="text-[15px] font-semibold text-slate-800">{title}</p>
+      <p className="text-base font-semibold text-slate-800">{title}</p>
       {description ? (
-        <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-slate-500">{description}</p>
+        <p className="mt-1.5 max-w-md text-sm leading-relaxed text-slate-500">{description}</p>
       ) : null}
       {action ? <div className="mt-5">{action}</div> : null}
     </div>

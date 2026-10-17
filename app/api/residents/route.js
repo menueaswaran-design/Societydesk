@@ -1,9 +1,9 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireSocietyAdmin, resolveSocietyScope } from "@/lib/auth/permissions";
+import { requireResidentManager, resolveSocietyScope, getResidentFlatIds, isFlatAdmin } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
-import { notFound } from "@/lib/errors";
+import { notFound, forbidden } from "@/lib/errors";
 import { residentCreateSchema, paginationSchema } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
@@ -14,13 +14,19 @@ export const dynamic = "force-dynamic";
  */
 const GETImpl = handler(async (req) => {
   const user = await getSessionUser(req);
-  requireSocietyAdmin(user);
+  requireResidentManager(user);
   const societyId = resolveSocietyScope(user, req.nextUrl.searchParams.get("societyId"));
 
   const sp = req.nextUrl.searchParams;
   const { page, pageSize, q, status } = paginationSchema.parse(Object.fromEntries(sp));
 
   const where = { societyId };
+  // A flat admin only sees the residents of the flat(s) they manage.
+  if (isFlatAdmin(user)) {
+    where.flatResidents = {
+      some: { endDate: null, flatId: { in: await getResidentFlatIds(user.id) } },
+    };
+  }
   if (status) where.status = status;
   if (q) {
     where.OR = [
@@ -58,10 +64,18 @@ const GETImpl = handler(async (req) => {
  */
 const POSTImpl = handler(async (req) => {
   const user = await getSessionUser(req);
-  requireSocietyAdmin(user);
+  requireResidentManager(user);
   const societyId = resolveSocietyScope(user, null);
 
   const body = residentCreateSchema.parse(await readJson(req));
+
+  // A flat admin may only add residents to the flat they manage.
+  if (isFlatAdmin(user)) {
+    const managedFlatIds = await getResidentFlatIds(user.id);
+    if (!managedFlatIds.includes(body.flatId)) {
+      throw forbidden("You can only add residents to the flat you manage");
+    }
+  }
 
   const flat = await prisma.flat.findFirst({
     where: { id: body.flatId, societyId },
