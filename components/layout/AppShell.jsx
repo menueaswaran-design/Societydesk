@@ -122,16 +122,18 @@ export default function AppShell({ user, society, flats, children }) {
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const groups = NAV[user.role] ?? NAV.SOCIETY_ADMIN;
   const flatLabel = flats?.length
     ? flats.map((f) => (f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber)).join(", ")
     : null;
 
-  // Close the drawer whenever navigation happens.
+  // Reset drawer, menu, and navigation indicator when pathname updates
   useEffect(() => {
     setDrawer(false);
     setMenu(false);
+    setIsNavigating(false);
   }, [pathname]);
 
   // Firebase and the dev cookie are two independent sessions, so clear both.
@@ -166,7 +168,7 @@ export default function AppShell({ user, society, flats, children }) {
           <ul className="space-y-0.5">
             {group.items.map((item) => (
               <li key={item.href}>
-                <NavLink item={item} pathname={pathname} />
+                <NavLink item={item} pathname={pathname} onNavigate={() => setIsNavigating(true)} />
               </li>
             ))}
           </ul>
@@ -196,6 +198,13 @@ export default function AppShell({ user, society, flats, children }) {
 
   return (
     <div className="flex min-h-screen">
+      {/* Top Instant Navigation Progress Bar */}
+      {isNavigating ? (
+        <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10">
+          <div className="h-full w-full bg-linear-to-r from-brand-500 via-indigo-600 to-sky-400 animate-progress" />
+        </div>
+      ) : null}
+
       {/* ------------------------------------------------------------ sidebar */}
       <aside className="brand-canvas sticky top-0 hidden h-screen w-64 shrink-0 flex-col lg:flex">
         <div className="border-b border-white/10">{identity}</div>
@@ -307,13 +316,19 @@ export default function AppShell({ user, society, flats, children }) {
 
 // ---------------------------------------------------------------------------
 
-function NavLink({ item, pathname }) {
+function NavLink({ item, pathname, onNavigate }) {
   const Icon = item.icon;
   const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
   return (
     <Link
       href={item.href}
+      prefetch={true}
+      onClick={() => {
+        if (pathname !== item.href && !pathname.startsWith(`${item.href}/`)) {
+          onNavigate?.();
+        }
+      }}
       className={`group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
         active
           ? "bg-white/10 text-white"

@@ -264,6 +264,17 @@
   }
 }
 
+@keyframes progress-bar {
+  0% { transform: scaleX(0.05); }
+  50% { transform: scaleX(0.75); }
+  100% { transform: scaleX(0.98); }
+}
+
+.animate-progress {
+  transform-origin: left;
+  animation: progress-bar 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 /* ==========================================================================
    Reduced motion
    ========================================================================== */

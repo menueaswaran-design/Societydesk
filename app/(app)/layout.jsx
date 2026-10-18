@@ -4,6 +4,24 @@ import { prisma } from "@/lib/db/prisma";
 import { getResidentFlatIds } from "@/lib/auth/permissions";
 import AppShell from "@/components/layout/AppShell";
 
+const societyCache = new Map();
+
+async function getCachedSociety(societyId) {
+  if (!societyId) return null;
+  const entry = societyCache.get(societyId);
+  if (entry && Date.now() - entry.time < 60_000) {
+    return entry.data;
+  }
+  const data = await prisma.society.findUnique({
+    where: { id: societyId },
+    select: { id: true, name: true, code: true, logoUrl: true },
+  });
+  if (data) {
+    societyCache.set(societyId, { data, time: Date.now() });
+  }
+  return data;
+}
+
 export default async function AppLayout({ children }) {
   const user = await getServerSessionOrNull();
   if (!user) redirect("/login");
@@ -11,35 +29,29 @@ export default async function AppLayout({ children }) {
   let society = null;
   let flats = [];
 
-  try {
-    society = user.societyId
-      ? await prisma.society.findUnique({
-          where: { id: user.societyId },
-          select: { id: true, name: true, code: true, logoUrl: true },
+  const [societyRes, flatsRes] = await Promise.allSettled([
+    user.societyId ? getCachedSociety(user.societyId) : Promise.resolve(null),
+    user.role === "RESIDENT"
+      ? getResidentFlatIds(user.id).then(async (flatIds) => {
+          if (!flatIds?.length) return [];
+          return prisma.flat.findMany({
+            where: { id: { in: flatIds } },
+            select: { id: true, flatNumber: true, block: true },
+          });
         })
-      : null;
-  } catch (e) {
-    // Demo fallback
-    if (user.societyId === "gva" || user.societyId === "cmvce8djg0002m7ggemm6z1m7") {
-      society = { id: user.societyId || "cmvce8djg0002m7ggemm6z1m7", name: "Green Valley Apartments", code: "GVA", logoUrl: null };
-    }
+      : Promise.resolve([]),
+  ]);
+
+  if (societyRes.status === "fulfilled" && societyRes.value) {
+    society = societyRes.value;
+  } else if (user.societyId === "gva" || user.societyId === "cmvce8djg0002m7ggemm6z1m7") {
+    society = { id: user.societyId || "cmvce8djg0002m7ggemm6z1m7", name: "Green Valley Apartments", code: "GVA", logoUrl: null };
   }
 
-  try {
-    if (user.role === "RESIDENT") {
-      const flatIds = await getResidentFlatIds(user.id).catch(() => []);
-      flats = flatIds.length
-        ? await prisma.flat.findMany({
-            where: { id: { in: flatIds } },
-            select: { id: true, flatNumber: true },
-          })
-        : [];
-    }
-  } catch (e) {
-    // Demo fallback for resident
-    if (user.email === "ravi@greenvalley.local") {
-      flats = [{ id: "flat-a101", flatNumber: "A101" }];
-    }
+  if (flatsRes.status === "fulfilled" && flatsRes.value) {
+    flats = flatsRes.value;
+  } else if (user.email === "ravi@greenvalley.local") {
+    flats = [{ id: "flat-a101", flatNumber: "A101" }];
   }
 
   return (
