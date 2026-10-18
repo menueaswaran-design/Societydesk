@@ -14,8 +14,8 @@ const GETImpl = handler(async () => {
     // For demo purposes without DB, return fallback accounts
     return ok([
       { email: "kumarvignesh865@gmail.com", name: "Kumar Vignesh", role: "SUPER_ADMIN", societyId: null, society: null },
-      { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
-      { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
+      { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
+      { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
     ]);
   }
 
@@ -35,8 +35,8 @@ const GETImpl = handler(async () => {
     // Fallback if DB not accessible
     return ok([
       { email: "kumarvignesh865@gmail.com", name: "Kumar Vignesh", role: "SUPER_ADMIN", societyId: null, society: null },
-      { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
-      { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
+      { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
+      { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
     ]);
   }
 });

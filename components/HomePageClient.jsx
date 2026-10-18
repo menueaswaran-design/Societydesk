@@ -19,6 +19,7 @@ import {
   FileText
 } from "lucide-react";
 import { api } from "@/lib/client/api";
+import { homeForRole } from "@/lib/routing";
 
 export default function HomePageClient({ user = null }) {
   const router = useRouter();
@@ -29,11 +30,22 @@ export default function HomePageClient({ user = null }) {
   const quickLogin = async (email, path) => {
     setLoggingIn(email);
     try {
-      await api.post("/api/auth/dev-login", { email });
-      router.push(path);
-      router.refresh();
+      try {
+        const { getFirebaseClient, signOut } = await import("@/lib/firebase/client");
+        const auth = getFirebaseClient();
+        if (auth?.currentUser) await signOut(auth);
+      } catch {
+        /* ignore */
+      }
+      if (typeof document !== "undefined") {
+        document.cookie = "__session=; path=/; max-age=0; samesite=lax";
+      }
+
+      const resUser = await api.post("/api/auth/dev-login", { email });
+      const target = path || (resUser?.role ? homeForRole(resUser.role) : "/login");
+      window.location.href = target;
     } catch {
-      router.push("/login");
+      window.location.href = "/login";
     }
   };
 

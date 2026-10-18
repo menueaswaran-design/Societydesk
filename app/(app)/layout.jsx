@@ -20,8 +20,8 @@ export default async function AppLayout({ children }) {
       : null;
   } catch (e) {
     // Demo fallback
-    if (user.societyId === "gva") {
-      society = { id: "gva", name: "Green Valley Apartments", code: "GVA", logoUrl: null };
+    if (user.societyId === "gva" || user.societyId === "cmvce8djg0002m7ggemm6z1m7") {
+      society = { id: user.societyId || "cmvce8djg0002m7ggemm6z1m7", name: "Green Valley Apartments", code: "GVA", logoUrl: null };
     }
   }
 

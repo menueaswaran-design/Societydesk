@@ -25,8 +25,8 @@ const ROLE_BLURB = {
 
 const FALLBACK_ACCOUNTS = [
   { email: "kumarvignesh865@gmail.com", name: "Kumar Vignesh", role: "SUPER_ADMIN", societyId: null, society: null },
-  { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "gva", society: { name: "Green Valley Apartments" } },
-  { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "gva", society: { name: "Green Valley Apartments" } },
+  { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
+  { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
 ];
 
 export default function LoginForm({ next }) {
@@ -78,18 +78,29 @@ export default function LoginForm({ next }) {
   }, [loadDevAccounts]);
 
   function go(nextPath) {
-    router.push(nextPath || "/");
-    router.refresh();
+    window.location.href = nextPath || "/";
   }
 
   async function devSignIn(email) {
     setPending(email);
     setError(null);
     try {
+      try {
+        const { getFirebaseClient, signOut } = await import("@/lib/firebase/client");
+        const auth = getFirebaseClient();
+        if (auth?.currentUser) await signOut(auth);
+      } catch {
+        /* ignore */
+      }
+      if (typeof document !== "undefined") {
+        document.cookie = "__session=; path=/; max-age=0; samesite=lax";
+      }
+
       const user = await api.post("/api/auth/dev-login", { email });
-      go(next && next !== "/" ? next : homeForRole(user.role));
+      const target = next && next !== "/" ? next : homeForRole(user?.role);
+      go(target);
     } catch (err) {
-      setError(err.message);
+      setError(err?.message || "Could not sign in with demo account");
       setPending(null);
     }
   }
