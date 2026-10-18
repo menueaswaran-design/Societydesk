@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import FirebaseBootstrap from "@/components/FirebaseBootstrap";
+import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,7 +31,9 @@ export default function RootLayout({ children }) {
     <html lang="en" className={inter.variable}>
       <body className={`${inter.className} min-h-screen text-slate-900 bg-[#F8FAFC] antialiased`}>
         <FirebaseBootstrap />
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

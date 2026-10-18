@@ -27,6 +27,38 @@ import { api } from "@/lib/client/api";
 import { titleCase } from "@/lib/format";
 import Avatar from "@/components/ui/Avatar";
 import Badge from "@/components/ui/Badge";
+import { useTranslation } from "@/components/i18n/LanguageProvider";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+
+const NAV_KEYS = {
+  Overview: "nav.overview",
+  Dashboard: "nav.dashboard",
+  Directory: "nav.directory",
+  Flats: "nav.flats",
+  Residents: "nav.residents",
+  "Flat admins": "nav.flatAdmins",
+  Billing: "nav.billing",
+  "Fee Setup": "nav.feeSetup",
+  Invoices: "nav.invoices",
+  Payments: "nav.payments",
+  Defaulters: "nav.defaulters",
+  Community: "nav.community",
+  Complaints: "nav.complaints",
+  Notices: "nav.notices",
+  Governance: "nav.governance",
+  "Activity Log": "nav.activityLog",
+  Security: "nav.security",
+  "My flat": "nav.myFlat",
+  "Flat Payments": "nav.payments",
+  "Maintenance & Dues": "nav.maintenanceDues",
+  "Pay Maintenance": "nav.payMaintenance",
+  "Payment Receipts": "nav.paymentReceipts",
+  Settings: "nav.settings",
+  Profile: "nav.profile",
+  Platform: "nav.platform",
+  Societies: "nav.societies",
+  "Society Admins": "nav.societyAdmins",
+};
 
 const NAV = {
   SOCIETY_ADMIN: [
@@ -77,6 +109,13 @@ const NAV = {
         { href: "/admin/billing/payments", label: "Flat Payments", icon: CreditCard },
       ],
     },
+    {
+      label: "Community",
+      items: [
+        { href: "/admin/complaints", label: "Complaints", icon: AlertTriangle },
+        { href: "/admin/notices", label: "Notices", icon: Megaphone },
+      ],
+    },
   ],
   RESIDENT: [
     {
@@ -123,6 +162,7 @@ export default function AppShell({ user, society, flats, children }) {
   const [drawer, setDrawer] = useState(false);
   const [menu, setMenu] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const { t } = useTranslation();
 
   const groups = NAV[user.role] ?? NAV.SOCIETY_ADMIN;
   const flatLabel = flats?.length
@@ -163,12 +203,17 @@ export default function AppShell({ user, society, flats, children }) {
       {groups.map((group) => (
         <div key={group.label}>
           <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-white/40 uppercase">
-            {group.label}
+            {t(NAV_KEYS[group.label] || group.label, group.label)}
           </p>
           <ul className="space-y-0.5">
             {group.items.map((item) => (
               <li key={item.href}>
-                <NavLink item={item} pathname={pathname} onNavigate={() => setIsNavigating(true)} />
+                <NavLink
+                  item={item}
+                  label={t(NAV_KEYS[item.label] || item.label, item.label)}
+                  pathname={pathname}
+                  onNavigate={() => setIsNavigating(true)}
+                />
               </li>
             ))}
           </ul>
@@ -273,6 +318,7 @@ export default function AppShell({ user, society, flats, children }) {
             </div>
 
             <div className="ml-auto flex items-center gap-2">
+              <LanguageSwitcher />
               <Badge tone={ROLE_TONE[user.role] ?? "slate"} className="hidden sm:inline-flex text-[11px] py-0.5 px-2">
                 {titleCase(user.role)}
               </Badge>
@@ -299,6 +345,7 @@ export default function AppShell({ user, society, flats, children }) {
                     flats={flatLabel}
                     onSignOut={signOut}
                     onClose={() => setMenu(false)}
+                    t={t}
                   />
                 ) : null}
               </div>
@@ -316,7 +363,7 @@ export default function AppShell({ user, society, flats, children }) {
 
 // ---------------------------------------------------------------------------
 
-function NavLink({ item, pathname, onNavigate }) {
+function NavLink({ item, label, pathname, onNavigate }) {
   const Icon = item.icon;
   const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -344,7 +391,7 @@ function NavLink({ item, pathname, onNavigate }) {
       <Icon
         className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-200" : "text-white/45 group-hover:text-white/80"}`}
       />
-      {item.label}
+      {label ?? item.label}
     </Link>
   );
 }
@@ -352,6 +399,7 @@ function NavLink({ item, pathname, onNavigate }) {
 // ---------------------------------------------------------------------------
 
 function UserPanel({ user, flats, onSignOut }) {
+  const { t } = useTranslation();
   return (
     <div className="border-t border-white/10 p-3">
       <div className="flex items-center gap-2.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/8">
@@ -362,8 +410,8 @@ function UserPanel({ user, flats, onSignOut }) {
         </div>
         <button
           onClick={onSignOut}
-          aria-label="Sign out"
-          title="Sign out"
+          aria-label={t("common.signOut", "Sign out")}
+          title={t("common.signOut", "Sign out")}
           className="inline-flex size-7.5 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
         >
           <LogOut className="size-3.5" />
@@ -376,7 +424,9 @@ function UserPanel({ user, flats, onSignOut }) {
 
 // ---------------------------------------------------------------------------
 
-function UserMenu({ user, flats, onSignOut, onClose }) {
+function UserMenu({ user, flats, onSignOut, onClose, t: tProp }) {
+  const { t: tContext } = useTranslation();
+  const t = tProp || tContext;
   const ref = useRef(null);
 
   useEffect(() => {
@@ -421,6 +471,11 @@ function UserMenu({ user, flats, onSignOut, onClose }) {
         ) : null}
       </dl>
 
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5 text-xs">
+        <span className="font-medium text-slate-600">{t("common.language", "Language")}</span>
+        <LanguageSwitcher />
+      </div>
+
       <div className="p-2">
         <button
           role="menuitem"
@@ -428,7 +483,7 @@ function UserMenu({ user, flats, onSignOut, onClose }) {
           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
         >
           <LogOut className="size-4" />
-          Sign out
+          {t("common.signOut", "Sign out")}
         </button>
       </div>
     </div>

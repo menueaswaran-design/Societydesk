@@ -25,6 +25,8 @@ const BLANK = {
   adminName: "",
   adminEmail: "",
   adminPassword: "",
+  setupType: "MULTI_FLAT",
+  singleFlatNumber: "101",
 };
 
 export default function SocietiesClient({ societies, admins }) {
@@ -298,6 +300,60 @@ function SocietyEditor({ society, onClose }) {
       {society ? (
         <div className="flex flex-col gap-4">
           <ErrorBanner error={error} />
+
+          {!isEdit ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-2">
+              <p className="text-xs font-semibold text-slate-900">Setup Architecture</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, setupType: "MULTI_FLAT" })}
+                  className={`rounded-lg p-3 text-left border transition-all ${
+                    form.setupType !== "SINGLE_FLAT"
+                      ? "border-brand-500 bg-white ring-1 ring-brand-500 shadow-xs"
+                      : "border-slate-200 bg-white/60 hover:bg-white text-slate-600"
+                  }`}
+                >
+                  <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <span>🏢</span> Multi-Flat Society
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                    Complex with multiple flats, blocks & flat admins.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, setupType: "SINGLE_FLAT" })}
+                  className={`rounded-lg p-3 text-left border transition-all ${
+                    form.setupType === "SINGLE_FLAT"
+                      ? "border-brand-500 bg-white ring-1 ring-brand-500 shadow-xs"
+                      : "border-slate-200 bg-white/60 hover:bg-white text-slate-600"
+                  }`}
+                >
+                  <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <span>🏠</span> Society + Flat (Single)
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                    Individual flat/house. Combined flow without multi-tier setup.
+                  </p>
+                </button>
+              </div>
+
+              {form.setupType === "SINGLE_FLAT" ? (
+                <div className="pt-2">
+                  <Input
+                    id="singleFlatNumber"
+                    label="Flat / Unit Number"
+                    value={form.singleFlatNumber || "101"}
+                    onChange={set("singleFlatNumber")}
+                    placeholder="e.g. 101 or Unit A"
+                    hint="This flat will be created and linked directly to the admin."
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <Input

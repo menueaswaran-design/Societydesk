@@ -68,8 +68,9 @@ const POSTImpl = handler(async (req) => {
         },
       });
 
+      let adminUser = null;
       if (adminIdentity) {
-        await tx.user.create({
+        adminUser = await tx.user.create({
           data: {
             societyId: created.id,
             name: body.adminName,
@@ -79,6 +80,30 @@ const POSTImpl = handler(async (req) => {
             status: "ACTIVE",
           },
         });
+      }
+
+      // If single-flat setup is selected, combine society + flat without multi-tier complexity
+      if (body.setupType === "SINGLE_FLAT") {
+        const flatNumber = body.singleFlatNumber?.trim() || "101";
+        const flat = await tx.flat.create({
+          data: {
+            societyId: created.id,
+            flatNumber,
+            status: "OCCUPIED",
+          },
+        });
+
+        if (adminUser) {
+          await tx.flatResident.create({
+            data: {
+              societyId: created.id,
+              flatId: flat.id,
+              userId: adminUser.id,
+              residentType: "OWNER",
+              isPrimary: true,
+            },
+          });
+        }
       }
 
       return created;

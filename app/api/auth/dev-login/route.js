@@ -10,6 +10,7 @@ const DEMO_USERS = {
   "kumarvignesh865@gmail.com": { id: "cmvckm8mk0000m7gocp8bbb3f", email: "kumarvignesh865@gmail.com", role: "SUPER_ADMIN", societyId: null, name: "Kumar Vignesh" },
   "superadmin@societydesk.local": { id: "demo-super", email: "superadmin@societydesk.local", role: "SUPER_ADMIN", societyId: null, name: "Platform Owner" },
   "admin@greenvalley.local": { id: "demo-admin", email: "admin@greenvalley.local", role: "SOCIETY_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Lakshmi Iyer" },
+  "priya@greenvalley.local": { id: "demo-flat-admin", email: "priya@greenvalley.local", role: "FLAT_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Priya Sharma" },
   "ravi@greenvalley.local": { id: "demo-resident", email: "ravi@greenvalley.local", role: "RESIDENT", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Ravi Kumar" },
 };
 

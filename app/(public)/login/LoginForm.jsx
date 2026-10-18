@@ -10,27 +10,35 @@ import { ErrorBanner } from "@/components/ui/Feedback";
 import { api } from "@/lib/client/api";
 import { homeForRole } from "@/lib/routing";
 import { titleCase } from "@/lib/format";
+import { useTranslation } from "@/components/i18n/LanguageProvider";
 
 const ROLE_ICON = {
-  SUPER_ADMIN: ShieldCheck,
   SOCIETY_ADMIN: Building2,
+  FLAT_ADMIN: ShieldCheck,
   RESIDENT: User,
 };
 
 const ROLE_BLURB = {
-  SUPER_ADMIN: "Manages societies across the platform",
-  SOCIETY_ADMIN: "Runs one society: flats, billing, complaints",
+  SOCIETY_ADMIN: "Runs the society: all flats, billing, complaints & notices",
+  FLAT_ADMIN: "Manages a specific flat: resident onboarding, flat maintenance & dues",
   RESIDENT: "Sees their own dues, complaints and notices",
 };
 
+const ROLE_BLURB_TA = {
+  SOCIETY_ADMIN: "முழுக் குடியிருப்பு: வீடுகள், கட்டணங்கள், புகார்கள் & அறிவிப்புகளை நிர்வகிக்கிறார்",
+  FLAT_ADMIN: "தனது வீட்டின் குடியிருப்பாளர்கள், கட்டணங்கள் மற்றும் புகார்களை நிர்வகிக்கிறார்",
+  RESIDENT: "தனது நிலுவைகள், புகார்கள், அறிவிப்புகளைப் பார்க்கிறார்",
+};
+
 const FALLBACK_ACCOUNTS = [
-  { email: "kumarvignesh865@gmail.com", name: "Kumar Vignesh", role: "SUPER_ADMIN", societyId: null, society: null },
   { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
+  { email: "priya@greenvalley.local", name: "Priya Sharma", role: "FLAT_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
   { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
 ];
 
 export default function LoginForm({ next }) {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const [mode, setMode] = useState("loading"); // loading | dev | firebase
   const [firebaseAvailable, setFirebaseAvailable] = useState(false);
   const [accounts, setAccounts] = useState([]);
@@ -158,10 +166,14 @@ export default function LoginForm({ next }) {
         <div className="flex items-start gap-3 rounded-xl bg-amber-50 px-4 py-3 text-[13px] text-amber-900 ring-1 ring-amber-200/80">
           <FlaskConical className="mt-0.5 size-4 shrink-0 text-amber-600" />
           <p>
-            <span className="font-semibold">Development mode.</span>{" "}
-            {firebaseAvailable
-              ? "Seeded accounts are a shortcut for exploring each role."
-              : "Firebase is not configured, so pick a seeded account to explore each role."}
+            <span className="font-semibold">
+              {locale === "ta" ? "சோதனை முறை (Demo)." : "Development mode."}
+            </span>{" "}
+            {locale === "ta"
+              ? "ஒவ்வொரு பொறுப்பையும் நேரடியாகப் பார்க்க மாதிரிக் கணக்கைத் தேர்வு செய்யவும்."
+              : firebaseAvailable
+                ? "Seeded accounts are a shortcut for exploring each role."
+                : "Firebase is not configured, so pick a seeded account to explore each role."}
             {firebaseAvailable ? (
               <button
                 type="button"
@@ -171,7 +183,7 @@ export default function LoginForm({ next }) {
                 }}
                 className="ml-1 font-semibold text-brand-700 underline-offset-2 hover:underline"
               >
-                Sign in with email
+                {locale === "ta" ? "மின்னஞ்சல் மூலம் உள்நுழைக" : "Sign in with email"}
               </button>
             ) : null}
           </p>
@@ -198,11 +210,19 @@ export default function LoginForm({ next }) {
                     {acc.name}
                   </span>
                   <span className="mt-0.5 block text-xs text-slate-500 leading-tight">
-                    {titleCase(acc.role)}
-                    {acc.society ? ` · ${acc.society.name}` : " · Platform"}
+                    {locale === "ta" && acc.role === "RESIDENT"
+                      ? "குடியிருப்பாளர்"
+                      : locale === "ta" && acc.role === "SOCIETY_ADMIN"
+                        ? "நிர்வாகி"
+                        : locale === "ta" && acc.role === "SUPER_ADMIN"
+                          ? "தலைமை நிர்வாகி"
+                          : titleCase(acc.role)}
+                    {acc.society ? ` · ${acc.society.name}` : locale === "ta" ? " · தளம்" : " · Platform"}
                   </span>
                   <span className="mt-1 block text-[11px] text-slate-400 leading-normal">
-                    {ROLE_BLURB[acc.role]}
+                    {locale === "ta" && ROLE_BLURB_TA[acc.role]
+                      ? ROLE_BLURB_TA[acc.role]
+                      : ROLE_BLURB[acc.role]}
                   </span>
                 </span>
                 {busy ? (
@@ -221,7 +241,7 @@ export default function LoginForm({ next }) {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900"
           >
             <ArrowLeft className="size-3.5" />
-            Back to landing page
+            {locale === "ta" ? "முகப்பு பக்கத்திற்குத் திரும்பு" : "Back to landing page"}
           </Link>
         </div>
       </div>
@@ -235,7 +255,7 @@ export default function LoginForm({ next }) {
       <div className="mt-1 flex flex-col gap-4">
         <Input
           id="email"
-          label="Email"
+          label={t("auth.email", "Email")}
           type="email"
           autoComplete="email"
           required
@@ -246,7 +266,7 @@ export default function LoginForm({ next }) {
         />
         <Input
           id="password"
-          label="Password"
+          label={t("auth.password", "Password")}
           type="password"
           autoComplete="current-password"
           required
@@ -256,15 +276,19 @@ export default function LoginForm({ next }) {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
         <Button type="submit" size="lg" loading={pending === "firebase"} className="mt-1 w-full">
-          {pending === "firebase" ? "Signing in" : "Sign in"}
+          {pending === "firebase"
+            ? (locale === "ta" ? "உள்நுழைகிறது..." : "Signing in")
+            : t("auth.signIn", "Sign in")}
           {pending === "firebase" ? null : <ArrowRight />}
         </Button>
       </div>
 
       <p className="mt-5 border-t border-slate-100 pt-4 text-center text-xs text-slate-500">
-        Residents, admins and platform owners all sign in here.{" "}
+        {locale === "ta"
+          ? "குடியிருப்பாளர்கள், நிர்வாகிகள் அனைவரும் இங்கு உள்நுழையலாம்."
+          : "Residents, admins and platform owners all sign in here."}{" "}
         <Link href="/forgot-password" className="font-semibold text-brand-700 hover:text-brand-800">
-          Forgot password?
+          {t("auth.forgotPassword", "Forgot password?")}
         </Link>
       </p>
       <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
@@ -273,14 +297,14 @@ export default function LoginForm({ next }) {
           className="inline-flex items-center gap-1 font-semibold text-slate-500 transition-colors hover:text-slate-900"
         >
           <ArrowLeft className="size-3.5" />
-          Back to landing page
+          {locale === "ta" ? "முகப்பு பக்கத்திற்குத் திரும்பு" : "Back to landing page"}
         </Link>
         <button
           type="button"
           onClick={loadDevAccounts}
           className="underline-offset-2 hover:text-brand-700 hover:underline"
         >
-          Use a demo account
+          {locale === "ta" ? "மாதிரிக் கணக்கைப் பயன்படுத்துக (Demo)" : "Use a demo account"}
         </button>
       </div>
     </form>

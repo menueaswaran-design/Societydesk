@@ -1,8 +1,44 @@
+import { cookies } from "next/headers";
+import { getDictionary, resolveKey } from "@/lib/i18n";
+
 /**
- * Welcome hero banner used at the top of every dashboard. Replaces the
- * plain PageHeader so each role lands on a single, friendly action point.
+ * Welcome hero banner used at the top of every dashboard.
+ * Server component that localizes seamlessly without RSC boundary restrictions.
  */
-export default function Welcome({ eyebrow, title, description, badge, actions, className = "" }) {
+export default async function Welcome({ eyebrow, title, description, badge, actions, className = "" }) {
+  let locale = "en";
+  try {
+    const cookieStore = await cookies();
+    locale = cookieStore.get("sd_locale")?.value || "en";
+  } catch {
+    /* fallback */
+  }
+  const dict = getDictionary(locale);
+
+  let localizedTitle = title;
+  if (locale === "ta" && typeof title === "string" && dict) {
+    if (title.startsWith("Good morning")) {
+      localizedTitle = title.replace("Good morning", resolveKey(dict, "resident.goodMorning", "காலை வணக்கம்"));
+    } else if (title.startsWith("Good afternoon")) {
+      localizedTitle = title.replace("Good afternoon", resolveKey(dict, "resident.goodAfternoon", "மதிய வணக்கம்"));
+    } else if (title.startsWith("Good evening")) {
+      localizedTitle = title.replace("Good evening", resolveKey(dict, "resident.goodEvening", "மாலை வணக்கம்"));
+    } else if (title.startsWith("Welcome back")) {
+      localizedTitle = title.replace("Welcome back", resolveKey(dict, "resident.welcomeBack", "மீண்டும் வருக"));
+    }
+  }
+
+  let localizedEyebrow = eyebrow;
+  if (locale === "ta" && typeof eyebrow === "string") {
+    if (eyebrow === "Resident portal") localizedEyebrow = "குடியிருப்பாளர் தளம்";
+    else if (eyebrow === "Society overview") localizedEyebrow = "குடியிருப்பு மேலோட்டம்";
+  }
+
+  let localizedDesc = description;
+  if (locale === "ta" && description === "Pay society maintenance, track complaints, and stay updated with community notices.") {
+    localizedDesc = "சமூக பராமரிப்புக் கட்டணம் செலுத்தவும், புகார்களை கண்காணிக்கவும், சமூக அறிவிப்புகளை உடனுக்குடன் பெறவும்.";
+  }
+
   return (
     <section
       className={`animate-rise relative overflow-hidden rounded-xl bg-slate-900 px-5 py-5 text-white shadow-card sm:px-6 sm:py-6 ${className}`}
@@ -18,17 +54,17 @@ export default function Welcome({ eyebrow, title, description, badge, actions, c
 
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
         <div className="min-w-0 flex-1">
-          {eyebrow ? (
+          {localizedEyebrow ? (
             <p className="mb-1 text-[11px] font-semibold tracking-wider text-brand-300 uppercase">
-              {eyebrow}
+              {localizedEyebrow}
             </p>
           ) : null}
           <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-            {title}
+            {localizedTitle}
           </h1>
-          {description ? (
+          {localizedDesc ? (
             <p className="mt-1 max-w-xl text-xs sm:text-[13px] leading-relaxed text-white/70">
-              {description}
+              {localizedDesc}
             </p>
           ) : null}
         </div>

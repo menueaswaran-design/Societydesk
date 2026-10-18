@@ -46,7 +46,7 @@ export default function ResidentsClient({
   const isSocietyAdmin = userRole === "SOCIETY_ADMIN";
   const isFlatAdmin = userRole === "FLAT_ADMIN";
   const hasMultipleFlats = totalSocietyFlats > 1;
-  const canDirectlyManageResidents = isFlatAdmin || (isSocietyAdmin && !hasMultipleFlats);
+  const canDirectlyManageResidents = true; // Both Society Admin & Flat Admin can add and manage residents
 
   const [tab, setTab] = useState("list");
   const [open, setOpen] = useState(false);
@@ -58,18 +58,35 @@ export default function ResidentsClient({
   const [query, setQuery] = useState("");
   const [vacating, setVacating] = useState(null);
   const [paymentResident, setPaymentResident] = useState(null);
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+
+  const [filterBlock, setFilterBlock] = useState("ALL");
+  const [filterType, setFilterType] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+
+  const blocks = useMemo(() => {
+    const bSet = new Set();
+    flats.forEach((f) => {
+      if (f.block) bSet.add(f.block);
+    });
+    return Array.from(bSet).sort();
+  }, [flats]);
 
   const activeCount = residents.filter((r) => r.status === "ACTIVE").length;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return residents;
-    return residents.filter((r) =>
-      [r.name, r.email, r.phone, ...r.flatResidents.map((f) => f.flat.flatNumber)]
+    return residents.filter((r) => {
+      if (filterStatus !== "ALL" && r.status !== filterStatus) return false;
+      const primaryLink = r.flatResidents?.[0];
+      if (filterType !== "ALL" && primaryLink?.residentType !== filterType) return false;
+      if (filterBlock !== "ALL" && primaryLink?.flat?.block !== filterBlock) return false;
+      if (!q) return true;
+      return [r.name, r.email, r.phone, primaryLink?.flat?.flatNumber, primaryLink?.flat?.block]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [residents, query]);
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [residents, query, filterStatus, filterType, filterBlock]);
 
   function openNew() {
     setForm({ ...EMPTY, flatId: flats[0]?.id ?? "" });
@@ -108,9 +125,20 @@ export default function ResidentsClient({
     setErrors({});
     try {
       const payload = { ...form, phone: form.phone || null };
-      if (editingId) await api.patch(`/api/residents/${editingId}`, payload);
-      else await api.post("/api/residents", payload);
-      setOpen(false);
+      if (editingId) {
+        await api.patch(`/api/residents/${editingId}`, payload);
+        setOpen(false);
+      } else {
+        const res = await api.post("/api/residents", payload);
+        setOpen(false);
+        if (res?.temporaryPassword) {
+          setCreatedCredentials({
+            name: form.name,
+            email: form.email,
+            password: res.temporaryPassword,
+          });
+        }
+      }
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -139,9 +167,7 @@ export default function ResidentsClient({
         description={
           isFlatAdmin
             ? "Manage residents occupying your assigned flat."
-            : hasMultipleFlats
-            ? `This society has ${totalSocietyFlats} flats. Resident onboarding and management is handled by Flat Admins.`
-            : "Everyone who lives in your flat. They sign in with the email you record here."
+            : "Directory of residents across your society. Onboarded residents automatically receive login credentials."
         }
         meta={
           <span className="text-[11px] font-semibold text-slate-500">
@@ -149,64 +175,77 @@ export default function ResidentsClient({
           </span>
         }
         actions={
-          canDirectlyManageResidents ? (
+          <div className="flex items-center gap-2">
+            {isSocietyAdmin && hasMultipleFlats ? (
+              <Button variant="secondary" as="a" href="/admin/team">
+                <ShieldCheck />
+                Flat Admins
+              </Button>
+            ) : null}
             <Button onClick={openNew}>
               <Plus />
               Add resident
             </Button>
-          ) : (
-            <Button as="a" href="/admin/team">
-              <Plus />
-              Assign Flat Admin
-            </Button>
-          )
+          </div>
         }
       />
 
-      {isSocietyAdmin && hasMultipleFlats ? (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 text-indigo-950">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 size-5 shrink-0 text-indigo-600" />
-            <div>
-              <p className="font-semibold text-sm">Flat Admin Management Active</p>
-              <p className="mt-0.5 text-xs text-indigo-700">
-                This society has {totalSocietyFlats} flats. Each flat&apos;s residents are onboarded and managed by their assigned Flat Admin.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/admin/team"
-            className="inline-flex items-center gap-1.5 shrink-0 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-2xs"
-          >
-            <span>Create / Assign Flat Admins</span>
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
-      ) : null}
-
-      {canDirectlyManageResidents ? (
-        <Tabs
-          value={tab}
-          onChange={setTab}
-          className="self-start"
-          tabs={[
-            { key: "list", label: "Residents", icon: Users, count: residents.length },
-            { key: "import", label: "Bulk import", icon: Upload },
-          ]}
-        />
-      ) : null}
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        className="self-start"
+        tabs={[
+          { key: "list", label: "Residents", icon: Users, count: filtered.length },
+          { key: "import", label: "Bulk import", icon: Upload },
+        ]}
+      />
 
       {tab === "import" ? (
         <ImportPanel onDone={() => { setTab("list"); router.refresh(); }} />
       ) : (
         <div className="surface overflow-hidden">
-          <div className="border-b border-slate-100 p-4">
+          <div className="border-b border-slate-100 p-4 flex flex-wrap items-center justify-between gap-3">
             <SearchInput
               value={query}
               onChange={setQuery}
               placeholder="Search name, email, phone or flat"
-              className="w-full sm:max-w-sm"
+              className="w-full sm:max-w-xs"
             />
+
+            <div className="flex flex-wrap items-center gap-2">
+              {blocks.length > 0 ? (
+                <select
+                  value={filterBlock}
+                  onChange={(e) => setFilterBlock(e.target.value)}
+                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="ALL">All Blocks</option>
+                  {blocks.map((b) => (
+                    <option key={b} value={b}>Block {b}</option>
+                  ))}
+                </select>
+              ) : null}
+
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value="ALL">All Types</option>
+                <option value="OWNER">Owners</option>
+                <option value="TENANT">Tenants</option>
+              </select>
+
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value="ALL">All Status</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
           </div>
 
           {filtered.length === 0 ? (
@@ -440,6 +479,47 @@ export default function ResidentsClient({
           }
           residentName={paymentResident.name}
         />
+      ) : null}
+
+      {/* Account Created & Credentials Modal */}
+      {createdCredentials ? (
+        <Modal
+          open={Boolean(createdCredentials)}
+          onClose={() => setCreatedCredentials(null)}
+          title="Resident Account Created"
+        >
+          <div className="space-y-4">
+            <div className="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-emerald-950">
+              <p className="font-semibold text-sm">Account Created in Firebase & Database!</p>
+              <p className="text-xs text-emerald-800 mt-1">
+                A welcome email with login details and password reset option was sent to <strong>{createdCredentials.email}</strong>.
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-slate-50 p-4 border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Resident:</span>
+                <span className="font-semibold text-slate-800">{createdCredentials.name}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Email / Login ID:</span>
+                <span className="font-semibold text-slate-800">{createdCredentials.email}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500 font-medium">Temporary Password:</span>
+                <span className="font-mono font-bold text-brand-700 text-sm select-all">{createdCredentials.password}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-normal">
+              The resident can sign in using this temporary password or use the <strong>Forgot password</strong> link on the login page anytime.
+            </p>
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => setCreatedCredentials(null)}>Done</Button>
+            </div>
+          </div>
+        </Modal>
       ) : null}
     </div>
   );

@@ -1,4 +1,5 @@
 import { Building2, CheckCircle2, Megaphone, Receipt, Wrench } from "lucide-react";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
 const HIGHLIGHTS = [
   { icon: Receipt, title: "Maintenance billing", copy: "Fee rules, invoices, receipts and defaulter tracking in one place." },
@@ -73,12 +74,15 @@ export default function PublicLayout({ children }) {
             </span>
             <p className="text-sm font-semibold text-slate-900">SocietyDesk</p>
           </div>
-          <a
-            href="/"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-          >
-            ← Back to landing page
-          </a>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+            >
+              ← Back to landing page
+            </a>
+          </div>
         </div>
 
         <div className="flex flex-1 items-center justify-center px-5 py-8 sm:px-10">

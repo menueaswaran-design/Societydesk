@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, UserCircle, Home, ShieldCheck, Info, KeyRound, CheckCircle2 } from "lucide-react";
+import { Save, UserCircle, Home, ShieldCheck, Info, KeyRound, CheckCircle2, Globe } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardHeader, CardNote } from "@/components/ui/Card";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -12,6 +12,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Avatar from "@/components/ui/Avatar";
 import { api, fieldErrors } from "@/lib/client/api";
 import { formatDate, titleCase } from "@/lib/format";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
 export default function ProfileClient({ account, flats }) {
   const router = useRouter();
@@ -178,6 +179,21 @@ export default function ProfileClient({ account, flats }) {
                 <span className="font-mono text-xs text-slate-400">{account?.id}</span>
               </Row>
             </dl>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Language / மொழி"
+              subtitle="Choose English or தமிழ்"
+              icon={Globe}
+            />
+            <div className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Interface language</p>
+                <p className="text-xs text-slate-500">Applies to menus, buttons, and status labels</p>
+              </div>
+              <LanguageSwitcher />
+            </div>
           </Card>
         </div>
       </div>

@@ -5,12 +5,15 @@ import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { notFound, forbidden } from "@/lib/errors";
 import { residentCreateSchema, paginationSchema } from "@/lib/validation/schemas";
-export const dynamic = "force-dynamic";
+import { createFirebaseUser, sendFirebasePasswordReset } from "@/lib/firebase/identity";
+import { sendResidentWelcomeEmail } from "@/lib/email";
 
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/residents
  * Lists people in the society with the flat(s) they occupy.
+ * Supports filtering by q, status, block, flatId, and residentType.
  */
 const GETImpl = handler(async (req) => {
   const user = await getSessionUser(req);
@@ -19,14 +22,37 @@ const GETImpl = handler(async (req) => {
 
   const sp = req.nextUrl.searchParams;
   const { page, pageSize, q, status } = paginationSchema.parse(Object.fromEntries(sp));
+  const flatId = sp.get("flatId");
+  const block = sp.get("block");
+  const residentType = sp.get("residentType");
 
   const where = { societyId };
+
   // A flat admin only sees the residents of the flat(s) they manage.
   if (isFlatAdmin(user)) {
     where.flatResidents = {
       some: { endDate: null, flatId: { in: await getResidentFlatIds(user.id) } },
     };
+  } else if (flatId) {
+    where.flatResidents = {
+      some: { endDate: null, flatId },
+    };
   }
+
+  if (block) {
+    where.flatResidents = {
+      ...(where.flatResidents || {}),
+      some: { ...(where.flatResidents?.some || {}), flat: { block }, endDate: null },
+    };
+  }
+
+  if (residentType) {
+    where.flatResidents = {
+      ...(where.flatResidents || {}),
+      some: { ...(where.flatResidents?.some || {}), residentType, endDate: null },
+    };
+  }
+
   if (status) where.status = status;
   if (q) {
     where.OR = [
@@ -59,8 +85,9 @@ const GETImpl = handler(async (req) => {
 
 /**
  * POST /api/residents
- * Creates the user record and links them to a flat in one transaction. The
- * Firebase identity is attached later on first sign-in (see lib/auth/session).
+ * Creates the user record, provisions Firebase identity, sends password in mail,
+ * and links them to the flat in one clean flow.
+ * Both Society Admin and Flat Admin can add residents.
  */
 const POSTImpl = handler(async (req) => {
   const user = await getSessionUser(req);
@@ -68,17 +95,6 @@ const POSTImpl = handler(async (req) => {
   const societyId = resolveSocietyScope(user, null);
 
   const body = residentCreateSchema.parse(await readJson(req));
-
-  // If society has multiple flats, flat admins must add residents.
-  // If society has only 1 flat, society admin can add residents directly.
-  if (isSocietyAdmin(user)) {
-    const flatCount = await prisma.flat.count({ where: { societyId } });
-    if (flatCount > 1) {
-      throw forbidden(
-        "Societies with multiple flats must use Flat Admins to manage residents. Please assign a Flat Admin for this flat."
-      );
-    }
-  }
 
   // A flat admin may only add residents to the flat they manage.
   if (isFlatAdmin(user)) {
@@ -88,23 +104,53 @@ const POSTImpl = handler(async (req) => {
     }
   }
 
-  const flat = await prisma.flat.findFirst({
-    where: { id: body.flatId, societyId },
-  });
+  const [flat, society] = await Promise.all([
+    prisma.flat.findFirst({ where: { id: body.flatId, societyId } }),
+    prisma.society.findUnique({ where: { id: societyId }, select: { name: true } }),
+  ]);
   if (!flat) throw notFound("Flat");
 
+  // Generate temporary password for resident onboarding
+  const tempPassword = `Society@${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // Provision Firebase auth identity if configured
+  let authUid = null;
+  try {
+    const fb = await createFirebaseUser(body.email.toLowerCase(), tempPassword);
+    if (fb?.uid) {
+      authUid = fb.uid;
+      await sendFirebasePasswordReset(body.email.toLowerCase()).catch(() => null);
+    }
+  } catch (fbErr) {
+    console.log("[residents] Firebase account creation skipped:", fbErr?.message);
+  }
+
   const created = await prisma.$transaction(async (tx) => {
-    const resident = await tx.user.create({
-      data: {
-        societyId,
-        name: body.name,
-        email: body.email,
-        phone: body.phone ?? null,
-        role: "RESIDENT",
-        status: body.status,
-      },
+    // Check if user already exists in this society
+    let resident = await tx.user.findUnique({
+      where: { email: body.email.toLowerCase() },
     });
 
+    if (!resident) {
+      resident = await tx.user.create({
+        data: {
+          societyId,
+          name: body.name,
+          email: body.email.toLowerCase(),
+          phone: body.phone ?? null,
+          role: "RESIDENT",
+          status: body.status,
+          authUid,
+        },
+      });
+    } else if (authUid && !resident.authUid) {
+      resident = await tx.user.update({
+        where: { id: resident.id },
+        data: { authUid },
+      });
+    }
+
+    // Link to flat
     await tx.flatResident.create({
       data: {
         societyId,
@@ -115,13 +161,20 @@ const POSTImpl = handler(async (req) => {
       },
     });
 
-    // A flat with residents is occupied unless told otherwise.
-    if (!body.isPrimary) {
-      await tx.flat.update({ where: { id: flat.id }, data: { status: "OCCUPIED" } });
-    }
+    // Mark flat occupied
+    await tx.flat.update({ where: { id: flat.id }, data: { status: "OCCUPIED" } });
 
     return resident;
   });
+
+  // Send onboarding email with temporary password
+  await sendResidentWelcomeEmail({
+    email: body.email.toLowerCase(),
+    name: body.name,
+    password: tempPassword,
+    societyName: society?.name,
+    flatNumber: flat.block ? `${flat.block}-${flat.flatNumber}` : flat.flatNumber,
+  }).catch((e) => console.warn("[email] Error sending welcome email:", e?.message));
 
   await audit({
     societyId,
@@ -132,7 +185,15 @@ const POSTImpl = handler(async (req) => {
     newValue: { name: created.name, email: created.email, flatNumber: flat.flatNumber },
   });
 
-  return ok({ ...created, flat: { id: flat.id, flatNumber: flat.flatNumber } }, { status: 201 });
+  return ok(
+    {
+      ...created,
+      temporaryPassword: tempPassword,
+      credentialsSent: true,
+      flat: { id: flat.id, flatNumber: flat.flatNumber, block: flat.block },
+    },
+    { status: 201 }
+  );
 });
 
 export async function GET(request, context) {

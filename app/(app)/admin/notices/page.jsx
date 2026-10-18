@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminNoticesPage({ searchParams }) {
   const user = await getServerSession();
-  requirePageRole(user, "SOCIETY_ADMIN");
+  requirePageRole(user, ["SOCIETY_ADMIN", "FLAT_ADMIN"]);
 
   const params = await searchParams;
   const status = typeof params?.status === "string" && params.status ? params.status : null;

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import Badge from "@/components/ui/Badge";
+import { cookies } from "next/headers";
+import { getDictionary, resolveKey } from "@/lib/i18n";
 
 const TONES = {
   brand: "bg-brand-50 text-brand-700 ring-brand-600/15",
@@ -11,47 +13,91 @@ const TONES = {
   violet: "bg-violet-50 text-violet-700 ring-violet-600/15",
 };
 
+const TITLE_TRANSLATIONS = {
+  "Pay maintenance": "resident.payMaintenance",
+  "Raise a complaint": "resident.raiseComplaint",
+  "Notice board": "nav.notices",
+  "Payment receipts": "nav.paymentReceipts",
+  "Add resident": "nav.residents",
+  "Issue notice": "nav.notices",
+  "Generate invoice": "nav.invoices",
+};
+
+const BADGE_TRANSLATIONS = {
+  "Pay now": "common.payNow",
+  "Clear": "common.clear",
+};
+
 /**
- * Large touch-friendly shortcut tiles. The main "flow" of every dashboard:
- * one glance shows the user what they can do, with the count right on it.
+ * Large touch-friendly shortcut tiles.
+ * Server component accepting icon references safely without RSC serialization issues.
  */
-export function QuickActions({ items, className = "" }) {
+export async function QuickActions({ items, className = "" }) {
   if (!items || items.length === 0) return null;
+  let locale = "en";
+  try {
+    const cookieStore = await cookies();
+    locale = cookieStore.get("sd_locale")?.value || "en";
+  } catch {
+    /* fallback to default */
+  }
+  const dict = getDictionary(locale);
+
   return (
     <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 ${className}`}>
       {items.map((item) => (
-        <QuickAction key={item.href} {...item} />
+        <QuickAction key={item.href} {...item} locale={locale} dict={dict} />
       ))}
     </div>
   );
 }
 
-export function QuickAction({ href, icon: Icon, title, caption, tone = "brand", badge }) {
-  const t = TONES[tone] ?? TONES.brand;
+export function QuickAction({ href, icon: Icon, title, caption, tone = "brand", badge, locale = "en", dict }) {
+  const tTone = TONES[tone] ?? TONES.brand;
+
+  let localizedTitle = title;
+  if (locale === "ta" && TITLE_TRANSLATIONS[title] && dict) {
+    localizedTitle = resolveKey(dict, TITLE_TRANSLATIONS[title], title);
+  }
+
+  let localizedBadge = badge;
+  if (locale === "ta" && BADGE_TRANSLATIONS[badge] && dict) {
+    localizedBadge = resolveKey(dict, BADGE_TRANSLATIONS[badge], badge);
+  }
+
+  let localizedCaption = caption;
+  if (locale === "ta" && typeof caption === "string" && dict) {
+    if (caption === "All dues are cleared") {
+      localizedCaption = resolveKey(dict, "resident.allDuesCleared", "அனைத்து நிலுவைகளும் செலுத்தப்பட்டுவிட்டன");
+    } else if (caption.endsWith("payable")) {
+      localizedCaption = caption.replace("payable", resolveKey(dict, "resident.payable", "செலுத்த வேண்டியது"));
+    }
+  }
+
   return (
     <Link
       href={href}
       className="surface animate-rise group flex items-center gap-3 rounded-lg p-3.5 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lift sm:p-4"
     >
       <span
-        className={`inline-flex size-9.5 shrink-0 items-center justify-center rounded-lg ring-1 [&_svg]:size-4.5 ${t}`}
+        className={`inline-flex size-9.5 shrink-0 items-center justify-center rounded-lg ring-1 [&_svg]:size-4.5 ${tTone}`}
       >
-        <Icon />
+        {Icon ? <Icon /> : null}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="text-[13px] font-semibold text-slate-900 leading-tight sm:text-sm">
-            {title}
+            {localizedTitle}
           </span>
-          {badge ? (
+          {localizedBadge ? (
             <span className="shrink-0">
-              <Badge tone="brand" className="text-[10px] px-1.5 py-0.2">{badge}</Badge>
+              <Badge tone="brand" className="text-[10px] px-1.5 py-0.2">{localizedBadge}</Badge>
             </span>
           ) : null}
         </span>
-        {caption ? (
+        {localizedCaption ? (
           <span className="mt-0.5 block text-xs text-slate-500 leading-normal">
-            {caption}
+            {localizedCaption}
           </span>
         ) : null}
       </span>
