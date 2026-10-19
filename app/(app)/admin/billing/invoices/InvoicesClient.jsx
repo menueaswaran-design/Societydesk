@@ -124,88 +124,168 @@ export default function InvoicesClient({ invoices, summary, filters }) {
             }
           />
         ) : (
-          <Table
-            dense
-            head={[
-              { label: "Invoice" },
-              { label: "Flat" },
-              { label: "Period", className: "hidden md:table-cell" },
-              { label: "Due", className: "hidden lg:table-cell" },
-              { label: "Total", align: "right" },
-              { label: "Paid", align: "right" },
-              { label: "Outstanding", align: "right" },
-              { label: "Status" },
-              { label: "", align: "right" },
-            ]}
-          >
-            {visible.map((inv) => {
-              const isOpen = expanded === inv.id;
-              const Chevron = isOpen ? ChevronDown : ChevronRight;
-              return (
-                <Fragment key={inv.id}>
-                  <Tr>
-                    <Td className="font-semibold text-slate-900">{inv.invoiceNumber}</Td>
-                    <Td className="tabular">
-                      {inv.flat?.block ? `${inv.flat.block}-` : ""}
-                      {inv.flat?.flatNumber}
-                    </Td>
-                    <Td className="hidden md:table-cell">{formatPeriod(inv.billingPeriod)}</Td>
-                    <Td className="hidden lg:table-cell">{formatDate(inv.dueDate)}</Td>
-                    <Td align="right" className="tabular font-medium text-slate-800">
-                      {formatMoney(inv.totalAmount)}
-                    </Td>
-                    <Td align="right" className="tabular text-emerald-600">
-                      {formatMoney(inv.paidAmount)}
-                    </Td>
-                    <Td align="right" className="tabular">
-                      {inv.outstanding > 0 ? (
-                        <span className="font-semibold text-amber-600">
-                          {formatMoney(inv.outstanding)}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </Td>
-                    <Td>
+          <>
+            {/* Mobile Cards for Admin Invoices */}
+            <div className="divide-y divide-slate-100 sm:hidden">
+              {visible.map((inv) => {
+                const isOpen = expanded === inv.id;
+                return (
+                  <div key={inv.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
+                          {inv.invoiceNumber}
+                        </div>
+                        <div className="mt-0.5 text-xs text-slate-500">
+                          Flat {inv.flat?.block ? `${inv.flat.block}-` : ""}{inv.flat?.flatNumber} · {formatPeriod(inv.billingPeriod)}
+                        </div>
+                      </div>
                       <StatusBadge status={inv.status} />
-                    </Td>
-                    <Td align="right">
-                      <RowActions>
-                        {inv.outstanding > 0 && inv.status !== "CANCELLED" ? (
-                          <>
-                            <CollectPaymentButton
-                              invoiceId={inv.id}
-                              invoiceNumber={inv.invoiceNumber}
-                              amount={inv.outstanding}
-                            />
-                            <Button size="xs" onClick={() => setPayFor(inv)}>
-                              <Wallet />
-                              Pay
-                            </Button>
-                          </>
-                        ) : null}
-                        <IconButton
-                          variant="ghost"
-                          label={isOpen ? "Hide breakdown" : "Show breakdown"}
-                          onClick={() => setExpanded(isOpen ? null : inv.id)}
-                        >
-                          <Chevron />
-                        </IconButton>
-                      </RowActions>
-                    </Td>
-                  </Tr>
+                    </div>
 
-                  {isOpen ? (
-                    <tr>
-                      <Td colSpan={9} className="!p-0">
+                    <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50/80 p-2.5 text-xs border border-slate-100">
+                      <div>
+                        <span className="text-[11px] font-medium text-slate-500 block">Total</span>
+                        <span className="tabular font-semibold text-slate-900">{formatMoney(inv.totalAmount)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-medium text-slate-500 block">Paid</span>
+                        <span className="tabular font-semibold text-emerald-600">{formatMoney(inv.paidAmount)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[11px] font-medium text-slate-500 block">Due</span>
+                        {inv.outstanding > 0 ? (
+                          <span className="tabular font-bold text-amber-600">
+                            {formatMoney(inv.outstanding)}
+                          </span>
+                        ) : (
+                          <span className="tabular font-semibold text-slate-400">—</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(isOpen ? null : inv.id)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                      >
+                        {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                        {isOpen ? "Hide breakdown" : "Breakdown"}
+                      </button>
+
+                      {inv.outstanding > 0 && inv.status !== "CANCELLED" ? (
+                        <div className="flex items-center gap-1.5">
+                          <CollectPaymentButton
+                            invoiceId={inv.id}
+                            invoiceNumber={inv.invoiceNumber}
+                            amount={inv.outstanding}
+                            size="xs"
+                          />
+                          <Button size="xs" onClick={() => setPayFor(inv)}>
+                            <Wallet className="size-3" />
+                            Record Pay
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {isOpen ? (
+                      <div className="pt-2 border-t border-slate-100">
                         <InvoiceBreakdown invoice={inv} />
-                      </Td>
-                    </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </Table>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table for Admin Invoices */}
+            <div className="hidden sm:block">
+              <Table
+                dense
+                head={[
+                  { label: "Invoice" },
+                  { label: "Flat" },
+                  { label: "Period", className: "hidden md:table-cell" },
+                  { label: "Due", className: "hidden lg:table-cell" },
+                  { label: "Total", align: "right" },
+                  { label: "Paid", align: "right" },
+                  { label: "Outstanding", align: "right" },
+                  { label: "Status" },
+                  { label: "", align: "right" },
+                ]}
+              >
+                {visible.map((inv) => {
+                  const isOpen = expanded === inv.id;
+                  const Chevron = isOpen ? ChevronDown : ChevronRight;
+                  return (
+                    <Fragment key={inv.id}>
+                      <Tr>
+                        <Td className="font-mono font-semibold text-slate-900 whitespace-nowrap">{inv.invoiceNumber}</Td>
+                        <Td className="tabular whitespace-nowrap">
+                          {inv.flat?.block ? `${inv.flat.block}-` : ""}
+                          {inv.flat?.flatNumber}
+                        </Td>
+                        <Td className="hidden md:table-cell">{formatPeriod(inv.billingPeriod)}</Td>
+                        <Td className="hidden lg:table-cell whitespace-nowrap">{formatDate(inv.dueDate)}</Td>
+                        <Td align="right" className="tabular font-medium text-slate-800">
+                          {formatMoney(inv.totalAmount)}
+                        </Td>
+                        <Td align="right" className="tabular text-emerald-600">
+                          {formatMoney(inv.paidAmount)}
+                        </Td>
+                        <Td align="right" className="tabular">
+                          {inv.outstanding > 0 ? (
+                            <span className="font-semibold text-amber-600">
+                              {formatMoney(inv.outstanding)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </Td>
+                        <Td>
+                          <StatusBadge status={inv.status} />
+                        </Td>
+                        <Td align="right">
+                          <RowActions>
+                            {inv.outstanding > 0 && inv.status !== "CANCELLED" ? (
+                              <>
+                                <CollectPaymentButton
+                                  invoiceId={inv.id}
+                                  invoiceNumber={inv.invoiceNumber}
+                                  amount={inv.outstanding}
+                                />
+                                <Button size="xs" onClick={() => setPayFor(inv)}>
+                                  <Wallet />
+                                  Pay
+                                </Button>
+                              </>
+                            ) : null}
+                            <IconButton
+                              variant="ghost"
+                              label={isOpen ? "Hide breakdown" : "Show breakdown"}
+                              onClick={() => setExpanded(isOpen ? null : inv.id)}
+                            >
+                              <Chevron />
+                            </IconButton>
+                          </RowActions>
+                        </Td>
+                      </Tr>
+
+                      {isOpen ? (
+                        <tr>
+                          <Td colSpan={9} className="!p-0">
+                            <InvoiceBreakdown invoice={inv} />
+                          </Td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
+              </Table>
+            </div>
+          </>
         )}
       </div>
 

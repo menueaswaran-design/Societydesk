@@ -86,65 +86,119 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
             description="Complaints raised by residents land here."
           />
         ) : (
-          <Table
-            dense
-            head={[
-              { label: "Complaint" },
-              { label: "Flat" },
-              { label: "Category", className: "hidden lg:table-cell" },
-              { label: "Priority" },
-              { label: "Raised by", className: "hidden md:table-cell" },
-              { label: "Assigned to" },
-              { label: "Status" },
-              { label: "", align: "right" },
-            ]}
-          >
-            {visible.map((c) => (
-              <Tr key={c.id}>
-                <Td>
-                  <button
-                    onClick={() => setOpenId(c.id)}
-                    className="text-left font-semibold text-slate-900 transition-colors hover:text-brand-700"
-                  >
-                    {c.title}
-                  </button>
-                  <span className="mt-0.5 block text-xs text-slate-400">
-                    {formatDateTime(c.createdAt)}
-                    {c._count?.comments ? ` · ${c._count.comments} updates` : ""}
-                  </span>
-                </Td>
-                <Td className="tabular">
-                  {c.flat?.block ? `${c.flat.block}-` : ""}
-                  {c.flat?.flatNumber}
-                </Td>
-                <Td className="hidden lg:table-cell">
-                  <Badge>{titleCase(c.category)}</Badge>
-                </Td>
-                <Td>
-                  <StatusBadge status={c.priority} />
-                </Td>
-                <Td className="hidden md:table-cell">{c.createdBy?.name}</Td>
-                <Td>
-                  {c.assignedTo?.name ? (
-                    <span className="inline-flex items-center gap-1.5 text-slate-700">
-                      <UserCheck className="size-3.5 text-emerald-500" />
-                      {c.assignedTo.name}
+          <>
+            {/* Mobile Cards for Admin Complaints */}
+            <div className="divide-y divide-slate-100 sm:hidden">
+              {visible.map((c) => (
+                <div
+                  key={c.id}
+                  onClick={() => setOpenId(c.id)}
+                  className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-slate-900 text-sm leading-snug hover:text-brand-700">
+                      {c.title}
+                    </h3>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <StatusBadge status={c.priority} />
+                      <StatusBadge status={c.status} />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                    <Badge tone="slate" size="xs">{titleCase(c.category)}</Badge>
+                    {c.flat?.flatNumber && (
+                      <>
+                        <span>•</span>
+                        <span>Flat {c.flat?.block ? `${c.flat.block}-` : ""}{c.flat.flatNumber}</span>
+                      </>
+                    )}
+                    <span>•</span>
+                    <span>{formatDateTime(c.createdAt)}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <div className="text-slate-600">
+                      {c.assignedTo?.name ? (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
+                          <UserCheck className="size-3.5 text-emerald-600" />
+                          {c.assignedTo.name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Unassigned</span>
+                      )}
+                    </div>
+                    <span className="font-medium text-brand-700">
+                      {c._count?.comments ? `${c._count.comments} updates` : "Details →"}
                     </span>
-                  ) : (
-                    <Badge tone="slate">Unassigned</Badge>
-                  )}
-                </Td>
-                <Td>
-                  <StatusBadge status={c.status} />
-                </Td>
-                <Td align="right">
-                  <RowActions>
-                    <TextAction onClick={() => setOpenId(c.id)}>Open</TextAction>
-                  </RowActions>
-                </Td>
-              </Tr>
-            ))}
-          </Table>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table for Admin Complaints */}
+            <div className="hidden sm:block">
+              <Table
+                dense
+                head={[
+                  { label: "Complaint" },
+                  { label: "Flat" },
+                  { label: "Category", className: "hidden lg:table-cell" },
+                  { label: "Priority" },
+                  { label: "Raised by", className: "hidden md:table-cell" },
+                  { label: "Assigned to" },
+                  { label: "Status" },
+                  { label: "", align: "right" },
+                ]}
+              >
+                {visible.map((c) => (
+                  <Tr key={c.id}>
+                    <Td>
+                      <button
+                        onClick={() => setOpenId(c.id)}
+                        className="text-left font-semibold text-slate-900 transition-colors hover:text-brand-700"
+                      >
+                        {c.title}
+                      </button>
+                      <span className="mt-0.5 block text-xs text-slate-400">
+                        {formatDateTime(c.createdAt)}
+                        {c._count?.comments ? ` · ${c._count.comments} updates` : ""}
+                      </span>
+                    </Td>
+                    <Td className="tabular whitespace-nowrap">
+                      {c.flat?.block ? `${c.flat.block}-` : ""}
+                      {c.flat?.flatNumber}
+                    </Td>
+                    <Td className="hidden lg:table-cell">
+                      <Badge>{titleCase(c.category)}</Badge>
+                    </Td>
+                    <Td>
+                      <StatusBadge status={c.priority} />
+                    </Td>
+                    <Td className="hidden md:table-cell">{c.createdBy?.name}</Td>
+                    <Td>
+                      {c.assignedTo?.name ? (
+                        <span className="inline-flex items-center gap-1.5 text-slate-700">
+                          <UserCheck className="size-3.5 text-emerald-500" />
+                          {c.assignedTo.name}
+                        </span>
+                      ) : (
+                        <Badge tone="slate">Unassigned</Badge>
+                      )}
+                    </Td>
+                    <Td>
+                      <StatusBadge status={c.status} />
+                    </Td>
+                    <Td align="right">
+                      <RowActions>
+                        <TextAction onClick={() => setOpenId(c.id)}>Open</TextAction>
+                      </RowActions>
+                    </Td>
+                  </Tr>
+                ))}
+              </Table>
+            </div>
+          </>
         )}
       </div>
 

@@ -1,16 +1,16 @@
-export default function Table({ head, children, className = "", dense = false }) {
+export default function Table({ head, children, className = "", minWidth = "min-w-[640px]", dense = false }) {
   const pad = dense ? "px-3 py-2" : "px-4 py-3";
 
   return (
     <div className={`scroll-fade-x overflow-x-auto ${className}`}>
-      <table className="w-full min-w-full border-collapse text-left text-[14px]">
+      <table className={`w-full ${minWidth} border-collapse text-left text-[14px]`}>
         <thead className="bg-slate-50/90">
           <tr className="border-b border-slate-200">
             {head.map((h, i) => (
               <th
                 key={h.key ?? i}
                 scope="col"
-                className={`label-xs ${pad} ${
+                className={`label-xs whitespace-nowrap ${pad} ${
                   h.align === "right"
                     ? "text-right"
                     : h.align === "center"

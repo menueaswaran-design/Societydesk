@@ -210,89 +210,165 @@ export default function ResidentInvoicesClient({ invoices }) {
             }
           />
         ) : (
-          <Table
-            dense
-            head={[
-              { label: "Invoice" },
-              { label: "Flat", className: "hidden sm:table-cell" },
-              { label: "Period" },
-              { label: "Due", className: "hidden lg:table-cell" },
-              { label: "Total", align: "right" },
-              { label: "Paid", align: "right", className: "hidden md:table-cell" },
-              { label: "Outstanding", align: "right" },
-              { label: "Status" },
-              { label: "", align: "right" },
-            ]}
-          >
-            {visible.map((inv) => {
-              const isOpen = expanded === inv.id;
-              const Chevron = isOpen ? ChevronDown : ChevronRight;
-              const flatLabel = [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
-                .join("")
-                .replace(/-+$/, "");
-              return (
-                <Fragment key={inv.id}>
-                  <Tr>
-                    <Td dense className="font-semibold text-slate-900">
-                      {inv.invoiceNumber}
-                    </Td>
-                    <Td dense className="hidden sm:table-cell">
-                      {inv.flat?.block ? `${inv.flat.block}-` : ""}
-                      {inv.flat?.flatNumber}
-                    </Td>
-                    <Td dense>{formatPeriod(inv.billingPeriod)}</Td>
-                    <Td dense className="hidden whitespace-nowrap lg:table-cell">
-                      {formatDate(inv.dueDate)}
-                    </Td>
-                    <Td dense align="right" className="tabular">
-                      {formatMoney(inv.totalAmount)}
-                    </Td>
-                    <Td dense align="right" className="tabular hidden text-emerald-600 md:table-cell">
-                      {formatMoney(inv.paidAmount)}
-                    </Td>
-                    <Td dense align="right" className="tabular font-semibold">
-                      {inv.outstanding > 0 ? (
-                        <span className="text-amber-600">{formatMoney(inv.outstanding)}</span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </Td>
-                    <Td dense>
+          <>
+            {/* Mobile Cards for Resident Invoices */}
+            <div className="divide-y divide-slate-100 sm:hidden">
+              {visible.map((inv) => {
+                const isOpen = expanded === inv.id;
+                const flatLabel = [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
+                  .join("")
+                  .replace(/-+$/, "");
+                return (
+                  <div key={inv.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
+                          {inv.invoiceNumber}
+                        </div>
+                        <div className="mt-0.5 text-xs text-slate-500">
+                          {inv.flat?.block ? `${inv.flat.block}-` : ""}{inv.flat?.flatNumber} · {formatPeriod(inv.billingPeriod)}
+                        </div>
+                      </div>
                       <StatusBadge status={inv.status} />
-                    </Td>
-                    <Td dense align="right">
-                      <RowActions>
-                        {inv.outstanding > 0 ? (
-                          <PayCheckoutButton
-                            invoiceId={inv.id}
-                            invoiceNumber={inv.invoiceNumber}
-                            amount={inv.outstanding}
-                            flatLabel={flatLabel}
-                          />
-                        ) : null}
-                        <IconButton
-                          size="xs"
-                          label={isOpen ? "Hide breakdown" : "Show breakdown"}
-                          aria-expanded={isOpen}
-                          onClick={() => setExpanded(isOpen ? null : inv.id)}
-                        >
-                          <Chevron />
-                        </IconButton>
-                      </RowActions>
-                    </Td>
-                  </Tr>
+                    </div>
 
-                  {isOpen ? (
-                    <Tr className="hover:bg-transparent">
-                      <Td colSpan={9} dense className="bg-slate-50/80">
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-50/80 p-3 text-xs border border-slate-100">
+                      <div>
+                        <span className="text-[11px] font-medium text-slate-500 block">Total Billed</span>
+                        <span className="tabular font-semibold text-slate-900">{formatMoney(inv.totalAmount)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[11px] font-medium text-slate-500 block">
+                          {inv.outstanding > 0 ? "Amount Due" : "Payment Status"}
+                        </span>
+                        {inv.outstanding > 0 ? (
+                          <span className="tabular font-bold text-amber-600">
+                            {formatMoney(inv.outstanding)}
+                          </span>
+                        ) : (
+                          <span className="tabular font-semibold text-emerald-600">Paid in full</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(isOpen ? null : inv.id)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                      >
+                        {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                        {isOpen ? "Hide breakdown" : "View breakdown"}
+                      </button>
+
+                      {inv.outstanding > 0 ? (
+                        <PayCheckoutButton
+                          invoiceId={inv.id}
+                          invoiceNumber={inv.invoiceNumber}
+                          amount={inv.outstanding}
+                          flatLabel={flatLabel}
+                          size="xs"
+                        />
+                      ) : null}
+                    </div>
+
+                    {isOpen ? (
+                      <div className="pt-2 border-t border-slate-100">
                         <Breakdown invoice={inv} />
-                      </Td>
-                    </Tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </Table>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table for Resident Invoices */}
+            <div className="hidden sm:block">
+              <Table
+                dense
+                head={[
+                  { label: "Invoice" },
+                  { label: "Flat", className: "hidden sm:table-cell" },
+                  { label: "Period" },
+                  { label: "Due", className: "hidden lg:table-cell" },
+                  { label: "Total", align: "right" },
+                  { label: "Paid", align: "right", className: "hidden md:table-cell" },
+                  { label: "Outstanding", align: "right" },
+                  { label: "Status" },
+                  { label: "", align: "right" },
+                ]}
+              >
+                {visible.map((inv) => {
+                  const isOpen = expanded === inv.id;
+                  const Chevron = isOpen ? ChevronDown : ChevronRight;
+                  const flatLabel = [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
+                    .join("")
+                    .replace(/-+$/, "");
+                  return (
+                    <Fragment key={inv.id}>
+                      <Tr>
+                        <Td dense className="font-mono font-semibold text-slate-900 whitespace-nowrap">
+                          {inv.invoiceNumber}
+                        </Td>
+                        <Td dense className="hidden sm:table-cell whitespace-nowrap">
+                          {inv.flat?.block ? `${inv.flat.block}-` : ""}
+                          {inv.flat?.flatNumber}
+                        </Td>
+                        <Td dense>{formatPeriod(inv.billingPeriod)}</Td>
+                        <Td dense className="hidden whitespace-nowrap lg:table-cell">
+                          {formatDate(inv.dueDate)}
+                        </Td>
+                        <Td dense align="right" className="tabular">
+                          {formatMoney(inv.totalAmount)}
+                        </Td>
+                        <Td dense align="right" className="tabular hidden text-emerald-600 md:table-cell">
+                          {formatMoney(inv.paidAmount)}
+                        </Td>
+                        <Td dense align="right" className="tabular font-semibold">
+                          {inv.outstanding > 0 ? (
+                            <span className="text-amber-600">{formatMoney(inv.outstanding)}</span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </Td>
+                        <Td dense>
+                          <StatusBadge status={inv.status} />
+                        </Td>
+                        <Td dense align="right">
+                          <RowActions>
+                            {inv.outstanding > 0 ? (
+                              <PayCheckoutButton
+                                invoiceId={inv.id}
+                                invoiceNumber={inv.invoiceNumber}
+                                amount={inv.outstanding}
+                                flatLabel={flatLabel}
+                              />
+                            ) : null}
+                            <IconButton
+                              size="xs"
+                              label={isOpen ? "Hide breakdown" : "Show breakdown"}
+                              aria-expanded={isOpen}
+                              onClick={() => setExpanded(isOpen ? null : inv.id)}
+                            >
+                              <Chevron />
+                            </IconButton>
+                          </RowActions>
+                        </Td>
+                      </Tr>
+
+                      {isOpen ? (
+                        <Tr className="hover:bg-transparent">
+                          <Td colSpan={9} dense className="bg-slate-50/80">
+                            <Breakdown invoice={inv} />
+                          </Td>
+                        </Tr>
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
+              </Table>
+            </div>
+          </>
         )}
       </div>
     </div>

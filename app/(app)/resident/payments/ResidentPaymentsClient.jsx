@@ -120,53 +120,100 @@ export default function ResidentPaymentsClient({ payments, pendingOrders = [], s
               </p>
             </div>
           </div>
-          <Table
-            dense
-            head={[
-              { label: "Invoice" },
-              { label: "Started", className: "hidden sm:table-cell" },
-              { label: "Expires" },
-              { label: "Channel", className: "hidden md:table-cell" },
-              { label: "Amount", align: "right" },
-              { label: "", align: "right" },
-            ]}
-          >
+
+          {/* Mobile Cards for Pending Payments */}
+          <div className="divide-y divide-amber-200/50 sm:hidden">
             {pendingOrders.map((o) => (
-              <Tr
+              <div
                 key={o.id}
-                className={`hover:bg-transparent ${
+                className={`p-4 space-y-2.5 ${
                   autoOrderId === o.id ? "bg-amber-100/70" : "bg-amber-50/40"
                 }`}
               >
-                <Td dense className="font-semibold text-slate-900">
-                  {o.invoice?.invoiceNumber ?? "-"}
-                </Td>
-                <Td dense className="hidden whitespace-nowrap sm:table-cell">
-                  {formatDate(o.createdAt)}
-                </Td>
-                <Td dense className="whitespace-nowrap text-amber-700">
-                  {formatDate(o.expiresAt)}
-                </Td>
-                <Td dense className="hidden text-xs text-slate-500 md:table-cell">
-                  {titleCase(o.gateway)}
-                </Td>
-                <Td dense align="right" className="tabular font-semibold">
-                  {formatMoney(o.amount)}
-                </Td>
-                <Td dense align="right">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
+                      {o.invoice?.invoiceNumber ?? "Invoice"}
+                    </div>
+                    <div className="mt-0.5 text-xs text-amber-800">
+                      Expires: {formatDate(o.expiresAt)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="tabular text-sm font-bold text-amber-800">
+                      {formatMoney(o.amount)}
+                    </div>
+                    <Badge tone="amber" size="xs" className="mt-0.5">
+                      {titleCase(o.gateway)}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-amber-200/40 flex justify-end">
                   <PayCheckoutButton
                     invoiceId={o.invoiceId}
                     invoiceNumber={o.invoice?.invoiceNumber}
                     amount={o.amount}
-                    label="Resume"
-                    variant="secondary"
+                    label="Resume payment"
+                    variant="primary"
                     size="xs"
                     autoStart={autoOrderId === o.id}
                   />
-                </Td>
-              </Tr>
+                </div>
+              </div>
             ))}
-          </Table>
+          </div>
+
+          {/* Desktop Table for Pending Payments */}
+          <div className="hidden sm:block">
+            <Table
+              dense
+              head={[
+                { label: "Invoice" },
+                { label: "Started", className: "hidden sm:table-cell" },
+                { label: "Expires" },
+                { label: "Channel", className: "hidden md:table-cell" },
+                { label: "Amount", align: "right" },
+                { label: "", align: "right" },
+              ]}
+            >
+              {pendingOrders.map((o) => (
+                <Tr
+                  key={o.id}
+                  className={`hover:bg-transparent ${
+                    autoOrderId === o.id ? "bg-amber-100/70" : "bg-amber-50/40"
+                  }`}
+                >
+                  <Td dense className="font-mono font-semibold text-slate-900 whitespace-nowrap">
+                    {o.invoice?.invoiceNumber ?? "-"}
+                  </Td>
+                  <Td dense className="hidden whitespace-nowrap sm:table-cell">
+                    {formatDate(o.createdAt)}
+                  </Td>
+                  <Td dense className="whitespace-nowrap text-amber-700">
+                    {formatDate(o.expiresAt)}
+                  </Td>
+                  <Td dense className="hidden text-xs text-slate-500 md:table-cell">
+                    {titleCase(o.gateway)}
+                  </Td>
+                  <Td dense align="right" className="tabular font-semibold">
+                    {formatMoney(o.amount)}
+                  </Td>
+                  <Td dense align="right">
+                    <PayCheckoutButton
+                      invoiceId={o.invoiceId}
+                      invoiceNumber={o.invoice?.invoiceNumber}
+                      amount={o.amount}
+                      label="Resume"
+                      variant="secondary"
+                      size="xs"
+                      autoStart={autoOrderId === o.id}
+                    />
+                  </Td>
+                </Tr>
+              ))}
+            </Table>
+          </div>
         </section>
       ) : null}
 
@@ -191,60 +238,127 @@ export default function ResidentPaymentsClient({ payments, pendingOrders = [], s
             }
           />
         ) : (
-          <Table
-            dense
-            head={[
-              { label: "Date" },
-              { label: "Receipt" },
-              { label: "Invoice" },
-              { label: "Flat", className: "hidden sm:table-cell" },
-              { label: "Period", className: "hidden lg:table-cell" },
-              { label: "Method", className: "hidden md:table-cell" },
-              { label: "Amount", align: "right" },
-              { label: "", align: "right" },
-            ]}
-          >
-            {visible.map((p) => (
-              <Tr key={p.id}>
-                <Td dense className="tabular whitespace-nowrap">{formatDate(p.paymentDate)}</Td>
-                <Td dense className="font-semibold text-slate-900">
-                  {p.receiptNumber ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Receipt className="size-3.5 text-slate-400" />
-                      {p.receiptNumber}
-                    </span>
-                  ) : (
-                    <span className="text-slate-400">—</span>
-                  )}
-                </Td>
-                <Td dense>{p.invoice?.invoiceNumber}</Td>
-                <Td dense className="hidden sm:table-cell">
-                  {p.flat?.block ? `${p.flat.block}-` : ""}
-                  {p.flat?.flatNumber}
-                </Td>
-                <Td dense className="hidden lg:table-cell">{formatPeriod(p.invoice?.billingPeriod)}</Td>
-                <Td dense className="hidden md:table-cell">
-                  <Badge tone="slate">{titleCase(p.paymentMethod)}</Badge>
-                </Td>
-                <Td dense align="right" className="tabular font-semibold text-emerald-600">
-                  {formatMoney(p.amount)}
-                </Td>
-                <Td dense align="right">
-                  {p.receiptUrl ? (
-                    <RowActions>
-                      <TextAction
+          <>
+            {/* Mobile Cards for Payment Receipts */}
+            <div className="divide-y divide-slate-100 sm:hidden">
+              {visible.map((p) => (
+                <div key={p.id} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-primary-800 whitespace-nowrap">
+                        <Receipt className="size-3.5 text-primary-600 shrink-0" />
+                        <span>{p.receiptNumber || "—"}</span>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
+                        <span>{formatDate(p.paymentDate)}</span>
+                        {p.flat?.flatNumber && (
+                          <>
+                            <span>•</span>
+                            <span>Flat {p.flat?.block ? `${p.flat.block}-` : ""}{p.flat.flatNumber}</span>
+                          </>
+                        )}
+                        {p.invoice?.billingPeriod && (
+                          <>
+                            <span>•</span>
+                            <span>{formatPeriod(p.invoice?.billingPeriod)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="tabular text-sm font-bold text-emerald-600">
+                        {formatMoney(p.amount)}
+                      </div>
+                      <div className="mt-1">
+                        <Badge tone="slate" size="xs">
+                          {titleCase(p.paymentMethod)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                    <div className="text-slate-600 truncate text-[11px]">
+                      <span className="text-slate-400">Inv: </span>
+                      <span className="font-mono font-medium text-slate-700 whitespace-nowrap">
+                        {p.invoice?.invoiceNumber || "—"}
+                      </span>
+                    </div>
+                    {p.receiptUrl ? (
+                      <Button
+                        variant="secondary"
+                        size="xs"
                         onClick={() => download(p)}
                         disabled={pending === p.id}
+                        className="shrink-0 font-medium h-7 text-xs"
                       >
-                        <Download />
-                        {pending === p.id ? "Opening" : "Receipt"}
-                      </TextAction>
-                    </RowActions>
-                  ) : null}
-                </Td>
-              </Tr>
-            ))}
-          </Table>
+                        <Download className="size-3 text-slate-500" />
+                        {pending === p.id ? "Opening..." : "Download Receipt"}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table for Payment Receipts */}
+            <div className="hidden sm:block">
+              <Table
+                dense
+                head={[
+                  { label: "Date" },
+                  { label: "Receipt" },
+                  { label: "Invoice" },
+                  { label: "Flat", className: "hidden sm:table-cell" },
+                  { label: "Period", className: "hidden lg:table-cell" },
+                  { label: "Method", className: "hidden md:table-cell" },
+                  { label: "Amount", align: "right" },
+                  { label: "", align: "right" },
+                ]}
+              >
+                {visible.map((p) => (
+                  <Tr key={p.id}>
+                    <Td dense className="tabular whitespace-nowrap">{formatDate(p.paymentDate)}</Td>
+                    <Td dense className="font-mono font-semibold text-slate-900 whitespace-nowrap">
+                      {p.receiptNumber ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Receipt className="size-3.5 text-slate-400" />
+                          {p.receiptNumber}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </Td>
+                    <Td dense className="font-mono whitespace-nowrap">{p.invoice?.invoiceNumber}</Td>
+                    <Td dense className="hidden sm:table-cell whitespace-nowrap">
+                      {p.flat?.block ? `${p.flat.block}-` : ""}
+                      {p.flat?.flatNumber}
+                    </Td>
+                    <Td dense className="hidden lg:table-cell">{formatPeriod(p.invoice?.billingPeriod)}</Td>
+                    <Td dense className="hidden md:table-cell">
+                      <Badge tone="slate">{titleCase(p.paymentMethod)}</Badge>
+                    </Td>
+                    <Td dense align="right" className="tabular font-semibold text-emerald-600">
+                      {formatMoney(p.amount)}
+                    </Td>
+                    <Td dense align="right">
+                      {p.receiptUrl ? (
+                        <RowActions>
+                          <TextAction
+                            onClick={() => download(p)}
+                            disabled={pending === p.id}
+                          >
+                            <Download />
+                            {pending === p.id ? "Opening" : "Receipt"}
+                          </TextAction>
+                        </RowActions>
+                      ) : null}
+                    </Td>
+                  </Tr>
+                ))}
+              </Table>
+            </div>
+          </>
         )}
       </div>
 

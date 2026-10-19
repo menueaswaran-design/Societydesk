@@ -67,20 +67,22 @@ export default function PublicLayout({ children }) {
 
       {/* -------------------------------------------------------- form column */}
       <section className="flex flex-col bg-white">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between border-b border-slate-100 px-3.5 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <span className="inline-flex size-8 items-center justify-center rounded-lg bg-slate-900 text-xs font-black text-white">
               SD
             </span>
             <p className="text-sm font-semibold text-slate-900">SocietyDesk</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <LanguageSwitcher />
             <a
               href="/"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 sm:px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 shrink-0"
             >
-              ← Back to landing page
+              <span>←</span>
+              <span className="hidden sm:inline">Back to landing page</span>
+              <span className="sm:hidden">Back</span>
             </a>
           </div>
         </div>

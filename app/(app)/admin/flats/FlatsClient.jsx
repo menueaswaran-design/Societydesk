@@ -194,83 +194,170 @@ export default function FlatsClient({ flats }) {
             }
           />
         ) : (
-          <Table
-            dense
-            head={[
-              { label: "Flat" },
-              { label: "Block / Floor", className: "hidden md:table-cell" },
-              { label: "Type", className: "hidden lg:table-cell" },
-              { label: "Area", align: "right", className: "hidden lg:table-cell" },
-              { label: "Parking", className: "hidden xl:table-cell" },
-              { label: "Primary resident" },
-              { label: "Status" },
-              { label: "Invoices", align: "right", className: "hidden sm:table-cell" },
-              { label: "", align: "right" },
-            ]}
-          >
-            {filtered.map((f) => {
-              const primary = f.residents[0];
-              return (
-                <Tr key={f.id}>
-                  <Td className="font-semibold text-slate-900">
-                    <span className="flex items-center gap-2">
-                      <span className="inline-flex size-7 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-500">
-                        {String(f.flatNumber).slice(0, 2)}
+          <>
+            {/* Mobile Cards for Flats */}
+            <div className="divide-y divide-slate-100 sm:hidden">
+              {filtered.map((f) => {
+                const primary = f.residents[0];
+                return (
+                  <div key={f.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex size-8 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-700">
+                          {String(f.flatNumber).slice(0, 2)}
+                        </span>
+                        <div>
+                          <span className="font-bold text-slate-900 text-sm">
+                            {f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber}
+                          </span>
+                          {(f.block || f.floor) && (
+                            <span className="block text-xs text-slate-500">
+                              {f.block ? `Block ${f.block}` : ""}{f.floor ? ` · Floor ${f.floor}` : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <StatusBadge status={f.status} />
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50/80 p-2.5 text-xs border border-slate-100 space-y-1">
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="text-slate-400">Primary Resident</span>
+                        {primary ? (
+                          <span className="flex items-center gap-1.5 font-medium text-slate-800">
+                            <span>{primary.user.name}</span>
+                            <Badge tone={primary.residentType === "OWNER" ? "brand" : "slate"} size="xs">
+                              {primary.residentType === "OWNER" ? "Owner" : "Tenant"}
+                            </Badge>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-slate-400">
+                            <Inbox className="size-3" />
+                            Unoccupied
+                          </span>
+                        )}
+                      </div>
+                      {(f.flatType || f.sqFt) && (
+                        <div className="flex items-center justify-between text-slate-500 pt-1 border-t border-slate-200/40">
+                          <span>Configuration</span>
+                          <span>{[f.flatType, f.sqFt ? `${f.sqFt} sq.ft` : null].filter(Boolean).join(" · ")}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                      <span className="text-slate-500 text-[11px]">
+                        {f._count.invoices} {f._count.invoices === 1 ? "invoice" : "invoices"}
                       </span>
-                      {f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber}
-                    </span>
-                  </Td>
-                  <Td className="hidden md:table-cell">
-                    {f.block ?? "-"}
-                    {f.floor ? ` · Floor ${f.floor}` : ""}
-                  </Td>
-                  <Td className="hidden lg:table-cell">{f.flatType ? <Badge>{f.flatType}</Badge> : "-"}</Td>
-                  <Td align="right" className="tabular hidden lg:table-cell">
-                    {f.sqFt ? `${f.sqFt} sq.ft` : "-"}
-                  </Td>
-                  <Td className="hidden xl:table-cell">{f.parkingSlot ?? "-"}</Td>
-                  <Td>
-                    {primary ? (
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="text-slate-800">{primary.user.name}</span>
-                        <Badge tone={primary.residentType === "OWNER" ? "brand" : "slate"}>
-                          {primary.residentType === "OWNER" ? "Owner" : "Tenant"}
-                        </Badge>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-slate-400">
-                        <Inbox className="size-3.5" />
-                        Unoccupied
-                      </span>
-                    )}
-                  </Td>
-                  <Td>
-                    <StatusBadge status={f.status} />
-                  </Td>
-                  <Td align="right" className="tabular hidden sm:table-cell">
-                    {f._count.invoices}
-                  </Td>
-                  <Td align="right">
-                    <RowActions>
-                      <IconButton variant="brand" label={`Edit ${f.flatNumber}`} onClick={() => openEdit(f)}>
-                        <Pencil />
-                      </IconButton>
-                      <IconButton
-                        variant="danger"
-                        label={`Delete ${f.flatNumber}`}
-                        onClick={() => {
-                          setError(null);
-                          setConfirmDelete(f);
-                        }}
-                      >
-                        <Trash2 />
-                      </IconButton>
-                    </RowActions>
-                  </Td>
-                </Tr>
-              );
-            })}
-          </Table>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="secondary"
+                          size="xs"
+                          onClick={() => openEdit(f)}
+                          className="h-7 text-xs px-2"
+                        >
+                          <Pencil className="size-3 text-slate-500" />
+                          Edit
+                        </Button>
+                        <IconButton
+                          variant="danger"
+                          size="xs"
+                          label={`Delete ${f.flatNumber}`}
+                          onClick={() => {
+                            setError(null);
+                            setConfirmDelete(f);
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </IconButton>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table for Flats */}
+            <div className="hidden sm:block">
+              <Table
+                dense
+                head={[
+                  { label: "Flat" },
+                  { label: "Block / Floor", className: "hidden md:table-cell" },
+                  { label: "Type", className: "hidden lg:table-cell" },
+                  { label: "Area", align: "right", className: "hidden lg:table-cell" },
+                  { label: "Parking", className: "hidden xl:table-cell" },
+                  { label: "Primary resident" },
+                  { label: "Status" },
+                  { label: "Invoices", align: "right", className: "hidden sm:table-cell" },
+                  { label: "", align: "right" },
+                ]}
+              >
+                {filtered.map((f) => {
+                  const primary = f.residents[0];
+                  return (
+                    <Tr key={f.id}>
+                      <Td className="font-semibold text-slate-900 whitespace-nowrap">
+                        <span className="flex items-center gap-2">
+                          <span className="inline-flex size-7 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-500">
+                            {String(f.flatNumber).slice(0, 2)}
+                          </span>
+                          {f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber}
+                        </span>
+                      </Td>
+                      <Td className="hidden md:table-cell whitespace-nowrap">
+                        {f.block ?? "-"}
+                        {f.floor ? ` · Floor ${f.floor}` : ""}
+                      </Td>
+                      <Td className="hidden lg:table-cell">{f.flatType ? <Badge>{f.flatType}</Badge> : "-"}</Td>
+                      <Td align="right" className="tabular hidden lg:table-cell whitespace-nowrap">
+                        {f.sqFt ? `${f.sqFt} sq.ft` : "-"}
+                      </Td>
+                      <Td className="hidden xl:table-cell">{f.parkingSlot ?? "-"}</Td>
+                      <Td>
+                        {primary ? (
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="text-slate-800">{primary.user.name}</span>
+                            <Badge tone={primary.residentType === "OWNER" ? "brand" : "slate"}>
+                              {primary.residentType === "OWNER" ? "Owner" : "Tenant"}
+                            </Badge>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-slate-400">
+                            <Inbox className="size-3.5" />
+                            Unoccupied
+                          </span>
+                        )}
+                      </Td>
+                      <Td>
+                        <StatusBadge status={f.status} />
+                      </Td>
+                      <Td align="right" className="tabular hidden sm:table-cell">
+                        {f._count.invoices}
+                      </Td>
+                      <Td align="right">
+                        <RowActions>
+                          <IconButton variant="brand" label={`Edit ${f.flatNumber}`} onClick={() => openEdit(f)}>
+                            <Pencil />
+                          </IconButton>
+                          <IconButton
+                            variant="danger"
+                            label={`Delete ${f.flatNumber}`}
+                            onClick={() => {
+                              setError(null);
+                              setConfirmDelete(f);
+                            }}
+                          >
+                            <Trash2 />
+                          </IconButton>
+                        </RowActions>
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </Table>
+            </div>
+          </>
         )}
       </div>
 

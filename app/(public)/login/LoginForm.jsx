@@ -291,20 +291,20 @@ export default function LoginForm({ next }) {
           {t("auth.forgotPassword", "Forgot password?")}
         </Link>
       </p>
-      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+      <div className="mt-3 flex items-center justify-between text-xs text-slate-500 gap-2">
         <Link
           href="/"
-          className="inline-flex items-center gap-1 font-semibold text-slate-500 transition-colors hover:text-slate-900"
+          className="inline-flex items-center gap-1 font-semibold text-slate-500 transition-colors hover:text-slate-900 shrink-0"
         >
           <ArrowLeft className="size-3.5" />
-          {locale === "ta" ? "முகப்பு பக்கத்திற்குத் திரும்பு" : "Back to landing page"}
+          {locale === "ta" ? "முகப்பு" : "Landing page"}
         </Link>
         <button
           type="button"
           onClick={loadDevAccounts}
-          className="underline-offset-2 hover:text-brand-700 hover:underline"
+          className="underline-offset-2 hover:text-brand-700 hover:underline text-right"
         >
-          {locale === "ta" ? "மாதிரிக் கணக்கைப் பயன்படுத்துக (Demo)" : "Use a demo account"}
+          {locale === "ta" ? "மாதிரிக் கணக்குகள் (Demo)" : "Use demo account"}
         </button>
       </div>
     </form>

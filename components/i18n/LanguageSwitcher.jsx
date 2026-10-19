@@ -17,7 +17,7 @@ export default function LanguageSwitcher({ className = "" }) {
         onClick={() => setLocale("en")}
         title="Switch to English"
         aria-pressed={locale === "en"}
-        className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
+        className={`flex items-center gap-1 rounded-md px-2 sm:px-2.5 py-0.5 sm:py-1 text-[11px] font-semibold transition-all ${
           locale === "en"
             ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/5"
             : "text-slate-500 hover:text-slate-900"
@@ -30,7 +30,7 @@ export default function LanguageSwitcher({ className = "" }) {
         onClick={() => setLocale("ta")}
         title="தமிழுக்கு மாறவும்"
         aria-pressed={locale === "ta"}
-        className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
+        className={`flex items-center gap-1 rounded-md px-2 sm:px-2.5 py-0.5 sm:py-1 text-[11px] font-semibold transition-all ${
           locale === "ta"
             ? "bg-brand-600 text-white shadow-xs"
             : "text-slate-500 hover:text-slate-900"

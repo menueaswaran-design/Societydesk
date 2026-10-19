@@ -106,57 +106,97 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
               {formatMoney(visiblePending.reduce((s, o) => s + o.amount, 0))}
             </p>
           </div>
-          <Table
-            dense
-            head={[
-              { label: "Invoice" },
-              { label: "Flat" },
-              { label: "Issued by", className: "hidden md:table-cell" },
-              { label: "Started", className: "hidden lg:table-cell" },
-              { label: "Expires" },
-              { label: "Channel", className: "hidden sm:table-cell" },
-              { label: "Amount", align: "right" },
-              { label: "", align: "right" },
-            ]}
-          >
+          {/* Mobile Cards for Pending Payments */}
+          <div className="divide-y divide-amber-200/50 sm:hidden">
             {visiblePending.map((o) => (
-              <Tr key={o.id} className="bg-amber-50/25 hover:bg-amber-50/50">
-                <Td className="font-semibold text-slate-900">{o.invoice?.invoiceNumber ?? "-"}</Td>
-                <Td className="tabular">
-                  {o.flat?.block ? `${o.flat.block}-` : ""}
-                  {o.flat?.flatNumber}
-                </Td>
-                <Td className="hidden md:table-cell">{o.initiatedBy?.name ?? "-"}</Td>
-                <Td className="hidden whitespace-nowrap lg:table-cell">
-                  {formatDate(o.createdAt)}
-                </Td>
-                <Td className="whitespace-nowrap">
-                  {new Date(o.expiresAt) < new Date() ? (
-                    <Badge tone="slate">expired</Badge>
-                  ) : (
-                    formatDate(o.expiresAt)
-                  )}
-                </Td>
-                <Td className="hidden sm:table-cell">
-                  <Badge tone="violet">{titleCase(o.gateway)}</Badge>
-                </Td>
-                <Td align="right" className="tabular font-semibold text-amber-700">
-                  {formatMoney(o.amount)}
-                </Td>
-                <Td align="right">
-                  <RowActions>
-                    <CollectPaymentButton
-                      invoiceId={o.invoiceId}
-                      invoiceNumber={o.invoice?.invoiceNumber}
-                      amount={o.amount}
-                      size="xs"
-                      label="Reissue link"
-                    />
-                  </RowActions>
-                </Td>
-              </Tr>
+              <div key={o.id} className="p-4 space-y-2.5 bg-amber-50/25">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
+                      {o.invoice?.invoiceNumber ?? "Invoice"}
+                    </div>
+                    <div className="mt-0.5 text-xs text-slate-600">
+                      Flat {o.flat?.block ? `${o.flat.block}-` : ""}{o.flat?.flatNumber} · Expires {formatDate(o.expiresAt)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="tabular text-sm font-bold text-amber-700">
+                      {formatMoney(o.amount)}
+                    </div>
+                    <Badge tone="violet" size="xs" className="mt-0.5">
+                      {titleCase(o.gateway)}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-amber-200/40 flex items-center justify-between text-xs text-slate-500">
+                  <span>By {o.initiatedBy?.name ?? "System"}</span>
+                  <CollectPaymentButton
+                    invoiceId={o.invoiceId}
+                    invoiceNumber={o.invoice?.invoiceNumber}
+                    amount={o.amount}
+                    size="xs"
+                    label="Reissue link"
+                  />
+                </div>
+              </div>
             ))}
-          </Table>
+          </div>
+
+          {/* Desktop Table for Pending Payments */}
+          <div className="hidden sm:block">
+            <Table
+              dense
+              head={[
+                { label: "Invoice" },
+                { label: "Flat" },
+                { label: "Issued by", className: "hidden md:table-cell" },
+                { label: "Started", className: "hidden lg:table-cell" },
+                { label: "Expires" },
+                { label: "Channel", className: "hidden sm:table-cell" },
+                { label: "Amount", align: "right" },
+                { label: "", align: "right" },
+              ]}
+            >
+              {visiblePending.map((o) => (
+                <Tr key={o.id} className="bg-amber-50/25 hover:bg-amber-50/50">
+                  <Td className="font-mono font-semibold text-slate-900 whitespace-nowrap">{o.invoice?.invoiceNumber ?? "-"}</Td>
+                  <Td className="tabular whitespace-nowrap">
+                    {o.flat?.block ? `${o.flat.block}-` : ""}
+                    {o.flat?.flatNumber}
+                  </Td>
+                  <Td className="hidden md:table-cell">{o.initiatedBy?.name ?? "-"}</Td>
+                  <Td className="hidden whitespace-nowrap lg:table-cell">
+                    {formatDate(o.createdAt)}
+                  </Td>
+                  <Td className="whitespace-nowrap">
+                    {new Date(o.expiresAt) < new Date() ? (
+                      <Badge tone="slate">expired</Badge>
+                    ) : (
+                      formatDate(o.expiresAt)
+                    )}
+                  </Td>
+                  <Td className="hidden sm:table-cell">
+                    <Badge tone="violet">{titleCase(o.gateway)}</Badge>
+                  </Td>
+                  <Td align="right" className="tabular font-semibold text-amber-700">
+                    {formatMoney(o.amount)}
+                  </Td>
+                  <Td align="right">
+                    <RowActions>
+                      <CollectPaymentButton
+                        invoiceId={o.invoiceId}
+                        invoiceNumber={o.invoice?.invoiceNumber}
+                        amount={o.amount}
+                        size="xs"
+                        label="Reissue link"
+                      />
+                    </RowActions>
+                  </Td>
+                </Tr>
+              ))}
+            </Table>
+          </div>
         </Card>
       ) : null}
 
@@ -217,65 +257,139 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
             description="Payments recorded against an invoice show up here."
           />
         ) : (
-          <Table
-            dense
-            head={[
-              { label: "Date" },
-              { label: "Receipt" },
-              { label: "Invoice", className: "hidden sm:table-cell" },
-              { label: "Flat" },
-              { label: "Period", className: "hidden lg:table-cell" },
-              { label: "Method" },
-              { label: "Reference", className: "hidden xl:table-cell" },
-              { label: "By", className: "hidden xl:table-cell" },
-              { label: "Amount", align: "right" },
-              { label: "", align: "right" },
-            ]}
-          >
-            {visible.map((p) => (
-              <Tr key={p.id}>
-                <Td className="whitespace-nowrap">{formatDate(p.paymentDate)}</Td>
-                <Td className="font-semibold text-slate-900">
-                  {p.receiptNumber ?? <span className="text-slate-400">-</span>}
-                </Td>
-                <Td className="hidden sm:table-cell">{p.invoice?.invoiceNumber}</Td>
-                <Td className="tabular">
-                  {p.flat?.block ? `${p.flat.block}-` : ""}
-                  {p.flat?.flatNumber}
-                </Td>
-                <Td className="hidden lg:table-cell">{formatPeriod(p.invoice?.billingPeriod)}</Td>
-                <Td>
-                  <Badge tone="brand">{titleCase(p.paymentMethod)}</Badge>
-                </Td>
-                <Td className="hidden truncate text-xs text-slate-500 xl:table-cell">
-                  {p.transactionReference ?? "-"}
-                </Td>
-                <Td className="hidden truncate xl:table-cell">
-                  {p.recordedBy?.name ?? "System"}
-                </Td>
-                <Td align="right" className="tabular font-semibold text-emerald-600">
-                  {formatMoney(p.amount)}
-                </Td>
-                <Td align="right">
-                  <RowActions>
-                    {p.receiptUrl ? (
-                      <IconButton
-                        variant="brand"
-                        label={`View receipt ${p.receiptNumber}`}
-                        onClick={() => openReceipt(p)}
+          <>
+            {/* Mobile Cards for Recorded Payments */}
+            <div className="divide-y divide-slate-100 sm:hidden">
+              {visible.map((p) => (
+                <div key={p.id} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
+                        {p.receiptNumber ?? <span className="text-slate-400 font-sans">No receipt #</span>}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
+                        <span>{formatDate(p.paymentDate)}</span>
+                        {p.flat?.flatNumber && (
+                          <>
+                            <span>•</span>
+                            <span>Flat {p.flat?.block ? `${p.flat.block}-` : ""}{p.flat.flatNumber}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="tabular text-sm font-bold text-emerald-600">
+                        {formatMoney(p.amount)}
+                      </div>
+                      <Badge tone="brand" size="xs" className="mt-0.5">
+                        {titleCase(p.paymentMethod)}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                    <div className="text-slate-600 truncate text-[11px]">
+                      <span className="text-slate-400">Inv: </span>
+                      <span className="font-mono font-medium text-slate-700 whitespace-nowrap">
+                        {p.invoice?.invoiceNumber || "—"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {p.receiptUrl ? (
+                        <IconButton
+                          variant="brand"
+                          size="xs"
+                          label={`View receipt ${p.receiptNumber}`}
+                          onClick={() => openReceipt(p)}
+                        >
+                          <FileDown className="size-3.5" />
+                        </IconButton>
+                      ) : null}
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        onClick={() => setEditing(p)}
+                        className="h-7 text-xs px-2"
                       >
-                        <FileDown />
+                        Edit
+                      </Button>
+                      <IconButton
+                        variant="danger"
+                        size="xs"
+                        label="Reverse payment"
+                        onClick={() => setReversing(p)}
+                      >
+                        <Undo2 className="size-3.5" />
                       </IconButton>
-                    ) : null}
-                    <TextAction onClick={() => setEditing(p)}>Edit</TextAction>
-                    <IconButton variant="danger" label="Reverse payment" onClick={() => setReversing(p)}>
-                      <Undo2 />
-                    </IconButton>
-                  </RowActions>
-                </Td>
-              </Tr>
-            ))}
-          </Table>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table for Recorded Payments */}
+            <div className="hidden sm:block">
+              <Table
+                dense
+                head={[
+                  { label: "Date" },
+                  { label: "Receipt" },
+                  { label: "Invoice", className: "hidden sm:table-cell" },
+                  { label: "Flat" },
+                  { label: "Period", className: "hidden lg:table-cell" },
+                  { label: "Method" },
+                  { label: "Reference", className: "hidden xl:table-cell" },
+                  { label: "By", className: "hidden xl:table-cell" },
+                  { label: "Amount", align: "right" },
+                  { label: "", align: "right" },
+                ]}
+              >
+                {visible.map((p) => (
+                  <Tr key={p.id}>
+                    <Td className="whitespace-nowrap">{formatDate(p.paymentDate)}</Td>
+                    <Td className="font-mono font-semibold text-slate-900 whitespace-nowrap">
+                      {p.receiptNumber ?? <span className="text-slate-400 font-sans">-</span>}
+                    </Td>
+                    <Td className="font-mono hidden sm:table-cell whitespace-nowrap">{p.invoice?.invoiceNumber}</Td>
+                    <Td className="tabular whitespace-nowrap">
+                      {p.flat?.block ? `${p.flat.block}-` : ""}
+                      {p.flat?.flatNumber}
+                    </Td>
+                    <Td className="hidden lg:table-cell">{formatPeriod(p.invoice?.billingPeriod)}</Td>
+                    <Td>
+                      <Badge tone="brand">{titleCase(p.paymentMethod)}</Badge>
+                    </Td>
+                    <Td className="hidden truncate text-xs text-slate-500 xl:table-cell">
+                      {p.transactionReference ?? "-"}
+                    </Td>
+                    <Td className="hidden truncate xl:table-cell">
+                      {p.recordedBy?.name ?? "System"}
+                    </Td>
+                    <Td align="right" className="tabular font-semibold text-emerald-600">
+                      {formatMoney(p.amount)}
+                    </Td>
+                    <Td align="right">
+                      <RowActions>
+                        {p.receiptUrl ? (
+                          <IconButton
+                            variant="brand"
+                            label={`View receipt ${p.receiptNumber}`}
+                            onClick={() => openReceipt(p)}
+                          >
+                            <FileDown />
+                          </IconButton>
+                        ) : null}
+                        <TextAction onClick={() => setEditing(p)}>Edit</TextAction>
+                        <IconButton variant="danger" label="Reverse payment" onClick={() => setReversing(p)}>
+                          <Undo2 />
+                        </IconButton>
+                      </RowActions>
+                    </Td>
+                  </Tr>
+                ))}
+              </Table>
+            </div>
+          </>
         )}
       </div>
 

@@ -116,48 +116,94 @@ export default function DefaultersClient({ defaulters, summary }) {
             }
           />
         ) : (
-          <Table
-            dense
-            head={[
-              { label: "Flat" },
-              { label: "Primary resident" },
-              { label: "Oldest due" },
-              { label: "Invoices", align: "right", className: "hidden sm:table-cell" },
-              { label: "Days overdue", align: "right" },
-              { label: "Outstanding", align: "right" },
-              { label: "", align: "right" },
-            ]}
-          >
-            {visible.map((d) => (
-              <Tr key={d.flatId}>
-                <Td className="font-semibold text-slate-900">
-                  {d.block ? `${d.block}-` : ""}
-                  {d.flatNumber}
-                </Td>
-                <Td>{d.residentName ?? <span className="text-slate-400">Vacant</span>}</Td>
-                <Td className="whitespace-nowrap">{formatDate(d.oldestDueDate)}</Td>
-                <Td align="right" className="tabular hidden sm:table-cell">
-                  {d.invoiceCount}
-                </Td>
-                <Td align="right">
-                  <Badge tone={OVERDUE_BADGE[overdueTone(d.daysOverdue)]}>
-                    <Clock />
-                    {d.daysOverdue} days
-                  </Badge>
-                </Td>
-                <Td align="right" className="tabular font-semibold text-rose-600">
-                  {formatMoney(d.outstanding)}
-                </Td>
-                <Td align="right">
-                  <RowActions>
-                    <Link href="/admin/billing/invoices?status=OVERDUE">
-                      <TextAction>Open invoices</TextAction>
+          <>
+            {/* Mobile Cards for Defaulters */}
+            <div className="divide-y divide-slate-100 sm:hidden">
+              {visible.map((d) => (
+                <div key={d.flatId} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-slate-900 text-sm">
+                        Flat {d.block ? `${d.block}-` : ""}{d.flatNumber}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        {d.residentName ?? <span className="text-slate-400">Vacant flat</span>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="tabular text-sm font-bold text-rose-600">
+                        {formatMoney(d.outstanding)}
+                      </div>
+                      <div className="mt-1">
+                        <Badge tone={OVERDUE_BADGE[overdueTone(d.daysOverdue)]} size="xs">
+                          <Clock className="size-3" />
+                          {d.daysOverdue}d overdue
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                    <span className="text-slate-500 text-[11px]">
+                      Oldest due: {formatDate(d.oldestDueDate)} ({d.invoiceCount} {d.invoiceCount === 1 ? "inv" : "invs"})
+                    </span>
+                    <Link
+                      href="/admin/billing/invoices?status=OVERDUE"
+                      className="font-semibold text-brand-700 hover:text-brand-900"
+                    >
+                      Open invoices →
                     </Link>
-                  </RowActions>
-                </Td>
-              </Tr>
-            ))}
-          </Table>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table for Defaulters */}
+            <div className="hidden sm:block">
+              <Table
+                dense
+                head={[
+                  { label: "Flat" },
+                  { label: "Primary resident" },
+                  { label: "Oldest due" },
+                  { label: "Invoices", align: "right", className: "hidden sm:table-cell" },
+                  { label: "Days overdue", align: "right" },
+                  { label: "Outstanding", align: "right" },
+                  { label: "", align: "right" },
+                ]}
+              >
+                {visible.map((d) => (
+                  <Tr key={d.flatId}>
+                    <Td className="font-semibold text-slate-900 whitespace-nowrap">
+                      {d.block ? `${d.block}-` : ""}
+                      {d.flatNumber}
+                    </Td>
+                    <Td>{d.residentName ?? <span className="text-slate-400">Vacant</span>}</Td>
+                    <Td className="whitespace-nowrap">{formatDate(d.oldestDueDate)}</Td>
+                    <Td align="right" className="tabular hidden sm:table-cell">
+                      {d.invoiceCount}
+                    </Td>
+                    <Td align="right">
+                      <Badge tone={OVERDUE_BADGE[overdueTone(d.daysOverdue)]}>
+                        <Clock />
+                        {d.daysOverdue} days
+                      </Badge>
+                    </Td>
+                    <Td align="right" className="tabular font-semibold text-rose-600">
+                      {formatMoney(d.outstanding)}
+                    </Td>
+                    <Td align="right">
+                      <RowActions>
+                        <Link href="/admin/billing/invoices?status=OVERDUE">
+                          <TextAction>Open invoices</TextAction>
+                        </Link>
+                      </RowActions>
+                    </Td>
+                  </Tr>
+                ))}
+              </Table>
+            </div>
+          </>
         )}
       </div>
     </div>

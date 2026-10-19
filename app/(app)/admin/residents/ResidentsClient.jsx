@@ -277,86 +277,174 @@ export default function ResidentsClient({
               }
             />
           ) : (
-            <Table
-              dense
-              head={[
-                { label: "Resident" },
-                { label: "Contact", className: "hidden sm:table-cell" },
-                { label: "Flat" },
-                { label: "Type", className: "hidden md:table-cell" },
-                { label: "Status" },
-                { label: "", align: "right" },
-              ]}
-            >
-              {filtered.map((r) => {
-                const link = r.flatResidents[0];
-                return (
-                  <Tr key={r.id}>
-                    <Td>
-                      <span className="flex items-center gap-3">
-                        <Avatar name={r.name} size="sm" />
-                        <span className="font-semibold text-slate-900">{r.name}</span>
-                      </span>
-                    </Td>
-                    <Td className="hidden sm:table-cell">
-                      <span className="block truncate text-slate-700">{r.email}</span>
-                      {r.phone ? (
-                        <span className="tabular block text-xs text-slate-500">{r.phone}</span>
-                      ) : null}
-                    </Td>
-                    <Td>
-                      {link ? (
-                        <span className="tabular font-medium text-slate-800">
-                          {link.flat.block ? `${link.flat.block}-` : ""}
-                          {link.flat.flatNumber}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </Td>
-                    <Td className="hidden md:table-cell">
-                      {link ? (
-                        <Badge tone={link.residentType === "OWNER" ? "brand" : "slate"} dot>
-                          {titleCase(link.residentType)}
-                        </Badge>
-                      ) : (
-                        "-"
-                      )}
-                    </Td>
-                    <Td>
-                      <StatusBadge status={r.status} />
-                    </Td>
-                    <Td align="right">
+            <>
+              {/* Mobile Cards for Residents */}
+              <div className="divide-y divide-slate-100 sm:hidden">
+                {filtered.map((r) => {
+                  const link = r.flatResidents[0];
+                  return (
+                    <div key={r.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar name={r.name} size="sm" />
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-900 text-sm truncate">{r.name}</div>
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                              {link ? (
+                                <>
+                                  <span className="font-medium text-slate-800">
+                                    Flat {link.flat.block ? `${link.flat.block}-` : ""}{link.flat.flatNumber}
+                                  </span>
+                                  <span>•</span>
+                                  <Badge tone={link.residentType === "OWNER" ? "brand" : "slate"} size="xs">
+                                    {titleCase(link.residentType)}
+                                  </Badge>
+                                </>
+                              ) : (
+                                <span className="text-slate-400">No flat assigned</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <StatusBadge status={r.status} />
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
+                        <span className="truncate max-w-[200px] text-slate-700">{r.email}</span>
+                        {r.phone ? (
+                          <a href={`tel:${r.phone}`} className="font-mono font-medium text-brand-700 hover:underline">
+                            {r.phone}
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">No phone</span>
+                        )}
+                      </div>
+
                       {canDirectlyManageResidents ? (
-                        <RowActions>
-                          <IconButton
-                            variant="success"
-                            label={`Record payment received from ${r.name}`}
+                        <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100">
+                          <Button
+                            variant="secondary"
+                            size="xs"
                             onClick={() => setPaymentResident(r)}
+                            className="text-xs h-7 px-2"
                           >
-                            <Wallet />
-                          </IconButton>
-                          <IconButton variant="brand" label={`Edit ${r.name}`} onClick={() => openEdit(r)}>
-                            <Pencil />
-                          </IconButton>
+                            <Wallet className="size-3 text-emerald-600" />
+                            Record Pay
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => openEdit(r)}
+                            className="text-xs h-7 px-2"
+                          >
+                            <Pencil className="size-3 text-slate-500" />
+                            Edit
+                          </Button>
                           {r.status === "ACTIVE" ? (
                             <IconButton
                               variant="warning"
+                              size="xs"
                               label={`Vacate ${r.name}`}
                               onClick={() => setVacating(r)}
                             >
-                              <LogOut />
+                              <LogOut className="size-3.5" />
                             </IconButton>
                           ) : null}
-                        </RowActions>
+                        </div>
                       ) : (
-                        <span className="text-[11px] font-medium text-slate-400 italic">Managed by Flat Admin</span>
+                        <p className="text-[11px] font-medium text-slate-400 italic text-right">
+                          Managed by Flat Admin
+                        </p>
                       )}
-                    </Td>
-                  </Tr>
-                );
-              })}
-            </Table>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table for Residents */}
+              <div className="hidden sm:block">
+                <Table
+                  dense
+                  head={[
+                    { label: "Resident" },
+                    { label: "Contact", className: "hidden sm:table-cell" },
+                    { label: "Flat" },
+                    { label: "Type", className: "hidden md:table-cell" },
+                    { label: "Status" },
+                    { label: "", align: "right" },
+                  ]}
+                >
+                  {filtered.map((r) => {
+                    const link = r.flatResidents[0];
+                    return (
+                      <Tr key={r.id}>
+                        <Td>
+                          <span className="flex items-center gap-3">
+                            <Avatar name={r.name} size="sm" />
+                            <span className="font-semibold text-slate-900">{r.name}</span>
+                          </span>
+                        </Td>
+                        <Td className="hidden sm:table-cell">
+                          <span className="block truncate text-slate-700">{r.email}</span>
+                          {r.phone ? (
+                            <span className="tabular block text-xs text-slate-500">{r.phone}</span>
+                          ) : null}
+                        </Td>
+                        <Td>
+                          {link ? (
+                            <span className="tabular font-medium text-slate-800 whitespace-nowrap">
+                              {link.flat.block ? `${link.flat.block}-` : ""}
+                              {link.flat.flatNumber}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </Td>
+                        <Td className="hidden md:table-cell">
+                          {link ? (
+                            <Badge tone={link.residentType === "OWNER" ? "brand" : "slate"} dot>
+                              {titleCase(link.residentType)}
+                            </Badge>
+                          ) : (
+                            "-"
+                          )}
+                        </Td>
+                        <Td>
+                          <StatusBadge status={r.status} />
+                        </Td>
+                        <Td align="right">
+                          {canDirectlyManageResidents ? (
+                            <RowActions>
+                              <IconButton
+                                variant="success"
+                                label={`Record payment received from ${r.name}`}
+                                onClick={() => setPaymentResident(r)}
+                              >
+                                <Wallet />
+                              </IconButton>
+                              <IconButton variant="brand" label={`Edit ${r.name}`} onClick={() => openEdit(r)}>
+                                <Pencil />
+                              </IconButton>
+                              {r.status === "ACTIVE" ? (
+                                <IconButton
+                                  variant="warning"
+                                  label={`Vacate ${r.name}`}
+                                  onClick={() => setVacating(r)}
+                                >
+                                  <LogOut />
+                                </IconButton>
+                              ) : null}
+                            </RowActions>
+                          ) : (
+                            <span className="text-[11px] font-medium text-slate-400 italic">Managed by Flat Admin</span>
+                          )}
+                        </Td>
+                      </Tr>
+                    );
+                  })}
+                </Table>
+              </div>
+            </>
           )}
         </div>
       )}
