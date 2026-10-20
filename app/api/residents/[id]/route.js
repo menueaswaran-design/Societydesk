@@ -7,19 +7,14 @@ import { notFound, badRequest, forbidden } from "@/lib/errors";
 import { residentUpdateSchema } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
-/** A flat admin may only touch residents linked to a flat they manage. Society admins manage residents directly only if there is 1 flat. */
-async function assertFlatAdminAccess(user, residentId, societyId) {
+/** A flat admin may only touch residents linked to a flat they manage. Society admins have full society scope. */
+async function assertFlatAdminAccess(user, residentId) {
   if (isFlatAdmin(user)) {
     const managedFlatIds = await getResidentFlatIds(user.id);
     const link = await prisma.flatResident.findFirst({
       where: { userId: residentId, endDate: null, flatId: { in: managedFlatIds } },
     });
     if (!link) throw forbidden("You can only manage residents in the flat you manage");
-  } else if (isSocietyAdmin(user)) {
-    const flatCount = await prisma.flat.count({ where: { societyId } });
-    if (flatCount > 1) {
-      throw forbidden("Societies with multiple flats must use Flat Admins to manage residents.");
-    }
   }
 }
 
@@ -78,14 +73,14 @@ const PATCHImpl = handler(async (req, { params }) => {
       },
     });
 
-    // Re-point the resident at a different flat when flatId changes.
-    if (body.flatId) {
+    // Update or re-point the resident's flat link
+    const current = await tx.flatResident.findFirst({
+      where: { userId: id, endDate: null },
+    });
+
+    if (body.flatId && (!current || current.flatId !== body.flatId)) {
       const flat = await tx.flat.findFirst({ where: { id: body.flatId, societyId } });
       if (!flat) throw notFound("Flat");
-
-      const current = await tx.flatResident.findFirst({
-        where: { userId: id, endDate: null },
-      });
 
       if (current) {
         await tx.flatResident.update({
@@ -99,23 +94,18 @@ const PATCHImpl = handler(async (req, { params }) => {
           societyId,
           flatId: flat.id,
           userId: id,
-          residentType: body.residentType ?? current?.residentType ?? "OWNER",
-          isPrimary: body.isPrimary ?? true,
+          residentType: body.residentType ?? current?.residentType ?? "TENANT",
+          isPrimary: body.isPrimary ?? false,
         },
       });
-    } else if (body.residentType || body.isPrimary !== undefined) {
-      const current = await tx.flatResident.findFirst({
-        where: { userId: id, endDate: null },
+    } else if (current && (body.residentType !== undefined || body.isPrimary !== undefined)) {
+      await tx.flatResident.update({
+        where: { id: current.id },
+        data: {
+          residentType: body.residentType ?? undefined,
+          isPrimary: body.isPrimary ?? undefined,
+        },
       });
-      if (current) {
-        await tx.flatResident.update({
-          where: { id: current.id },
-          data: {
-            residentType: body.residentType ?? undefined,
-            isPrimary: body.isPrimary ?? undefined,
-          },
-        });
-      }
     }
 
     return row;

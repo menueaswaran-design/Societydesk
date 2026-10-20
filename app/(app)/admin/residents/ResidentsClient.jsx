@@ -32,8 +32,8 @@ const EMPTY = {
   email: "",
   phone: "",
   flatId: "",
-  residentType: "OWNER",
-  isPrimary: true,
+  residentType: "TENANT",
+  isPrimary: false,
 };
 
 export default function ResidentsClient({
@@ -64,6 +64,17 @@ export default function ResidentsClient({
   const [filterType, setFilterType] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
 
+  function checkFlatHasOwner(flatId, excludeUserId = null) {
+    if (!flatId) return null;
+    const owner = residents.find((r) =>
+      r.id !== excludeUserId &&
+      r.flatResidents?.some((fr) => fr.flat?.id === flatId && fr.residentType === "OWNER" && !fr.endDate)
+    );
+    return owner ? owner.name : null;
+  }
+
+  const existingOwnerName = checkFlatHasOwner(form.flatId, editingId);
+
   const blocks = useMemo(() => {
     const bSet = new Set();
     flats.forEach((f) => {
@@ -89,7 +100,14 @@ export default function ResidentsClient({
   }, [residents, query, filterStatus, filterType, filterBlock]);
 
   function openNew() {
-    setForm({ ...EMPTY, flatId: flats[0]?.id ?? "" });
+    const firstFlat = flats[0];
+    const hasOwner = firstFlat ? checkFlatHasOwner(firstFlat.id) : false;
+    setForm({
+      ...EMPTY,
+      flatId: firstFlat?.id ?? "",
+      residentType: "TENANT",
+      isPrimary: !hasOwner,
+    });
     setEditingId(null);
     setErrors({});
     setError(null);
@@ -103,8 +121,8 @@ export default function ResidentsClient({
       email: r.email,
       phone: r.phone ?? "",
       flatId: link?.flat.id ?? "",
-      residentType: link?.residentType ?? "OWNER",
-      isPrimary: link?.isPrimary ?? true,
+      residentType: link?.residentType ?? "TENANT",
+      isPrimary: link?.isPrimary ?? false,
     });
     setEditingId(r.id);
     setErrors({});
@@ -115,8 +133,19 @@ export default function ResidentsClient({
   function set(key) {
     return (e) => {
       const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
-      setForm({ ...form, [key]: value });
+      setForm((prev) => ({ ...prev, [key]: value }));
     };
+  }
+
+  function onFlatChange(e) {
+    const newFlatId = e.target.value;
+    const ownerName = checkFlatHasOwner(newFlatId, editingId);
+    setForm((prev) => ({
+      ...prev,
+      flatId: newFlatId,
+      residentType: ownerName ? "TENANT" : prev.residentType,
+      isPrimary: ownerName ? false : prev.isPrimary,
+    }));
   }
 
   async function save() {
@@ -497,43 +526,89 @@ export default function ResidentsClient({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Select
-              id="flatId"
-              label="Flat"
-              value={form.flatId}
-              onChange={set("flatId")}
-              error={errors.flatId}
-            >
-              <option value="">Select a flat</option>
-              {flats.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.block ? `${f.block}-` : ""}
-                  {f.flatNumber}
-                </option>
-              ))}
-            </Select>
-            <Select
-              id="residentType"
-              label="Resident type"
-              value={form.residentType}
-              onChange={set("residentType")}
-            >
-              {Object.values(RESIDENT_TYPE).map((t) => (
-                <option key={t} value={t}>
-                  {titleCase(t)}
-                </option>
-              ))}
-            </Select>
+          <Select
+            id="flatId"
+            label="Flat"
+            value={form.flatId}
+            onChange={onFlatChange}
+            error={errors.flatId}
+            required
+          >
+            <option value="">Select a flat</option>
+            {flats.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.block ? `${f.block}-` : ""}
+                {f.flatNumber}
+              </option>
+            ))}
+          </Select>
+
+          {/* Resident Type Segmented Selector */}
+          <div>
+            <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-700">
+              <span>Resident Type <span className="text-rose-500">*</span></span>
+              {existingOwnerName ? (
+                <span className="text-[11px] font-normal text-slate-500">
+                  Flat Owner: <strong className="text-slate-800">{existingOwnerName}</strong>
+                </span>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setForm((prev) => ({ ...prev, residentType: "TENANT", isPrimary: false }))}
+                className={`flex flex-col items-start rounded-xl p-3 text-left border transition-all ${
+                  form.residentType === "TENANT"
+                    ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-600/20 shadow-xs"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <Badge tone="slate" size="xs">Tenant</Badge>
+                  <span className="text-slate-900">Tenant / Renter</span>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500 leading-tight">
+                  Lives in flat on rent or lease.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setForm((prev) => ({ ...prev, residentType: "OWNER" }))}
+                className={`flex flex-col items-start rounded-xl p-3 text-left border transition-all ${
+                  form.residentType === "OWNER"
+                    ? "border-primary-700 bg-primary-50/70 ring-2 ring-primary-700/20 shadow-xs"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <Badge tone="brand" size="xs">Owner</Badge>
+                  <span className="text-slate-900">Flat Owner</span>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500 leading-tight">
+                  Property owner or co-owner.
+                </p>
+              </button>
+            </div>
+
+            {existingOwnerName && form.residentType === "OWNER" && (
+              <div className="mt-2 text-[11px] text-amber-800 bg-amber-50 rounded-xl p-2.5 border border-amber-200/70 flex items-start gap-1.5">
+                <span className="font-bold shrink-0">⚠️ Notice:</span>
+                <span>
+                  <strong>{existingOwnerName}</strong> is already registered as Owner of this flat. If this resident is renting or a tenant, please select <strong>Tenant</strong> above.
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-900/5">
             <Checkbox
               id="isPrimary"
               checked={form.isPrimary}
-              onChange={set("isPrimary")}
+              onChange={(e) => setForm((prev) => ({ ...prev, isPrimary: e.target.checked }))}
               label="Primary contact for this flat"
-              description="Only one primary per flat receives payment reminders."
+              description="Receives monthly billing reminders and society notices."
             />
           </div>
         </div>

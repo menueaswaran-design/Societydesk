@@ -3,7 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, User, ShieldCheck, Loader2, Mail, Lock, ArrowRight, ArrowLeft, FlaskConical } from "lucide-react";
+import {
+  Building2,
+  User,
+  ShieldCheck,
+  Loader2,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Shield,
+  KeyRound,
+} from "lucide-react";
 import Button, { Spinner } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/Feedback";
@@ -12,16 +26,31 @@ import { homeForRole } from "@/lib/routing";
 import { titleCase } from "@/lib/format";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 
-const ROLE_ICON = {
-  SOCIETY_ADMIN: Building2,
-  FLAT_ADMIN: ShieldCheck,
-  RESIDENT: User,
+const ROLE_BADGE = {
+  SOCIETY_ADMIN: {
+    icon: Building2,
+    badge: "bg-primary-50 text-primary-700 ring-1 ring-primary-600/20",
+    label: "Society Admin",
+    labelTa: "குடியிருப்பு நிர்வாகி",
+  },
+  FLAT_ADMIN: {
+    icon: ShieldCheck,
+    badge: "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600/20",
+    label: "Flat Admin",
+    labelTa: "வீட்டு நிர்வாகி",
+  },
+  RESIDENT: {
+    icon: User,
+    badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20",
+    label: "Resident",
+    labelTa: "குடியிருப்பாளர்",
+  },
 };
 
 const ROLE_BLURB = {
-  SOCIETY_ADMIN: "Runs the society: all flats, billing, complaints & notices",
-  FLAT_ADMIN: "Manages a specific flat: resident onboarding, flat maintenance & dues",
-  RESIDENT: "Sees their own dues, complaints and notices",
+  SOCIETY_ADMIN: "Full oversight: society bills, complaints, residents and notices",
+  FLAT_ADMIN: "Manages flat members, unit maintenance & payments",
+  RESIDENT: "View flat dues, raise complaints and track notices",
 };
 
 const ROLE_BLURB_TA = {
@@ -31,9 +60,27 @@ const ROLE_BLURB_TA = {
 };
 
 const FALLBACK_ACCOUNTS = [
-  { email: "admin@greenvalley.local", name: "Lakshmi Iyer", role: "SOCIETY_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
-  { email: "priya@greenvalley.local", name: "Priya Sharma", role: "FLAT_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
-  { email: "ravi@greenvalley.local", name: "Ravi Kumar", role: "RESIDENT", societyId: "cmvce8djg0002m7ggemm6z1m7", society: { name: "Green Valley Apartments" } },
+  {
+    email: "admin@greenvalley.local",
+    name: "Lakshmi Iyer",
+    role: "SOCIETY_ADMIN",
+    societyId: "cmvce8djg0002m7ggemm6z1m7",
+    society: { name: "Green Valley Apartments" },
+  },
+  {
+    email: "priya@greenvalley.local",
+    name: "Priya Sharma",
+    role: "FLAT_ADMIN",
+    societyId: "cmvce8djg0002m7ggemm6z1m7",
+    society: { name: "Green Valley Apartments" },
+  },
+  {
+    email: "ravi@greenvalley.local",
+    name: "Ravi Kumar",
+    role: "RESIDENT",
+    societyId: "cmvce8djg0002m7ggemm6z1m7",
+    society: { name: "Green Valley Apartments" },
+  },
 ];
 
 export default function LoginForm({ next }) {
@@ -45,6 +92,7 @@ export default function LoginForm({ next }) {
   const [pending, setPending] = useState(null);
   const [error, setError] = useState(null);
   const [fieldError, setFieldError] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({ email: "", password: "" });
 
@@ -52,15 +100,14 @@ export default function LoginForm({ next }) {
     setMode("loading");
     try {
       const rows = await api.get("/api/auth/dev-accounts");
-      setAccounts(rows);
+      // Never expose SUPER_ADMIN on public demo cards
+      setAccounts(rows.filter((r) => r.role !== "SUPER_ADMIN"));
     } catch {
       setAccounts(FALLBACK_ACCOUNTS);
     }
     setMode("dev");
   }, []);
 
-  // Decide which sign-in experience to show: real Firebase when it is
-  // configured in lib/firebase/config.js, otherwise the seeded dev accounts.
   useEffect(() => {
     let cancelled = false;
 
@@ -127,8 +174,6 @@ export default function LoginForm({ next }) {
       if (!auth) throw new Error("Firebase is not configured");
 
       const credential = await signInWithEmailAndPassword(auth, form.email, form.password);
-      // Middleware only looks at the __session cookie, so it has to exist
-      // before the navigation or the redirect would bounce straight back here.
       await syncSessionCookie(credential.user);
 
       let target = next && next !== "/" ? next : null;
@@ -138,7 +183,10 @@ export default function LoginForm({ next }) {
           const role = me?.user?.role || me?.role;
           target = homeForRole(role);
         } catch {
-          if (form.email.toLowerCase().includes("superadmin") || form.email.toLowerCase() === "kumarvignesh865@gmail.com") {
+          if (
+            form.email.toLowerCase().includes("superadmin") ||
+            form.email.toLowerCase() === "kumarvignesh865@gmail.com"
+          ) {
             target = "/super-admin/dashboard";
           } else {
             target = "/admin/dashboard";
@@ -154,26 +202,25 @@ export default function LoginForm({ next }) {
 
   if (mode === "loading") {
     return (
-      <div className="surface flex h-40 items-center justify-center">
-        <Spinner className="text-brand-500" />
+      <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200/90 bg-white p-8 shadow-xs">
+        <Spinner className="size-6 text-primary-600" />
+        <p className="text-xs font-medium text-slate-500">
+          {locale === "ta" ? "சரிபார்க்கிறது..." : "Connecting..."}
+        </p>
       </div>
     );
   }
 
+  // ---------------------------------------------------------------- Dev Demo Accounts
   if (mode === "dev") {
     return (
       <div className="space-y-4">
-        <div className="flex items-start gap-3 rounded-xl bg-amber-50 px-4 py-3 text-[13px] text-amber-900 ring-1 ring-amber-200/80">
-          <FlaskConical className="mt-0.5 size-4 shrink-0 text-amber-600" />
-          <p>
-            <span className="font-semibold">
-              {locale === "ta" ? "சோதனை முறை (Demo)." : "Development mode."}
-            </span>{" "}
-            {locale === "ta"
-              ? "ஒவ்வொரு பொறுப்பையும் நேரடியாகப் பார்க்க மாதிரிக் கணக்கைத் தேர்வு செய்யவும்."
-              : firebaseAvailable
-                ? "Seeded accounts are a shortcut for exploring each role."
-                : "Firebase is not configured, so pick a seeded account to explore each role."}
+        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-xs text-amber-950">
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 font-bold tracking-tight text-amber-900">
+              <Sparkles className="size-3.5 text-amber-600" />
+              {locale === "ta" ? "சோதனை மாதிரிகள் (Demo Roles)" : "Instant Demo Access"}
+            </span>
             {firebaseAvailable ? (
               <button
                 type="button"
@@ -181,133 +228,176 @@ export default function LoginForm({ next }) {
                   setError(null);
                   setMode("firebase");
                 }}
-                className="ml-1 font-semibold text-brand-700 underline-offset-2 hover:underline"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 underline-offset-2 hover:text-amber-950 hover:underline"
               >
-                {locale === "ta" ? "மின்னஞ்சல் மூலம் உள்நுழைக" : "Sign in with email"}
+                <KeyRound className="size-3" />
+                {locale === "ta" ? "கடவுச்சொல் உள்நுழைவு" : "Use password"}
               </button>
             ) : null}
+          </div>
+          <p className="mt-1 leading-relaxed text-amber-800/90 text-[11.5px]">
+            {locale === "ta"
+              ? "ஒரு கிளிக்கில் நீங்கள் விரும்பும் பொறுப்பில் உள்நுழைந்து கணினியை சோதிக்கவும்."
+              : "Click any account below to explore that role instantly without entering a password."}
           </p>
         </div>
 
         {error ? <ErrorBanner error={error} /> : null}
 
-        <div className="surface overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs">
           {accounts.map((acc, i) => {
-            const Icon = ROLE_ICON[acc.role] ?? User;
+            const roleMeta = ROLE_BADGE[acc.role] || {
+              icon: User,
+              badge: "bg-slate-100 text-slate-700",
+              label: titleCase(acc.role),
+              labelTa: titleCase(acc.role),
+            };
+            const Icon = roleMeta.icon;
             const busy = pending === acc.email;
+
             return (
               <button
                 key={acc.email}
                 onClick={() => devSignIn(acc.email)}
                 disabled={Boolean(pending)}
-                className={`group flex w-full items-center gap-3.5 px-5 py-4 text-left transition-colors hover:bg-brand-50/50 disabled:opacity-60 ${i > 0 ? "border-t border-slate-100" : ""}`}
+                className={`group flex w-full items-center gap-3.5 p-4 sm:px-5 sm:py-4.5 text-left transition-all hover:bg-slate-50/80 disabled:opacity-60 ${
+                  i > 0 ? "border-t border-slate-100" : ""
+                }`}
               >
-                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-colors group-hover:bg-white group-hover:text-brand-600 group-hover:shadow-soft">
-                  <Icon className="size-4.5" />
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-primary-50 group-hover:text-primary-600">
+                  <Icon className="size-5" />
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-slate-900 leading-tight">
-                    {acc.name}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-slate-500 leading-tight">
-                    {locale === "ta" && acc.role === "RESIDENT"
-                      ? "குடியிருப்பாளர்"
-                      : locale === "ta" && acc.role === "SOCIETY_ADMIN"
-                        ? "நிர்வாகி"
-                        : locale === "ta" && acc.role === "SUPER_ADMIN"
-                          ? "தலைமை நிர்வாகி"
-                          : titleCase(acc.role)}
-                    {acc.society ? ` · ${acc.society.name}` : locale === "ta" ? " · தளம்" : " · Platform"}
-                  </span>
-                  <span className="mt-1 block text-[11px] text-slate-400 leading-normal">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-sm font-semibold text-slate-900 group-hover:text-primary-700">
+                      {acc.name}
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-medium ${roleMeta.badge}`}
+                    >
+                      {locale === "ta" ? roleMeta.labelTa : roleMeta.label}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-slate-500 font-mono">
+                    {acc.email}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
                     {locale === "ta" && ROLE_BLURB_TA[acc.role]
                       ? ROLE_BLURB_TA[acc.role]
                       : ROLE_BLURB[acc.role]}
-                  </span>
-                </span>
-                {busy ? (
-                  <Loader2 className="size-4 shrink-0 animate-spin text-brand-500" />
-                ) : (
-                  <ArrowRight className="size-4 shrink-0 text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-brand-500" />
-                )}
+                  </p>
+                </div>
+                <div className="shrink-0 pl-1">
+                  {busy ? (
+                    <Loader2 className="size-4 animate-spin text-primary-600" />
+                  ) : (
+                    <span className="inline-flex size-7 items-center justify-center rounded-lg bg-slate-100/70 text-slate-400 transition-all group-hover:bg-primary-600 group-hover:text-white">
+                      <ArrowRight className="size-3.5" />
+                    </span>
+                  )}
+                </div>
               </button>
             );
           })}
-        </div>
-
-        <div className="pt-2 text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900"
-          >
-            <ArrowLeft className="size-3.5" />
-            {locale === "ta" ? "முகப்பு பக்கத்திற்குத் திரும்பு" : "Back to landing page"}
-          </Link>
         </div>
       </div>
     );
   }
 
+  // ---------------------------------------------------------------- Real Sign-In Form
   return (
-    <form onSubmit={firebaseSignIn} className="surface p-6">
-      <ErrorBanner error={error} />
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
+      <form onSubmit={firebaseSignIn} className="space-y-4">
+        <ErrorBanner error={error} />
 
-      <div className="mt-1 flex flex-col gap-4">
         <Input
           id="email"
-          label={t("auth.email", "Email")}
+          label={t("auth.email", "Email address")}
           type="email"
           autoComplete="email"
           required
+          autoFocus
+          placeholder="name@society.com"
           value={form.email}
           error={fieldError.email}
-          prefix={<Mail />}
+          prefix={<Mail className="text-slate-400" />}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
         />
+
         <Input
           id="password"
           label={t("auth.password", "Password")}
-          type="password"
+          type={showPassword ? "text" : "password"}
           autoComplete="current-password"
           required
+          placeholder="••••••••"
           value={form.password}
           error={fieldError.password}
-          prefix={<Lock />}
+          prefix={<Lock className="text-slate-400" />}
+          labelRight={
+            <Link
+              href="/forgot-password"
+              className="text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+            >
+              {t("auth.forgotPassword", "Forgot password?")}
+            </Link>
+          }
+          suffix={
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              tabIndex={-1}
+              className="rounded p-1 text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-300"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          }
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
-        <Button type="submit" size="lg" loading={pending === "firebase"} className="mt-1 w-full">
+
+        <Button
+          type="submit"
+          size="lg"
+          loading={pending === "firebase"}
+          className="mt-2 w-full font-medium"
+        >
           {pending === "firebase"
-            ? (locale === "ta" ? "உள்நுழைகிறது..." : "Signing in")
-            : t("auth.signIn", "Sign in")}
-          {pending === "firebase" ? null : <ArrowRight />}
+            ? locale === "ta"
+              ? "உள்நுழைகிறது..."
+              : "Signing in..."
+            : t("auth.signIn", "Sign in to account")}
+          {pending === "firebase" ? null : <ArrowRight className="size-4" />}
         </Button>
+      </form>
+
+      {/* Demo Switcher */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-200/80" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-white px-3 font-medium text-slate-400">
+            {locale === "ta" ? "அல்லது" : "Or explore first"}
+          </span>
+        </div>
       </div>
 
-      <p className="mt-5 border-t border-slate-100 pt-4 text-center text-xs text-slate-500">
-        {locale === "ta"
-          ? "குடியிருப்பாளர்கள், நிர்வாகிகள் அனைவரும் இங்கு உள்நுழையலாம்."
-          : "Residents, admins and platform owners all sign in here."}{" "}
-        <Link href="/forgot-password" className="font-semibold text-brand-700 hover:text-brand-800">
-          {t("auth.forgotPassword", "Forgot password?")}
-        </Link>
-      </p>
-      <div className="mt-3 flex items-center justify-between text-xs text-slate-500 gap-2">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 font-semibold text-slate-500 transition-colors hover:text-slate-900 shrink-0"
-        >
-          <ArrowLeft className="size-3.5" />
-          {locale === "ta" ? "முகப்பு" : "Landing page"}
-        </Link>
-        <button
-          type="button"
-          onClick={loadDevAccounts}
-          className="underline-offset-2 hover:text-brand-700 hover:underline text-right"
-        >
-          {locale === "ta" ? "மாதிரிக் கணக்குகள் (Demo)" : "Use demo account"}
-        </button>
+      <button
+        type="button"
+        onClick={loadDevAccounts}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-slate-50/70 px-4 py-2.5 text-xs font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900"
+      >
+        <Sparkles className="size-3.5 text-amber-500" />
+        {locale === "ta" ? "மாதிரிக் கணக்குகளைத் திறக்க (Demo)" : "Explore with sample demo accounts"}
+      </button>
+
+      {/* Security badge */}
+      <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400">
+        <Shield className="size-3 text-slate-400" />
+        <span>256-bit SSL encrypted · Role-based access</span>
       </div>
-    </form>
+    </div>
   );
 }
 

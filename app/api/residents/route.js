@@ -150,6 +150,14 @@ const POSTImpl = handler(async (req) => {
       });
     }
 
+    // If this new resident is primary, unmark any previous primary for this flat
+    if (body.isPrimary) {
+      await tx.flatResident.updateMany({
+        where: { flatId: flat.id, endDate: null },
+        data: { isPrimary: false },
+      });
+    }
+
     // Link to flat
     await tx.flatResident.create({
       data: {

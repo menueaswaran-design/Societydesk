@@ -6,14 +6,19 @@ const BASE =
 const FIELD =
   "h-9.5 px-3 focus:border-transparent aria-[invalid=true]:ring-rose-400 aria-[invalid=true]:focus:ring-rose-400";
 
-function Shell({ label, error, hint, id, required, className = "", children, htmlFor }) {
+function Shell({ label, labelRight, error, hint, id, required, className = "", children, htmlFor }) {
   return (
     <div className={className}>
-      {label ? (
-        <label htmlFor={htmlFor ?? id} className="mb-1 flex items-center gap-1 text-xs font-medium text-slate-700">
-          {label}
-          {required ? <span className="text-rose-500">*</span> : null}
-        </label>
+      {label || labelRight ? (
+        <div className="mb-1 flex items-center justify-between gap-2">
+          {label ? (
+            <label htmlFor={htmlFor ?? id} className="flex items-center gap-1 text-xs font-medium text-slate-700">
+              {label}
+              {required ? <span className="text-rose-500">*</span> : null}
+            </label>
+          ) : <span />}
+          {labelRight}
+        </div>
       ) : null}
       {children}
       {error ? (
@@ -27,6 +32,7 @@ function Shell({ label, error, hint, id, required, className = "", children, htm
 
 export function Input({
   label,
+  labelRight,
   error,
   hint,
   className = "",
@@ -34,25 +40,33 @@ export function Input({
   id,
   required,
   prefix,
+  suffix,
   ...props
 }) {
   const control = (
     <input
       id={id}
       aria-invalid={error ? "true" : undefined}
-      className={`${BASE} ${FIELD} ${prefix ? "pl-9" : ""} ${inputClassName}`}
+      className={`${BASE} ${FIELD} ${prefix ? "pl-9" : ""} ${suffix ? "pr-10" : ""} ${inputClassName}`}
       {...props}
     />
   );
 
   return (
-    <Shell label={label} error={error} hint={hint} id={id} required={required} className={className}>
-      {prefix ? (
+    <Shell label={label} labelRight={labelRight} error={error} hint={hint} id={id} required={required} className={className}>
+      {prefix || suffix ? (
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-0 flex w-9 items-center justify-center text-slate-400 [&_svg]:size-4">
-            {prefix}
-          </span>
+          {prefix ? (
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex w-9 items-center justify-center text-slate-400 [&_svg]:size-4">
+              {prefix}
+            </span>
+          ) : null}
           {control}
+          {suffix ? (
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2.5">
+              {suffix}
+            </div>
+          ) : null}
         </div>
       ) : (
         control

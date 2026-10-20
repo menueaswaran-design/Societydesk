@@ -6,11 +6,11 @@ import { useTranslation } from "@/components/i18n/LanguageProvider";
 export function LoginHeader() {
   const { t } = useTranslation();
   return (
-    <div className="mb-8">
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+    <div className="mb-6 text-center sm:text-left">
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
         {t("auth.welcomeTitle", "Welcome back")}
       </h1>
-      <p className="mt-2 text-[15px] text-slate-500">
+      <p className="mt-1.5 text-sm text-slate-500">
         {t(
           "auth.welcomeSubtitle",
           "Sign in to manage billing, complaints and notices for your society."
@@ -21,17 +21,6 @@ export function LoginHeader() {
 }
 
 export function LoginFooter() {
-  const { t } = useTranslation();
-  return (
-    <p className="mt-6 text-center text-[13px] text-slate-500">
-      {t("auth.troubleSigningIn", "Trouble signing in?")}{" "}
-      <Link
-        href="/forgot-password"
-        className="rounded font-semibold text-brand-700 transition-colors hover:text-brand-800"
-      >
-        {t("auth.resetPassword", "Reset your password")}
-      </Link>
-    </p>
-  );
+  return null;
 }
 
