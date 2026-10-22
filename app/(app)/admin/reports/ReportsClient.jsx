@@ -134,11 +134,11 @@ export default function ReportsClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-100">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <TrendingUp className="size-6 text-brand-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <TrendingUp className="size-6 text-brand-600 shrink-0" />
             Occupancy & Revenue Reports
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Real-time occupancy metrics, collection trends, and financial breakdown
           </p>
         </div>
@@ -146,20 +146,20 @@ export default function ReportsClient({
         {/* Action button */}
         <div className="flex items-center gap-2">
           {activeTab === "occupancy" && (
-            <Button variant="secondary" onClick={handleExportOccupancy} className="flex items-center gap-2">
-              <Download className="size-4" />
+            <Button variant="secondary" size="sm" onClick={handleExportOccupancy} className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs">
+              <Download className="size-3.5" />
               Export Occupancy CSV
             </Button>
           )}
           {activeTab === "revenue" && (
-            <Button variant="secondary" onClick={handleExportCollections} className="flex items-center gap-2">
-              <Download className="size-4" />
+            <Button variant="secondary" size="sm" onClick={handleExportCollections} className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs">
+              <Download className="size-3.5" />
               Export Revenue CSV
             </Button>
           )}
           {activeTab === "defaulters" && (
-            <Button variant="secondary" onClick={handleExportDefaulters} className="flex items-center gap-2">
-              <Download className="size-4" />
+            <Button variant="secondary" size="sm" onClick={handleExportDefaulters} className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs">
+              <Download className="size-3.5" />
               Export Defaulters CSV
             </Button>
           )}
@@ -167,8 +167,8 @@ export default function ReportsClient({
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5 border-l-4 border-l-brand-600 bg-white shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-4 sm:p-5 border-l-4 border-l-brand-600 bg-white shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Occupancy Rate</span>
             <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
@@ -176,7 +176,7 @@ export default function ReportsClient({
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-gray-900">{metrics.occupancyRate}%</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-gray-900">{metrics.occupancyRate}%</span>
             <span className="text-xs text-gray-500">
               ({metrics.occupiedBeds} / {metrics.totalBeds} beds)
             </span>
@@ -189,7 +189,7 @@ export default function ReportsClient({
           </div>
         </Card>
 
-        <Card className="p-5 border-l-4 border-l-emerald-600 bg-white shadow-sm">
+        <Card className="p-4 sm:p-5 border-l-4 border-l-emerald-600 bg-white shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Monthly Projected Rent</span>
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
@@ -197,14 +197,14 @@ export default function ReportsClient({
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-3xl font-extrabold text-gray-900">
+            <span className="text-2xl sm:text-3xl font-extrabold text-gray-900">
               {formatMoney(metrics.projectedMonthlyRent)}
             </span>
             <p className="text-xs text-gray-500 mt-1">From {metrics.activeResidents} active residents</p>
           </div>
         </Card>
 
-        <Card className="p-5 border-l-4 border-l-blue-600 bg-white shadow-sm">
+        <Card className="p-4 sm:p-5 border-l-4 border-l-blue-600 bg-white shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Security Deposits Held</span>
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
@@ -212,14 +212,14 @@ export default function ReportsClient({
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-3xl font-extrabold text-gray-900">
+            <span className="text-2xl sm:text-3xl font-extrabold text-gray-900">
               {formatMoney(metrics.totalDepositsHeld)}
             </span>
             <p className="text-xs text-gray-500 mt-1">Total refunded: {formatMoney(metrics.totalDepositsRefunded)}</p>
           </div>
         </Card>
 
-        <Card className="p-5 border-l-4 border-l-amber-500 bg-white shadow-sm">
+        <Card className="p-4 sm:p-5 border-l-4 border-l-amber-500 bg-white shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Available Vacancies</span>
             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
@@ -227,7 +227,7 @@ export default function ReportsClient({
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-3xl font-extrabold text-amber-600">{metrics.vacantBeds}</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-amber-600">{metrics.vacantBeds}</span>
             <p className="text-xs text-gray-500 mt-1">
               Ready for immediate move-in across {metrics.totalRooms} rooms
             </p>
@@ -236,21 +236,21 @@ export default function ReportsClient({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-none gap-1 sm:gap-2">
         <button
           onClick={() => setActiveTab("occupancy")}
-          className={`py-3 px-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+          className={`py-2.5 sm:py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 ${
             activeTab === "occupancy"
               ? "border-brand-600 text-brand-600 font-semibold"
               : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
           <BedSingle className="size-4" />
-          Room & Bed Breakdown ({units.length} Rooms)
+          Room & Bed Breakdown ({units.length})
         </button>
         <button
           onClick={() => setActiveTab("revenue")}
-          className={`py-3 px-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+          className={`py-2.5 sm:py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 ${
             activeTab === "revenue"
               ? "border-brand-600 text-brand-600 font-semibold"
               : "border-transparent text-gray-500 hover:text-gray-700"
@@ -261,7 +261,7 @@ export default function ReportsClient({
         </button>
         <button
           onClick={() => setActiveTab("defaulters")}
-          className={`py-3 px-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+          className={`py-2.5 sm:py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 ${
             activeTab === "defaulters"
               ? "border-brand-600 text-brand-600 font-semibold"
               : "border-transparent text-gray-500 hover:text-gray-700"
@@ -280,91 +280,151 @@ export default function ReportsClient({
             <span className="text-xs text-gray-500">Updated in real-time</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-gray-50/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-100">
-                <tr>
-                  <th className="px-4 py-3">Room</th>
-                  <th className="px-4 py-3">Type & Climate</th>
-                  <th className="px-4 py-3">Floor</th>
-                  <th className="px-4 py-3">Capacity</th>
-                  <th className="px-4 py-3">Occupancy Status</th>
-                  <th className="px-4 py-3">Current Occupants</th>
-                  <th className="px-4 py-3 text-right">Rent / Bed</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {units.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-gray-400">
-                      No rooms configured yet.
-                    </td>
-                  </tr>
-                ) : (
-                  units.map((u) => {
-                    const occupiedCount = u.beds.filter((b) => b.status === "OCCUPIED").length;
-                    const occupants = u.beds
-                      .flatMap((b) => b.occupancies)
-                      .map((occ) => occ.user?.name)
-                      .filter(Boolean);
+          {units.length === 0 ? (
+            <div className="py-8 text-center text-gray-400 text-xs">
+              No rooms configured yet.
+            </div>
+          ) : (
+            <>
+              {/* Mobile Cards (< 640px) */}
+              <div className="divide-y divide-gray-100 sm:hidden">
+                {units.map((u) => {
+                  const occupiedCount = u.beds.filter((b) => b.status === "OCCUPIED").length;
+                  const occupants = u.beds
+                    .flatMap((b) => b.occupancies)
+                    .map((occ) => occ.user?.name)
+                    .filter(Boolean);
+                  const isFull = occupiedCount === u.bedCapacity;
+                  const isEmpty = occupiedCount === 0;
 
-                    const isFull = occupiedCount === u.bedCapacity;
-                    const isEmpty = occupiedCount === 0;
-
-                    return (
-                      <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-3 font-semibold text-gray-900">
-                          {u.unitNumber}
-                          {u.building && (
-                            <span className="block text-xs font-normal text-gray-400">{u.building.name}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="font-medium text-gray-800">{u.unitType}</span>
-                          <span
-                            className={`ml-2 px-1.5 py-0.5 text-xs rounded font-medium ${
-                              u.ac ? "bg-cyan-50 text-cyan-700 border border-cyan-200" : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {u.ac ? "AC" : "Non-AC"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">Floor {u.floor}</td>
-                        <td className="px-4 py-3 font-medium text-gray-700">
-                          {u.bedCapacity} {u.bedCapacity === 1 ? "Bed" : "Beds"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                                isFull
-                                  ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                  : isEmpty
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : "bg-amber-50 text-amber-700 border border-amber-200"
-                              }`}
-                            >
-                              {occupiedCount} / {u.bedCapacity} Occupied
+                  return (
+                    <div key={u.id} className="p-4 space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 font-bold text-gray-900 text-sm">
+                            <span>Room {u.unitNumber}</span>
+                            {u.floor ? <span className="text-gray-400 font-normal text-xs">· Floor {u.floor}</span> : null}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-600">
+                            <span>{u.unitType}</span>
+                            <span>·</span>
+                            <span className={u.ac ? "text-cyan-700 font-medium" : "text-gray-500"}>
+                              {u.ac ? "AC" : "Non-AC"}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-gray-600">
-                          {occupants.length > 0 ? (
-                            <span className="font-medium text-gray-800">{occupants.join(", ")}</span>
-                          ) : (
-                            <span className="text-gray-400 italic">No occupants</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right font-medium text-gray-900">
-                          {formatMoney(u.rentAmount)}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span
+                            className={`inline-block px-2 py-0.5 text-[10.5px] font-semibold rounded-full ${
+                              isFull
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : isEmpty
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                            }`}
+                          >
+                            {occupiedCount} / {u.bedCapacity} Occupied
+                          </span>
+                          <span className="block text-xs font-bold text-gray-900 mt-1">
+                            {formatMoney(u.rentAmount)}/mo
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-100 text-xs text-gray-600">
+                        <span className="text-gray-400">Occupants: </span>
+                        {occupants.length > 0 ? (
+                          <span className="font-medium text-gray-800">{occupants.join(", ")}</span>
+                        ) : (
+                          <span className="text-gray-400 italic">No occupants</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table (>= 640px) */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-700">
+                  <thead className="bg-gray-50/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-100">
+                    <tr>
+                      <th className="px-4 py-3">Room</th>
+                      <th className="px-4 py-3">Type & Climate</th>
+                      <th className="px-4 py-3">Floor</th>
+                      <th className="px-4 py-3">Capacity</th>
+                      <th className="px-4 py-3">Occupancy Status</th>
+                      <th className="px-4 py-3">Current Occupants</th>
+                      <th className="px-4 py-3 text-right">Rent / Bed</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {units.map((u) => {
+                      const occupiedCount = u.beds.filter((b) => b.status === "OCCUPIED").length;
+                      const occupants = u.beds
+                        .flatMap((b) => b.occupancies)
+                        .map((occ) => occ.user?.name)
+                        .filter(Boolean);
+
+                      const isFull = occupiedCount === u.bedCapacity;
+                      const isEmpty = occupiedCount === 0;
+
+                      return (
+                        <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-gray-900">
+                            {u.unitNumber}
+                            {u.building && (
+                              <span className="block text-xs font-normal text-gray-400">{u.building.name}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="font-medium text-gray-800">{u.unitType}</span>
+                            <span
+                              className={`ml-2 px-1.5 py-0.5 text-xs rounded font-medium ${
+                                u.ac ? "bg-cyan-50 text-cyan-700 border border-cyan-200" : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {u.ac ? "AC" : "Non-AC"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">Floor {u.floor}</td>
+                          <td className="px-4 py-3 font-medium text-gray-700">
+                            {u.bedCapacity} {u.bedCapacity === 1 ? "Bed" : "Beds"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                  isFull
+                                    ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                    : isEmpty
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                }`}
+                              >
+                                {occupiedCount} / {u.bedCapacity} Occupied
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600">
+                            {occupants.length > 0 ? (
+                              <span className="font-medium text-gray-800">{occupants.join(", ")}</span>
+                            ) : (
+                              <span className="text-gray-400 italic">No occupants</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium text-gray-900">
+                            {formatMoney(u.rentAmount)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </Card>
       )}
 
@@ -376,55 +436,101 @@ export default function ReportsClient({
             <span className="text-xs text-gray-500">Rent & Add-ons Invoicing</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-gray-50/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-100">
-                <tr>
-                  <th className="px-4 py-3">Billing Period</th>
-                  <th className="px-4 py-3">Invoices</th>
-                  <th className="px-4 py-3">Total Invoiced</th>
-                  <th className="px-4 py-3">Total Collected</th>
-                  <th className="px-4 py-3">Outstanding Dues</th>
-                  <th className="px-4 py-3">Collection Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {collections.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-400">
-                      No billing periods recorded yet.
-                    </td>
-                  </tr>
-                ) : (
-                  collections.map((c) => (
-                    <tr key={c.period} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-gray-900 flex items-center gap-2">
+          {collections.length === 0 ? (
+            <div className="py-8 text-center text-gray-400 text-xs">
+              No billing periods recorded yet.
+            </div>
+          ) : (
+            <>
+              {/* Mobile Cards (< 640px) */}
+              <div className="divide-y divide-gray-100 sm:hidden">
+                {collections.map((c) => (
+                  <div key={c.period} className="p-4 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 font-bold text-gray-900 text-sm">
                         <Calendar className="size-4 text-gray-400" />
-                        {c.period}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
+                        <span>{c.period}</span>
+                      </div>
+                      <span className="text-xs text-gray-500">
                         {c.paidCount} / {c.invoicesCount} Paid
-                      </td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{formatMoney(c.totalBilled)}</td>
-                      <td className="px-4 py-3 font-semibold text-emerald-600">{formatMoney(c.totalCollected)}</td>
-                      <td className="px-4 py-3 font-medium text-amber-600">{formatMoney(c.totalPending)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-100 h-2 rounded-full overflow-hidden">
-                            <div
-                              className="bg-emerald-500 h-full rounded-full"
-                              style={{ width: `${c.collectionRate}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-gray-700">{c.collectionRate}%</span>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-xs rounded-xl bg-gray-50/80 p-2.5 border border-gray-100">
+                      <div>
+                        <span className="text-[10px] text-gray-400 block font-medium">Invoiced</span>
+                        <span className="font-semibold text-gray-900 text-xs">{formatMoney(c.totalBilled)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-gray-400 block font-medium">Collected</span>
+                        <span className="font-bold text-emerald-600 text-xs">{formatMoney(c.totalCollected)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-gray-400 block font-medium">Pending</span>
+                        <span className="font-semibold text-amber-600 text-xs">{formatMoney(c.totalPending)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+                      <span className="text-gray-500">Collection Rate</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-gray-100 h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-full rounded-full"
+                            style={{ width: `${c.collectionRate}%` }}
+                          />
                         </div>
-                      </td>
+                        <span className="font-bold text-gray-900">{c.collectionRate}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table (>= 640px) */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-700">
+                  <thead className="bg-gray-50/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-100">
+                    <tr>
+                      <th className="px-4 py-3">Billing Period</th>
+                      <th className="px-4 py-3">Invoices</th>
+                      <th className="px-4 py-3">Total Invoiced</th>
+                      <th className="px-4 py-3">Total Collected</th>
+                      <th className="px-4 py-3">Outstanding Dues</th>
+                      <th className="px-4 py-3">Collection Rate</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {collections.map((c) => (
+                      <tr key={c.period} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-gray-900 flex items-center gap-2">
+                          <Calendar className="size-4 text-gray-400" />
+                          {c.period}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {c.paidCount} / {c.invoicesCount} Paid
+                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{formatMoney(c.totalBilled)}</td>
+                        <td className="px-4 py-3 font-semibold text-emerald-600">{formatMoney(c.totalCollected)}</td>
+                        <td className="px-4 py-3 font-medium text-amber-600">{formatMoney(c.totalPending)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-100 h-2 rounded-full overflow-hidden">
+                              <div
+                                className="bg-emerald-500 h-full rounded-full"
+                                style={{ width: `${c.collectionRate}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700">{c.collectionRate}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </Card>
       )}
 
@@ -436,58 +542,97 @@ export default function ReportsClient({
             <span className="text-xs text-amber-600 font-medium">{pendingInvoices.length} Pending Invoices</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-700">
-              <thead className="bg-gray-50/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-100">
-                <tr>
-                  <th className="px-4 py-3">Invoice #</th>
-                  <th className="px-4 py-3">Resident</th>
-                  <th className="px-4 py-3">Room</th>
-                  <th className="px-4 py-3">Period</th>
-                  <th className="px-4 py-3">Due Date</th>
-                  <th className="px-4 py-3">Total Amount</th>
-                  <th className="px-4 py-3">Balance Due</th>
-                  <th className="px-4 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {pendingInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-emerald-600 font-medium">
-                      ✓ No pending or overdue invoices! All payments are up to date.
-                    </td>
-                  </tr>
-                ) : (
-                  pendingInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{inv.invoiceNumber}</td>
-                      <td className="px-4 py-3 font-semibold text-gray-900">
-                        {inv.occupancy?.user?.name || "Occupant"}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{inv.occupancy?.unit?.unitNumber || "-"}</td>
-                      <td className="px-4 py-3 text-gray-600">{inv.billingPeriod}</td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(inv.dueDate)}</td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{formatMoney(inv.totalAmount)}</td>
-                      <td className="px-4 py-3 font-bold text-rose-600">
-                        {formatMoney(inv.totalAmount - inv.paidAmount)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                            inv.status === "OVERDUE"
-                              ? "bg-rose-100 text-rose-700"
-                              : "bg-amber-100 text-amber-700"
-                          }`}
-                        >
-                          {inv.status}
+          {pendingInvoices.length === 0 ? (
+            <div className="py-8 text-center text-emerald-600 font-medium text-xs">
+              ✓ No pending or overdue invoices! All payments are up to date.
+            </div>
+          ) : (
+            <>
+              {/* Mobile Cards (< 640px) */}
+              <div className="divide-y divide-gray-100 sm:hidden">
+                {pendingInvoices.map((inv) => (
+                  <div key={inv.id} className="p-4 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-bold text-gray-900 text-sm">
+                          {inv.occupancy?.user?.name || "Occupant"}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          Room {inv.occupancy?.unit?.unitNumber || "-"} · {inv.billingPeriod}
+                        </div>
+                      </div>
+
+                      <span
+                        className={`px-2 py-0.5 text-[10.5px] font-semibold rounded-full shrink-0 ${
+                          inv.status === "OVERDUE"
+                            ? "bg-rose-100 text-rose-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {inv.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <span className="text-gray-500">Due: {formatDate(inv.dueDate)}</span>
+                      <div className="text-right">
+                        <span className="text-[10px] text-gray-400 block">Balance Due</span>
+                        <span className="font-bold text-rose-600 text-sm">
+                          {formatMoney(inv.totalAmount - inv.paidAmount)}
                         </span>
-                      </td>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table (>= 640px) */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-700">
+                  <thead className="bg-gray-50/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-100">
+                    <tr>
+                      <th className="px-4 py-3">Invoice #</th>
+                      <th className="px-4 py-3">Resident</th>
+                      <th className="px-4 py-3">Room</th>
+                      <th className="px-4 py-3">Period</th>
+                      <th className="px-4 py-3">Due Date</th>
+                      <th className="px-4 py-3">Total Amount</th>
+                      <th className="px-4 py-3">Balance Due</th>
+                      <th className="px-4 py-3">Status</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {pendingInvoices.map((inv) => (
+                      <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs text-gray-500">{inv.invoiceNumber}</td>
+                        <td className="px-4 py-3 font-semibold text-gray-900">
+                          {inv.occupancy?.user?.name || "Occupant"}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{inv.occupancy?.unit?.unitNumber || "-"}</td>
+                        <td className="px-4 py-3 text-gray-600">{inv.billingPeriod}</td>
+                        <td className="px-4 py-3 text-gray-600">{formatDate(inv.dueDate)}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{formatMoney(inv.totalAmount)}</td>
+                        <td className="px-4 py-3 font-bold text-rose-600">
+                          {formatMoney(inv.totalAmount - inv.paidAmount)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                              inv.status === "OVERDUE"
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {inv.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </Card>
       )}
     </div>

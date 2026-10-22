@@ -265,16 +265,16 @@ export default function ResidentsClient({
                 placeholder={isPg ? "Search resident, room, phone..." : "Search resident..."}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 py-1.5 pl-9 pr-3 text-xs focus:border-primary-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 py-2 sm:py-1.5 pl-9 pr-3 text-xs focus:border-primary-500 focus:outline-none"
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               {isPg && (
                 <select
                   value={filterRoom}
                   onChange={(e) => setFilterRoom(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                  className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 sm:py-1.5 text-xs font-medium text-slate-700"
                 >
                   <option value="ALL">All Rooms</option>
                   {units.map((u) => (
@@ -288,7 +288,7 @@ export default function ResidentsClient({
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 sm:py-1.5 text-xs font-medium text-slate-700"
               >
                 <option value="ACTIVE">Active Staying</option>
                 <option value="NOTICE">On Notice</option>
@@ -306,152 +306,286 @@ export default function ResidentsClient({
               description="Click 'Check-in Resident' to onboard an occupant into a room and bed."
             />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    <tr>
-                      <th className="px-5 py-3.5">Occupant</th>
-                      <th className="px-4 py-3.5">Room & Bed</th>
-                      <th className="px-4 py-3.5">Rent / Month</th>
-                      <th className="px-4 py-3.5">Security Deposit</th>
-                      <th className="px-4 py-3.5">Joined</th>
-                      <th className="px-4 py-3.5">Status</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredOccupancies.map((occ) => {
-                      const depositAmount = occ.deposits?.[0]?.amountReceived || occ.depositAmount || 0;
-                      const isNotice = occ.status === "NOTICE";
-                      const isLeft = occ.status === "LEFT";
+            <>
+              {/* Mobile Cards for Occupants (< 640px) */}
+              <div className="space-y-3 sm:hidden">
+                {filteredOccupancies.map((occ) => {
+                  const depositAmount = occ.deposits?.[0]?.amountReceived || occ.depositAmount || 0;
+                  const isNotice = occ.status === "NOTICE";
+                  const isLeft = occ.status === "LEFT";
+                  const pendingInv = occ.invoices?.[0];
+                  const pendingAmount = pendingInv ? pendingInv.totalAmount - pendingInv.paidAmount : 0;
+                  const origin = typeof window !== "undefined" ? window.location.origin : "";
+                  const payUrl = pendingInv ? `${origin}/pay/${pendingInv.id}` : "";
+                  const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
+                  const reminderText = pendingInv
+                    ? buildRentReminderMessage({
+                        residentName: occ.user?.name,
+                        roomLabel,
+                        period: pendingInv.billingPeriod,
+                        amount: pendingAmount,
+                        dueDate: formatDate(pendingInv.dueDate),
+                        payUrl,
+                        pgName: societyName || "Bedy PG",
+                      })
+                    : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
+                  const waUrl = occ.user?.phone ? getWhatsAppUrl(occ.user?.phone, reminderText) : null;
 
-                      return (
-                        <tr key={occ.id} className="transition-colors hover:bg-slate-50/60">
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar name={occ.user?.name} size="sm" />
-                              <div className="min-w-0">
-                                <p className="font-semibold text-slate-900">{occ.user?.name}</p>
-                                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
-                                  <span>{occ.user?.phone || occ.user?.email}</span>
-                                  {occ.user?.phone ? (() => {
-                                    const pendingInv = occ.invoices?.[0];
-                                    const pendingAmount = pendingInv ? pendingInv.totalAmount - pendingInv.paidAmount : 0;
-                                    const origin = typeof window !== "undefined" ? window.location.origin : "";
-                                    const payUrl = pendingInv ? `${origin}/pay/${pendingInv.id}` : "";
-                                    const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
-                                    const reminderText = pendingInv
-                                      ? buildRentReminderMessage({
-                                          residentName: occ.user?.name,
-                                          roomLabel,
-                                          period: pendingInv.billingPeriod,
-                                          amount: pendingAmount,
-                                          dueDate: formatDate(pendingInv.dueDate),
-                                          payUrl,
-                                          pgName: societyName || "Bedy PG",
-                                        })
-                                      : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
-                                    const waUrl = getWhatsAppUrl(occ.user?.phone, reminderText);
+                  return (
+                    <div
+                      key={occ.id}
+                      className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3 transition-colors"
+                    >
+                      {/* Top Header: Occupant name + Room badge + Status */}
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Avatar name={occ.user?.name} size="sm" />
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-slate-900 text-sm truncate">
+                              {occ.user?.name}
+                            </h3>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-600">
+                              <span className="font-medium text-slate-800">Room {occ.unit?.unitNumber || "-"}</span>
+                              {occ.bed ? (
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-700">
+                                  Bed {occ.bed.bedLabel}
+                                </span>
+                              ) : null}
+                              <span className="text-slate-400">·</span>
+                              <span className="text-[11px] text-slate-500">{occ.unit?.unitType}</span>
+                            </div>
+                          </div>
+                        </div>
 
-                                    return (
-                                      <a
-                                        href={waUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        title={pendingInv ? `Send WhatsApp Rent Reminder (Due: ₹${pendingAmount})` : "Chat on WhatsApp"}
-                                        className={`inline-flex items-center gap-1 text-[10.5px] font-semibold transition ${
-                                          pendingInv
-                                            ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200"
-                                            : "text-emerald-600 hover:text-emerald-700"
-                                        }`}
-                                      >
-                                        <MessageCircle className="size-3 text-emerald-600" />
-                                        {pendingInv ? "Remind Due" : ""}
-                                      </a>
-                                    );
-                                  })() : null}
+                        <span
+                          className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold ${
+                            isNotice
+                              ? "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20"
+                              : isLeft
+                                ? "bg-slate-100 text-slate-600 ring-1 ring-slate-400/20"
+                                : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
+                          }`}
+                        >
+                          {isNotice ? "On Notice" : isLeft ? "Left" : "Active"}
+                        </span>
+                      </div>
+
+                      {/* Contact & WhatsApp Reminder pill */}
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50/80 p-2.5 border border-slate-100 text-xs">
+                        <div className="flex items-center gap-2 min-w-0 text-slate-600">
+                          <Phone className="size-3.5 text-slate-400 shrink-0" />
+                          <span className="font-mono text-xs truncate">
+                            {occ.user?.phone || occ.user?.email || "No contact"}
+                          </span>
+                        </div>
+
+                        {waUrl ? (
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-2xs transition ${
+                              pendingInv
+                                ? "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95"
+                                : "bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50"
+                            }`}
+                          >
+                            <MessageCircle className="size-3.5" />
+                            <span>{pendingInv ? "Remind Due" : "WhatsApp"}</span>
+                          </a>
+                        ) : null}
+                      </div>
+
+                      {/* Financial Numbers Grid */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-2.5">
+                          <span className="text-[11px] text-slate-500 block font-medium">Monthly Rent</span>
+                          <span className="font-bold text-slate-900 text-sm">{formatMoney(occ.monthlyRent)}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">per month</span>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-2.5">
+                          <span className="text-[11px] text-slate-500 block font-medium">Security Deposit</span>
+                          <span className="font-bold text-emerald-700 text-sm">{formatMoney(depositAmount)}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            {occ.deposits?.[0]?.status === "HELD" ? "Held safely" : "Recorded"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Footer: Joined date & Actions */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <span className="text-slate-500 text-[11px]">
+                          Joined {formatDate(occ.joinDate)}
+                          {occ.leaveDate ? ` · Left ${formatDate(occ.leaveDate)}` : ""}
+                        </span>
+
+                        {!isLeft ? (
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => setCheckoutOccupancy(occ)}
+                            className="!text-rose-600 hover:!bg-rose-50 !border-rose-200"
+                          >
+                            Check-out
+                          </Button>
+                        ) : (
+                          <span className="text-slate-400 text-[11px] font-medium">Settled</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table (>= 640px) */}
+              <div className="hidden sm:block overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      <tr>
+                        <th className="px-5 py-3.5">Occupant</th>
+                        <th className="px-4 py-3.5">Room & Bed</th>
+                        <th className="px-4 py-3.5">Rent / Month</th>
+                        <th className="px-4 py-3.5">Security Deposit</th>
+                        <th className="px-4 py-3.5">Joined</th>
+                        <th className="px-4 py-3.5">Status</th>
+                        <th className="px-5 py-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredOccupancies.map((occ) => {
+                        const depositAmount = occ.deposits?.[0]?.amountReceived || occ.depositAmount || 0;
+                        const isNotice = occ.status === "NOTICE";
+                        const isLeft = occ.status === "LEFT";
+
+                        return (
+                          <tr key={occ.id} className="transition-colors hover:bg-slate-50/60">
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <Avatar name={occ.user?.name} size="sm" />
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-slate-900">{occ.user?.name}</p>
+                                  <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                                    <span>{occ.user?.phone || occ.user?.email}</span>
+                                    {occ.user?.phone ? (() => {
+                                      const pendingInv = occ.invoices?.[0];
+                                      const pendingAmount = pendingInv ? pendingInv.totalAmount - pendingInv.paidAmount : 0;
+                                      const origin = typeof window !== "undefined" ? window.location.origin : "";
+                                      const payUrl = pendingInv ? `${origin}/pay/${pendingInv.id}` : "";
+                                      const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
+                                      const reminderText = pendingInv
+                                        ? buildRentReminderMessage({
+                                            residentName: occ.user?.name,
+                                            roomLabel,
+                                            period: pendingInv.billingPeriod,
+                                            amount: pendingAmount,
+                                            dueDate: formatDate(pendingInv.dueDate),
+                                            payUrl,
+                                            pgName: societyName || "Bedy PG",
+                                          })
+                                        : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
+                                      const waUrl = getWhatsAppUrl(occ.user?.phone, reminderText);
+
+                                      return (
+                                        <a
+                                          href={waUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          title={pendingInv ? `Send WhatsApp Rent Reminder (Due: ₹${pendingAmount})` : "Chat on WhatsApp"}
+                                          className={`inline-flex items-center gap-1 text-[10.5px] font-semibold transition ${
+                                            pendingInv
+                                              ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200"
+                                              : "text-emerald-600 hover:text-emerald-700"
+                                          }`}
+                                        >
+                                          <MessageCircle className="size-3 text-emerald-600" />
+                                          {pendingInv ? "Remind Due" : ""}
+                                        </a>
+                                      );
+                                    })() : null}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td className="px-4 py-4">
-                            <span className="font-medium text-slate-900">
-                              Room {occ.unit?.unitNumber || "-"}
-                            </span>
-                            {occ.bed ? (
-                              <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-700">
-                                Bed {occ.bed.bedLabel}
+                            <td className="px-4 py-4">
+                              <span className="font-medium text-slate-900">
+                                Room {occ.unit?.unitNumber || "-"}
                               </span>
-                            ) : null}
-                            <p className="text-[11px] text-slate-400 mt-0.5">
-                              {occ.unit?.unitType} Sharing
-                            </p>
-                          </td>
-
-                          <td className="px-4 py-4">
-                            <p className="font-bold text-slate-900">
-                              {formatMoney(occ.monthlyRent)}
-                            </p>
-                            <p className="text-[11px] text-slate-400 mt-0.5">per month</p>
-                          </td>
-
-                          <td className="px-4 py-4">
-                            <p className="font-semibold text-emerald-700">
-                              {formatMoney(depositAmount)}
-                            </p>
-                            <p className="text-[10.5px] text-slate-400 mt-0.5">
-                              {occ.deposits?.[0]?.status === "HELD" ? "Held safely" : "Recorded"}
-                            </p>
-                          </td>
-
-                          <td className="px-4 py-4">
-                            <p className="text-slate-700 font-medium">{formatDate(occ.joinDate)}</p>
-                            {occ.leaveDate ? (
-                              <p className="text-[11px] text-amber-600 mt-0.5">
-                                Left: {formatDate(occ.leaveDate)}
+                              {occ.bed ? (
+                                <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-700">
+                                  Bed {occ.bed.bedLabel}
+                                </span>
+                              ) : null}
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                {occ.unit?.unitType} Sharing
                               </p>
-                            ) : null}
-                          </td>
+                            </td>
 
-                          <td className="px-4 py-4">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${
-                                isNotice
-                                  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20"
-                                  : isLeft
-                                    ? "bg-slate-100 text-slate-600 ring-1 ring-slate-400/20"
-                                    : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
-                              }`}
-                            >
-                              {isNotice ? "On Notice" : isLeft ? "Left" : "Active"}
-                            </span>
-                          </td>
+                            <td className="px-4 py-4">
+                              <p className="font-bold text-slate-900">
+                                {formatMoney(occ.monthlyRent)}
+                              </p>
+                              <p className="text-[11px] text-slate-400 mt-0.5">per month</p>
+                            </td>
 
-                          <td className="px-5 py-4 text-right">
-                            {!isLeft ? (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setCheckoutOccupancy(occ)}
-                                  className="text-[11px] text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                                >
-                                  Check-out
-                                </Button>
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-slate-400">Settled</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            <td className="px-4 py-4">
+                              <p className="font-semibold text-emerald-700">
+                                {formatMoney(depositAmount)}
+                              </p>
+                              <p className="text-[10.5px] text-slate-400 mt-0.5">
+                                {occ.deposits?.[0]?.status === "HELD" ? "Held safely" : "Recorded"}
+                              </p>
+                            </td>
+
+                            <td className="px-4 py-4">
+                              <p className="text-slate-700 font-medium">{formatDate(occ.joinDate)}</p>
+                              {occ.leaveDate ? (
+                                <p className="text-[11px] text-amber-600 mt-0.5">
+                                  Left: {formatDate(occ.leaveDate)}
+                                </p>
+                              ) : null}
+                            </td>
+
+                            <td className="px-4 py-4">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${
+                                  isNotice
+                                    ? "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20"
+                                    : isLeft
+                                      ? "bg-slate-100 text-slate-600 ring-1 ring-slate-400/20"
+                                      : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
+                                }`}
+                              >
+                                {isNotice ? "On Notice" : isLeft ? "Left" : "Active"}
+                              </span>
+                            </td>
+
+                            <td className="px-5 py-4 text-right">
+                              {!isLeft ? (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setCheckoutOccupancy(occ)}
+                                    className="text-[11px] text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                  >
+                                    Check-out
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-slate-400">Settled</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       )}
@@ -515,8 +649,8 @@ export default function ResidentsClient({
 
       {/* Check-in Modal */}
       {checkInOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl animate-rise max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 p-2 sm:p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h2 className="text-base font-bold text-slate-900">Check-in New Resident</h2>
@@ -526,9 +660,9 @@ export default function ResidentsClient({
               </div>
               <button
                 onClick={() => setCheckInOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <X className="size-4.5" />
+                <X className="size-5" />
               </button>
             </div>
 
@@ -561,7 +695,7 @@ export default function ResidentsClient({
                 onChange={(e) => setCheckInForm({ ...checkInForm, email: e.target.value })}
               />
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Select
                   label="Select Room"
                   required
@@ -610,7 +744,7 @@ export default function ResidentsClient({
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Monthly Rent (₹)"
                   type="number"
@@ -630,7 +764,7 @@ export default function ResidentsClient({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Join Date"
                   type="date"
@@ -649,7 +783,7 @@ export default function ResidentsClient({
 
               <div className="pt-1 border-t border-slate-100">
                 <p className="text-xs font-semibold text-slate-700 mb-2">ID Proof / KYC (Optional)</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Select
                     label="Document Type"
                     value={checkInForm.docType}
@@ -670,7 +804,7 @@ export default function ResidentsClient({
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <Button
                   type="button"
                   variant="secondary"
@@ -689,8 +823,8 @@ export default function ResidentsClient({
 
       {/* Check-out Modal */}
       {checkoutOccupancy ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-rise">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 p-2 sm:p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h2 className="text-base font-bold text-slate-900">Resident Check-out</h2>
@@ -700,9 +834,9 @@ export default function ResidentsClient({
               </div>
               <button
                 onClick={() => setCheckoutOccupancy(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <X className="size-4.5" />
+                <X className="size-5" />
               </button>
             </div>
 
@@ -737,7 +871,7 @@ export default function ResidentsClient({
                           next[idx].reason = e.target.value;
                           setDeductions(next);
                         }}
-                        className="flex-1 rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                        className="flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
                       />
                       <input
                         type="number"
@@ -748,14 +882,14 @@ export default function ResidentsClient({
                           next[idx].amount = e.target.value;
                           setDeductions(next);
                         }}
-                        className="w-24 rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                        className="w-24 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
                       />
                       <button
                         type="button"
                         onClick={() => setDeductions(deductions.filter((_, i) => i !== idx))}
                         className="text-slate-400 hover:text-rose-600 p-1"
                       >
-                        <X className="size-3.5" />
+                        <X className="size-4" />
                       </button>
                     </div>
                   ))}
@@ -763,7 +897,7 @@ export default function ResidentsClient({
                   <button
                     type="button"
                     onClick={() => setDeductions([...deductions, { reason: "Maintenance dues", amount: 500 }])}
-                    className="text-[11px] font-semibold text-primary-600 hover:underline"
+                    className="text-[11px] font-semibold text-primary-600 hover:underline py-1"
                   >
                     + Add Deduction Item
                   </button>
@@ -782,7 +916,7 @@ export default function ResidentsClient({
                 onChange={(e) => setCheckoutNotes(e.target.value)}
               />
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <Button
                   type="button"
                   variant="secondary"

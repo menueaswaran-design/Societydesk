@@ -166,31 +166,31 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
       </div>
 
       {/* Metric Tiles */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <Card className="p-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Card className="p-3.5 sm:p-4">
           <p className="text-xs font-medium text-slate-500">Total Rooms</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{units.length}</p>
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-slate-900">{units.length}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3.5 sm:p-4">
           <p className="text-xs font-medium text-slate-500">Total Beds</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{totalBeds}</p>
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-slate-900">{totalBeds}</p>
         </Card>
-        <Card className="p-4 bg-emerald-50/50 border-emerald-200/60">
+        <Card className="p-3.5 sm:p-4 bg-emerald-50/50 border-emerald-200/60">
           <p className="text-xs font-medium text-emerald-800">Vacant Beds</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-700">{vacantBeds}</p>
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-emerald-700">{vacantBeds}</p>
         </Card>
-        <Card className="p-4 bg-blue-50/50 border-blue-200/60">
+        <Card className="p-3.5 sm:p-4 bg-blue-50/50 border-blue-200/60">
           <p className="text-xs font-medium text-blue-800">Occupied Beds</p>
-          <p className="mt-1 text-2xl font-bold text-blue-700">{occupiedBeds}</p>
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-blue-700">{occupiedBeds}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3.5 sm:p-4 col-span-2 sm:col-span-1">
           <p className="text-xs font-medium text-slate-500">Occupancy Rate</p>
-          <p className="mt-1 text-2xl font-bold text-primary-700">{occupancyRate}%</p>
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-primary-700">{occupancyRate}%</p>
         </Card>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl bg-white p-3.5 sm:p-4 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -198,15 +198,15 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             placeholder="Search room (e.g. 101)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 py-1.5 pl-9 pr-3 text-xs focus:border-primary-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 py-2 sm:py-1.5 pl-9 pr-3 text-xs focus:border-primary-500 focus:outline-none"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+            className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 sm:py-1.5 text-xs font-medium text-slate-700"
           >
             <option value="ALL">All Bed Statuses</option>
             <option value="VACANT">Has Vacant Beds</option>
@@ -217,7 +217,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+            className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 sm:py-1.5 text-xs font-medium text-slate-700"
           >
             <option value="ALL">All Sharing Types</option>
             <option value="SINGLE">Single Room</option>
@@ -380,22 +380,22 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
 
       {/* Modal: Add Room */}
       {isAddOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-rise">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 p-2 sm:p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="text-base font-bold text-slate-900">Add New Room</h2>
               <button
                 onClick={() => setIsAddOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <X className="size-4.5" />
+                <X className="size-5" />
               </button>
             </div>
 
             <form onSubmit={handleCreateRoom} className="mt-4 space-y-4">
               <ErrorBanner error={error} />
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Room Number"
                   required
@@ -411,7 +411,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Select
                   label="Room Type"
                   value={form.unitType}
@@ -448,7 +448,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 onChange={(e) => setForm({ ...form, rentAmount: e.target.value })}
               />
 
-              <div className="flex items-center gap-6 pt-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 pt-1">
                 <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
                   <input
                     type="checkbox"
@@ -470,7 +470,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <Button
                   type="button"
                   variant="secondary"
