@@ -1,14 +1,20 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { resolveSocietyScope, getResidentFlatIds, isComplaintManager, requireFlatAccess } from "@/lib/auth/permissions";
+import {
+  resolveSocietyScope,
+  getResidentFlatIds,
+  getResidentOccupancies,
+  isComplaintManager,
+  requireFlatAccess,
+} from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { badRequest } from "@/lib/errors";
 import { complaintCreateSchema, paginationSchema } from "@/lib/validation/schemas";
+
 export const dynamic = "force-dynamic";
 
-
-/** GET /api/complaints - admin sees all, resident sees their own flats. */
+/** GET /api/complaints - admin sees all, resident sees their own room/flat complaints. */
 const GETImpl = handler(async (req) => {
   const user = await getSessionUser(req);
   const sp = req.nextUrl.searchParams;
@@ -17,10 +23,23 @@ const GETImpl = handler(async (req) => {
 
   const where = { societyId };
   if (status) where.status = status;
-  if (!isComplaintManager(user)) where.flatId = { in: await getResidentFlatIds(user.id) };
+  if (!isComplaintManager(user)) {
+    const flatIds = await getResidentFlatIds(user.id);
+    const occupancies = await getResidentOccupancies(user.id);
+    const unitIds = occupancies.map((o) => o.unitId);
+    where.OR = [
+      { createdById: user.id },
+      { flatId: { in: flatIds } },
+      { unitId: { in: unitIds } },
+    ];
+  }
   if (sp.get("priority")) where.priority = sp.get("priority");
+  if (sp.get("unitId")) where.unitId = sp.get("unitId");
   if (q) {
-    where.OR = [{ title: { contains: q } }, { description: { contains: q } }];
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+    ];
   }
 
   const [total, complaints] = await Promise.all([
@@ -29,6 +48,8 @@ const GETImpl = handler(async (req) => {
       where,
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
+        unit: { select: { id: true, unitNumber: true, floor: true } },
+        bed: { select: { id: true, bedLabel: true } },
         createdBy: { select: { id: true, name: true, phone: true } },
         assignedTo: { select: { id: true, name: true, phone: true } },
         _count: { select: { comments: true, attachments: true } },
@@ -45,31 +66,32 @@ const GETImpl = handler(async (req) => {
 });
 
 /**
- * POST /api/complaints  (section 25)
- * Residents file against their own flat; admins may file on behalf of any flat
- * in the society.
+ * POST /api/complaints
+ * File a complaint for a PG room/bed or apartment flat.
  */
 const POSTImpl = handler(async (req) => {
   const user = await getSessionUser(req);
   const societyId = resolveSocietyScope(user, null);
   const body = complaintCreateSchema.parse(await readJson(req));
 
-  let flatId = body.flatId;
+  let flatId = body.flatId || null;
+  let unitId = body.unitId || null;
+  let bedId = body.bedId || null;
 
   if (isComplaintManager(user)) {
-    if (!flatId) throw badRequest("Select the flat this complaint is for");
-    await requireFlatAccess(user, flatId, { societyId });
-  } else {
-    // A resident has exactly one active flat mapping used as the default.
-    const ownFlatIds = await getResidentFlatIds(user.id);
     if (flatId) {
-      if (!ownFlatIds.includes(flatId)) {
-        throw badRequest("You can only raise complaints for your own flat");
-      }
+      await requireFlatAccess(user, flatId, { societyId });
+    }
+  } else {
+    // If user is a resident, auto-link to their active room/bed or flat
+    const occupancies = await getResidentOccupancies(user.id);
+    const ownFlatIds = await getResidentFlatIds(user.id);
+
+    if (occupancies.length > 0) {
+      unitId = unitId || occupancies[0].unitId;
+      bedId = bedId || occupancies[0].bedId;
     } else if (ownFlatIds.length > 0) {
-      flatId = ownFlatIds[0];
-    } else {
-      throw badRequest("No flat is linked to your account yet. Contact your society admin.");
+      flatId = flatId || ownFlatIds[0];
     }
   }
 
@@ -78,6 +100,8 @@ const POSTImpl = handler(async (req) => {
       data: {
         societyId,
         flatId,
+        unitId,
+        bedId,
         createdById: user.id,
         category: body.category,
         title: body.title,
@@ -100,13 +124,12 @@ const POSTImpl = handler(async (req) => {
       });
     }
 
-    // The first timeline entry: who raised it and when.
     await tx.complaintComment.create({
       data: {
         societyId,
         complaintId: created.id,
         userId: user.id,
-        comment: "Complaint raised",
+        comment: "Complaint registered",
         eventType: "COMMENT",
       },
     });

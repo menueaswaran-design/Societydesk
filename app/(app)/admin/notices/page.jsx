@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import NoticesClient from "./NoticesClient";
 
-export const metadata = { title: "Notices - SocietyDesk" };
+export const metadata = { title: "Notices - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminNoticesPage({ searchParams }) {

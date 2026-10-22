@@ -6,20 +6,50 @@ import { receiptDocumentUrl } from "@/lib/billing/receipt";
 import { outstandingOn } from "@/lib/billing/penalty";
 import ResidentInvoicesClient from "./ResidentInvoicesClient";
 
-export const metadata = { title: "My Invoices - SocietyDesk" };
+export const metadata = { title: "My Invoices - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function ResidentInvoicesPage() {
   const user = await getServerSession();
   requirePageRole(user, "RESIDENT");
 
-  // Scoped to the resident's own flats, so no other flat's invoice is reachable.
-  const flatIds = await getResidentFlatIds(user.id);
+  // Scoped to resident's own flats AND PG occupancies
+  let flatIds = [];
+  try {
+    flatIds = await getResidentFlatIds(user.id);
+  } catch {
+    flatIds = [];
+  }
+
+  const occupancies = await prisma.occupancy.findMany({
+    where: { userId: user.id, status: { in: ["ACTIVE", "NOTICE", "LEFT"] } },
+    select: { id: true },
+  });
+  const occupancyIds = occupancies.map((o) => o.id);
+
+  // If user has neither flat nor occupancy, return empty list
+  if (!flatIds.length && !occupancyIds.length) {
+    return <ResidentInvoicesClient invoices={[]} />;
+  }
+
+  const whereClause = {
+    societyId: user.societyId,
+    OR: [
+      ...(flatIds.length ? [{ flatId: { in: flatIds } }] : []),
+      ...(occupancyIds.length ? [{ occupancyId: { in: occupancyIds } }] : []),
+    ],
+  };
 
   const invoices = await prisma.invoice.findMany({
-    where: { flatId: { in: flatIds } },
+    where: whereClause,
     include: {
       flat: { select: { id: true, flatNumber: true, block: true } },
+      occupancy: {
+        include: {
+          unit: { select: { id: true, unitNumber: true } },
+          bed: { select: { id: true, bedLabel: true } },
+        },
+      },
       items: { orderBy: { type: "asc" } },
       payments: {
         include: { receipts: { select: { id: true, receiptNumber: true, pdfUrl: true } } },
@@ -31,6 +61,11 @@ export default async function ResidentInvoicesPage() {
 
   const rows = invoices.map((inv) => ({
     ...inv,
+    flatLabel: inv.flat
+      ? inv.flat.block ? `${inv.flat.block}-${inv.flat.flatNumber}` : inv.flat.flatNumber
+      : inv.occupancy
+      ? `Room ${inv.occupancy.unit?.unitNumber} · Bed ${inv.occupancy.bed?.bedLabel}`
+      : "Assigned",
     outstanding: outstandingOn(inv),
     dueDate: inv.dueDate?.toISOString() ?? null,
     invoiceDate: inv.invoiceDate?.toISOString() ?? null,

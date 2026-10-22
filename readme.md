@@ -1,3 +1,93 @@
+# Bedy — Smart PG, Hostel & Co-Living Manager
+
+> **Primary MVP Scope**: PG & Hostel operations are built first; apartment societies are supported as a second workspace type on the same unified codebase.
+
+---
+
+## 1. Product Overview (PG / Hostel Manager)
+- **Product Type**: Multi-tenant SaaS for PG, hostel and co-living owners.
+- **Primary Goal**: Replace notebooks, Excel sheets, and WhatsApp groups for room/bed records, rent billing, security deposits, and tenant communications.
+- **Target Customer**: PG owner or manager with 10–60 beds (single owner decision maker, no committee).
+- **Core MVP Features**:
+  1. **Room & Bed Matrix**: Real-time interactive status (Vacant, Occupied, Reserved, Maintenance) with AC/Non-AC, single/sharing filters.
+  2. **Per-Person Rent Billing**: Calendar month & join-date cycles, part-month stay prorating, electricity and amenity add-ons.
+  3. **Security Deposit Lifecycle**: Recorded at check-in (status: `HELD`), itemized deductions for damages/cleaning, and refund settlements at check-out.
+  4. **Tenant Check-in & Check-out**: Streamlined wizard linking occupants, setting deposits, uploading KYC ID documents (Aadhaar, PAN, College/Office ID).
+  5. **Operational Modules**: Maintenance complaints, community circulars & notices, and audit logging.
+  6. **Bulk Excel/CSV Import**: One-click import for PG buildings, rooms, beds, occupants, and deposits.
+  7. **Financial & Occupancy Reporting**: Occupancy rate %, monthly projected revenue, and dues breakdown with CSV export.
+
+---
+
+## 2. Workspace Types & Dual Hierarchy
+Every organization in SocietyDesk is a **tenant** (`Society` table) with a workspace `type`:
+- `PG`: Built as the primary workspace (Rooms, Beds, Occupancies, Deposits, KYC Documents).
+- `SOCIETY`: Apartment residential societies (Flats, Flat-based maintenance fees, Committee roles).
+
+### Entity Hierarchy (PG Workspace)
+```
+Tenant (Society, type: "PG")
+ └── Building / Block (e.g. "Main Tower")
+      └── Unit (Room: Single, Double, Triple, Dorm)
+           └── Bed (Bed A, Bed B, Bed C...)
+                └── Occupancy (Resident staying in a bed)
+                     ├── Deposits & Deductions
+                     ├── Invoices & Payments
+                     └── KYC Tenant Documents
+```
+
+---
+
+## 3. Core Business Math
+
+### 3.1 Prorated Part-Month Rent Formula
+When a resident moves in or moves out mid-month:
+$$\text{daily\_rate} = \frac{\text{monthly\_rent}}{\text{days\_in\_month}}$$
+$$\text{amount} = \text{daily\_rate} \times \text{days\_stayed}$$
+
+### 3.2 Security Deposit Settlement Formula
+Upon resident move-out check-out:
+$$\text{refund\_amount} = \text{deposit\_received} - \text{unpaid\_dues} - \text{deductions}$$
+- All deductions require a mandatory reason (e.g. "Room deep cleaning", "Wall repaint", "Damaged key replacement") and are recorded in the `DepositDeduction` table and logged to `AuditLog`.
+
+---
+
+## 4. Check-in & Check-out Workflows
+
+### Check-in Flow
+1. Admin selects Room & Bed.
+2. Enters resident details (Name, Phone, Email, Join Date).
+3. Configures Monthly Rent and Security Deposit amount.
+4. Uploads KYC ID proof (Aadhaar, PAN, College ID, Office ID).
+5. System creates `Occupancy`, updates `Bed.status = OCCUPIED`, creates `Deposit` with status `HELD`, and logs the action to `AuditLog`.
+
+### Check-out Flow
+1. Resident or admin sets move-out notice (`Occupancy.status = NOTICE`, `leaveDate` set).
+2. Inspection & deposit settlement: admin records deduction reasons and amounts.
+3. System calculates refund: `Deposit.status = REFUNDED` (or `PARTIALLY_REFUNDED`), marks `Occupancy.status = LEFT`, and frees the bed (`Bed.status = VACANT`).
+
+---
+
+## 5. Bulk CSV / Excel Import Specification
+PG owners can bulk import their entire PG via `POST /api/occupancies/import` using the following CSV columns:
+```csv
+room_number,room_type,floor,bed_label,rent_amount,occupant_name,phone,email,join_date,deposit_amount
+101,SINGLE,1,A,12000,Karthik Raja,9845012347,karthik@gmail.com,2026-08-01,15000
+102,DOUBLE,1,A,9500,Arun Kumar,9845011001,arun@gmail.com,2026-08-05,10000
+102,DOUBLE,1,B,9500,Deepak Sharma,9845011002,deepak@gmail.com,2026-08-10,10000
+```
+
+---
+
+## 6. Seed Demo Credentials
+- **PG Owner**: `owner@srilakshmipg.local` (Role: `OWNER`) → Portal: `/admin/dashboard`
+- **PG Manager**: `manager@srilakshmipg.local` (Role: `MANAGER`) → Portal: `/admin/dashboard`
+- **PG Resident**: `resident@srilakshmipg.local` (Role: `RESIDENT`) → Portal: `/resident/dashboard`
+- **Society Admin**: `admin@greenvalley.local` (Role: `SOCIETY_ADMIN`) → Portal: `/admin/dashboard`
+- **Platform Super Admin**: `superadmin@societydesk.local` (Role: `SUPER_ADMIN`) → Portal: `/super-admin/dashboard`
+
+---
+
  SocietyDesk MVP — Full Product & Technical Requirements
 
 1. PRODUCT OVERVIEW

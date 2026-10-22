@@ -27,6 +27,18 @@ import { titleCase } from "@/lib/format";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 
 const ROLE_BADGE = {
+  OWNER: {
+    icon: Building2,
+    badge: "bg-primary-50 text-primary-700 ring-1 ring-primary-600/20",
+    label: "PG Owner",
+    labelTa: "பிஜி உரிமையாளர்",
+  },
+  MANAGER: {
+    icon: ShieldCheck,
+    badge: "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600/20",
+    label: "PG Manager",
+    labelTa: "பிஜி மேலாளர்",
+  },
   SOCIETY_ADMIN: {
     icon: Building2,
     badge: "bg-primary-50 text-primary-700 ring-1 ring-primary-600/20",
@@ -48,37 +60,44 @@ const ROLE_BADGE = {
 };
 
 const ROLE_BLURB = {
+  OWNER: "Full control: rooms, beds, rent billing, security deposits & staff",
+  MANAGER: "Day-to-day operations: resident check-in, rent collection, complaints & notices",
   SOCIETY_ADMIN: "Full oversight: society bills, complaints, residents and notices",
   FLAT_ADMIN: "Manages flat members, unit maintenance & payments",
-  RESIDENT: "View flat dues, raise complaints and track notices",
+  RESIDENT: "View room/bed, pay rent online, view deposit status & raise complaints",
 };
 
 const ROLE_BLURB_TA = {
+  OWNER: "முழு கட்டுப்பாடு: அறைகள், படுக்கைகள், வாடகை & முன்பணம்",
+  MANAGER: "தினசரி செயல்பாடுகள்: வாடகை வசூல், புகார்கள் & அறிவிப்புகள்",
   SOCIETY_ADMIN: "முழுக் குடியிருப்பு: வீடுகள், கட்டணங்கள், புகார்கள் & அறிவிப்புகளை நிர்வகிக்கிறார்",
   FLAT_ADMIN: "தனது வீட்டின் குடியிருப்பாளர்கள், கட்டணங்கள் மற்றும் புகார்களை நிர்வகிக்கிறார்",
-  RESIDENT: "தனது நிலுவைகள், புகார்கள், அறிவிப்புகளைப் பார்க்கிறார்",
+  RESIDENT: "தனது வாடகை, முன்பணம், புகார்கள், அறிவிப்புகளைப் பார்க்கிறார்",
 };
 
 const FALLBACK_ACCOUNTS = [
   {
-    email: "admin@greenvalley.local",
-    name: "Lakshmi Iyer",
-    role: "SOCIETY_ADMIN",
-    societyId: "cmvce8djg0002m7ggemm6z1m7",
-    society: { name: "Green Valley Apartments" },
+    email: "owner@srilakshmipg.local",
+    name: "Suresh Reddy",
+    role: "OWNER",
+    society: { name: "Sri Lakshmi Luxury PG & Coliving" },
   },
   {
-    email: "priya@greenvalley.local",
-    name: "Priya Sharma",
-    role: "FLAT_ADMIN",
-    societyId: "cmvce8djg0002m7ggemm6z1m7",
-    society: { name: "Green Valley Apartments" },
+    email: "manager@srilakshmipg.local",
+    name: "Venkatesh Babu",
+    role: "MANAGER",
+    society: { name: "Sri Lakshmi Luxury PG & Coliving" },
   },
   {
-    email: "ravi@greenvalley.local",
-    name: "Ravi Kumar",
+    email: "resident@srilakshmipg.local",
+    name: "Karthik Raja",
     role: "RESIDENT",
-    societyId: "cmvce8djg0002m7ggemm6z1m7",
+    society: { name: "Sri Lakshmi Luxury PG & Coliving" },
+  },
+  {
+    email: "admin@greenvalley.local",
+    name: "Anand Murthy",
+    role: "SOCIETY_ADMIN",
     society: { name: "Green Valley Apartments" },
   },
 ];

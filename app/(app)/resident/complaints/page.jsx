@@ -4,21 +4,39 @@ import { getResidentFlatIds } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import ResidentComplaintsClient from "./ResidentComplaintsClient";
 
-export const metadata = { title: "My Complaints - SocietyDesk" };
+export const metadata = { title: "My Complaints - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function ResidentComplaintsPage() {
   const user = await getServerSession();
   requirePageRole(user, "RESIDENT");
 
-  const flatIds = await getResidentFlatIds(user.id);
+  let flatIds = [];
+  try {
+    flatIds = await getResidentFlatIds(user.id);
+  } catch {
+    flatIds = [];
+  }
+
+  const occupancies = await prisma.occupancy.findMany({
+    where: { userId: user.id, status: { in: ["ACTIVE", "NOTICE"] } },
+    include: {
+      unit: { select: { id: true, unitNumber: true, building: true } },
+      bed: { select: { id: true, bedLabel: true } },
+    },
+  });
+
+  const unitIds = occupancies.map((o) => o.unitId).filter(Boolean);
 
   const [complaints, flats] = await Promise.all([
     prisma.complaint.findMany({
-      // Own flats AND raised by this resident, so they never see a neighbour's.
-      where: { societyId: user.societyId, flatId: { in: flatIds }, createdById: user.id },
+      where: {
+        societyId: user.societyId,
+        createdById: user.id,
+      },
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
+        unit: { select: { id: true, unitNumber: true } },
         assignedTo: { select: { id: true, name: true, phone: true } },
         _count: { select: { comments: true, attachments: true } },
       },
@@ -31,5 +49,14 @@ export default async function ResidentComplaintsPage() {
     }),
   ]);
 
-  return <ResidentComplaintsClient complaints={complaints} flats={flats} />;
+  // Form options: list of flats and/or PG rooms
+  const rooms = occupancies.map((o) => ({
+    id: o.unit.id,
+    unitNumber: o.unit.unitNumber,
+    bedLabel: o.bed?.bedLabel,
+    buildingName: o.unit.building?.name,
+    label: `Room ${o.unit.unitNumber} (Bed ${o.bed?.bedLabel || "A"})`,
+  }));
+
+  return <ResidentComplaintsClient complaints={complaints} flats={flats} rooms={rooms} />;
 }

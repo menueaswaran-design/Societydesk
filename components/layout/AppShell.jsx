@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   LayoutDashboard,
   Building2,
@@ -21,7 +20,9 @@ import {
   Menu,
   X,
   ChevronDown,
-  Sparkles,
+  BedSingle,
+  DoorOpen,
+  TrendingUp,
 } from "lucide-react";
 import { api } from "@/lib/client/api";
 import { titleCase } from "@/lib/format";
@@ -30,37 +31,72 @@ import Badge from "@/components/ui/Badge";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
-const NAV_KEYS = {
-  Overview: "nav.overview",
-  Dashboard: "nav.dashboard",
-  Directory: "nav.directory",
-  Flats: "nav.flats",
-  Residents: "nav.residents",
-  "Flat admins": "nav.flatAdmins",
-  Billing: "nav.billing",
-  "Fee Setup": "nav.feeSetup",
-  Invoices: "nav.invoices",
-  Payments: "nav.payments",
-  Defaulters: "nav.defaulters",
-  Community: "nav.community",
-  Complaints: "nav.complaints",
-  Notices: "nav.notices",
-  Governance: "nav.governance",
-  "Activity Log": "nav.activityLog",
-  Security: "nav.security",
-  "My flat": "nav.myFlat",
-  "Flat Payments": "nav.payments",
-  "Maintenance & Dues": "nav.maintenanceDues",
-  "Pay Maintenance": "nav.payMaintenance",
-  "Payment Receipts": "nav.paymentReceipts",
-  Settings: "nav.settings",
-  Profile: "nav.profile",
-  Platform: "nav.platform",
-  Societies: "nav.societies",
-  "Society Admins": "nav.societyAdmins",
-};
-
 const NAV = {
+  OWNER: [
+    {
+      label: "Overview",
+      items: [{ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    },
+    {
+      label: "Rooms & Beds",
+      items: [
+        { href: "/admin/rooms", label: "Rooms & Beds", icon: BedSingle },
+        { href: "/admin/residents", label: "Occupants & Check-in", icon: Users },
+        { href: "/admin/deposits", label: "Security Deposits", icon: Receipt },
+      ],
+    },
+    {
+      label: "Rent & Billing",
+      items: [
+        { href: "/admin/billing/invoices", label: "Rent Invoices", icon: FileText },
+        { href: "/admin/billing/payments", label: "Payments", icon: CreditCard },
+        { href: "/admin/billing/defaulters", label: "Defaulters", icon: AlertTriangle },
+      ],
+    },
+    {
+      label: "Operations",
+      items: [
+        { href: "/admin/complaints", label: "Complaints", icon: AlertTriangle },
+        { href: "/admin/notices", label: "Notices", icon: Megaphone },
+      ],
+    },
+    {
+      label: "Analytics & Logs",
+      items: [
+        { href: "/admin/reports", label: "Occupancy & Revenue", icon: TrendingUp },
+        { href: "/admin/activity", label: "Activity Log", icon: ShieldCheck },
+      ],
+    },
+  ],
+  MANAGER: [
+    {
+      label: "Overview",
+      items: [{ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    },
+    {
+      label: "Rooms & Beds",
+      items: [
+        { href: "/admin/rooms", label: "Rooms & Beds", icon: BedSingle },
+        { href: "/admin/residents", label: "Occupants & Check-in", icon: Users },
+        { href: "/admin/deposits", label: "Security Deposits", icon: Receipt },
+      ],
+    },
+    {
+      label: "Rent & Billing",
+      items: [
+        { href: "/admin/billing/invoices", label: "Rent Invoices", icon: FileText },
+        { href: "/admin/billing/payments", label: "Payments", icon: CreditCard },
+        { href: "/admin/billing/defaulters", label: "Defaulters", icon: AlertTriangle },
+      ],
+    },
+    {
+      label: "Operations",
+      items: [
+        { href: "/admin/complaints", label: "Complaints", icon: AlertTriangle },
+        { href: "/admin/notices", label: "Notices", icon: Megaphone },
+      ],
+    },
+  ],
   SOCIETY_ADMIN: [
     {
       label: "Overview",
@@ -123,9 +159,9 @@ const NAV = {
       items: [{ href: "/resident/dashboard", label: "Dashboard", icon: LayoutDashboard }],
     },
     {
-      label: "Maintenance & Dues",
+      label: "Rent & Dues",
       items: [
-        { href: "/resident/invoices", label: "Pay Maintenance", icon: CreditCard },
+        { href: "/resident/invoices", label: "My Invoices & Dues", icon: CreditCard },
         { href: "/resident/payments", label: "Payment Receipts", icon: Receipt },
         { href: "/resident/complaints", label: "Complaints", icon: AlertTriangle },
         { href: "/resident/notices", label: "Notices", icon: Megaphone },
@@ -141,8 +177,8 @@ const NAV = {
       label: "Platform",
       items: [
         { href: "/super-admin/dashboard", label: "Overview", icon: LayoutDashboard },
-        { href: "/super-admin/societies", label: "Societies", icon: Building },
-        { href: "/super-admin/team", label: "Society Admins", icon: ShieldCheck },
+        { href: "/super-admin/societies", label: "Properties & PGs", icon: Building },
+        { href: "/super-admin/team", label: "Owners & Admins", icon: ShieldCheck },
       ],
     },
   ],
@@ -150,13 +186,15 @@ const NAV = {
 
 const ROLE_TONE = {
   SUPER_ADMIN: "violet",
+  OWNER: "brand",
+  MANAGER: "blue",
   SOCIETY_ADMIN: "brand",
   SECURITY_ADMIN: "amber",
   FLAT_ADMIN: "blue",
-  RESIDENT: "slate",
+  RESIDENT: "emerald",
 };
 
-export default function AppShell({ user, society, flats, children }) {
+export default function AppShell({ user, society, flats, occupancies, children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
@@ -164,34 +202,40 @@ export default function AppShell({ user, society, flats, children }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const { t } = useTranslation();
 
-  const groups = NAV[user.role] ?? NAV.SOCIETY_ADMIN;
-  const flatLabel = flats?.length
-    ? flats.map((f) => (f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber)).join(", ")
-    : null;
+  const isPgWorkspace = society?.type !== "SOCIETY"; // PG is primary!
 
-  // Reset drawer, menu, and navigation indicator when pathname updates
+  let groups = NAV[user.role];
+  if (!groups) {
+    groups = isPgWorkspace ? NAV.OWNER : NAV.SOCIETY_ADMIN;
+  } else if (user.role === "SOCIETY_ADMIN" && isPgWorkspace) {
+    groups = NAV.OWNER;
+  }
+
+  const roomLabel = occupancies?.length
+    ? occupancies.map((o) => `Room ${o.unit?.unitNumber || "-"}${o.bed ? ` (${o.bed.bedLabel})` : ""}`).join(", ")
+    : flats?.length
+      ? flats.map((f) => (f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber)).join(", ")
+      : null;
+
   useEffect(() => {
     setDrawer(false);
     setMenu(false);
     setIsNavigating(false);
   }, [pathname]);
 
-  // Firebase and the dev cookie are two independent sessions, so clear both.
-  // /api/auth/dev-login only 403s outside the dev bypass, which is why logout
-  // has its own endpoint.
   async function signOut() {
     try {
       const { getFirebaseClient, signOut: firebaseSignOut } = await import("@/lib/firebase/client");
       const auth = getFirebaseClient();
       if (auth?.currentUser) await firebaseSignOut(auth);
     } catch {
-      /* Firebase not configured or already signed out - fall through */
+      /* ignore */
     }
 
     try {
       await api.post("/api/auth/logout");
     } catch {
-      /* the endpoint is best-effort; still send them to login */
+      /* ignore */
     }
 
     router.push("/login");
@@ -203,14 +247,14 @@ export default function AppShell({ user, society, flats, children }) {
       {groups.map((group) => (
         <div key={group.label}>
           <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-white/40 uppercase">
-            {t(NAV_KEYS[group.label] || group.label, group.label)}
+            {group.label}
           </p>
           <ul className="space-y-0.5">
             {group.items.map((item) => (
               <li key={item.href}>
                 <NavLink
                   item={item}
-                  label={t(NAV_KEYS[item.label] || item.label, item.label)}
+                  label={item.label}
                   pathname={pathname}
                   onNavigate={() => setIsNavigating(true)}
                 />
@@ -225,39 +269,42 @@ export default function AppShell({ user, society, flats, children }) {
   const identity = (
     <div className="flex items-center gap-3 px-4 py-3.5">
       <span className="relative inline-flex">
-        <span className="relative inline-flex size-8.5 items-center justify-center rounded-lg bg-white text-xs font-bold tracking-tight text-primary-900">
-          SD
+        <span className="relative inline-flex size-8.5 items-center justify-center rounded-lg bg-emerald-500 text-sm font-black tracking-tight text-white shadow-sm">
+          B
         </span>
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-white">
-          {society?.name ?? "SocietyDesk"}
+          {society?.name ?? (isPgWorkspace ? "Bedy PG" : "Bedy")}
         </p>
-        <p className="truncate text-[11px] text-white/45">
-          {society?.code ? `${society.code} · ` : ""}
-          {titleCase(user.role)}
-        </p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="rounded bg-white/10 px-1.5 py-0.2 text-[9.5px] font-semibold text-white/80">
+            {isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
+          </span>
+          <p className="truncate text-[11px] text-white/50">
+            {titleCase(user.role)}
+          </p>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen">
-      {/* Top Instant Navigation Progress Bar */}
+    <div className="flex min-h-screen bg-slate-50">
       {isNavigating ? (
         <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10">
           <div className="h-full w-full bg-linear-to-r from-brand-500 via-indigo-600 to-sky-400 animate-progress" />
         </div>
       ) : null}
 
-      {/* ------------------------------------------------------------ sidebar */}
+      {/* Sidebar */}
       <aside className="brand-canvas sticky top-0 hidden h-screen w-64 shrink-0 flex-col lg:flex">
         <div className="border-b border-white/10">{identity}</div>
         {nav}
-        <UserPanel user={user} flats={flatLabel} onSignOut={signOut} />
+        <UserPanel user={user} roomLabel={roomLabel} onSignOut={signOut} />
       </aside>
 
-      {/* -------------------------------------------------------- mobile drawer */}
+      {/* Mobile drawer */}
       {drawer ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
@@ -277,14 +324,14 @@ export default function AppShell({ user, society, flats, children }) {
               </button>
             </div>
             {nav}
-            <UserPanel user={user} flats={flatLabel} onSignOut={signOut} />
+            <UserPanel user={user} roomLabel={roomLabel} onSignOut={signOut} />
           </div>
         </div>
       ) : null}
 
-      {/* --------------------------------------------------------------- main */}
+      {/* Main Content Area */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-2xs">
           <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8">
             <button
               onClick={() => setDrawer(true)}
@@ -295,11 +342,11 @@ export default function AppShell({ user, society, flats, children }) {
             </button>
 
             <div className="flex min-w-0 items-center gap-2 lg:hidden">
-              <span className="inline-flex size-7.5 items-center justify-center rounded-md bg-primary-800 text-[10px] font-bold text-white">
-                SD
+              <span className="inline-flex size-7.5 items-center justify-center rounded-md bg-emerald-600 text-[11px] font-black text-white">
+                B
               </span>
               <span className="truncate text-xs font-semibold text-slate-800">
-                {society?.name ?? "SocietyDesk"}
+                {society?.name ?? "Bedy"}
               </span>
             </div>
 
@@ -309,7 +356,7 @@ export default function AppShell({ user, society, flats, children }) {
                 {society ? (
                   <>
                     <span className="font-semibold text-slate-700">{society.name}</span>
-                    {flatLabel ? ` · ${flatLabel}` : ""}
+                    {roomLabel ? ` · ${roomLabel}` : ""}
                   </>
                 ) : (
                   "Platform console"
@@ -342,7 +389,7 @@ export default function AppShell({ user, society, flats, children }) {
                 {menu ? (
                   <UserMenu
                     user={user}
-                    flats={flatLabel}
+                    roomLabel={roomLabel}
                     onSignOut={signOut}
                     onClose={() => setMenu(false)}
                     t={t}
@@ -361,11 +408,9 @@ export default function AppShell({ user, society, flats, children }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-
 function NavLink({ item, label, pathname, onNavigate }) {
   const Icon = item.icon;
-  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const active = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(`${item.href}/`));
 
   return (
     <Link
@@ -378,7 +423,7 @@ function NavLink({ item, label, pathname, onNavigate }) {
       }}
       className={`group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
         active
-          ? "bg-white/10 text-white"
+          ? "bg-white/10 text-white font-semibold shadow-2xs"
           : "text-white/70 hover:bg-white/5 hover:text-white"
       }`}
     >
@@ -396,9 +441,7 @@ function NavLink({ item, label, pathname, onNavigate }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-
-function UserPanel({ user, flats, onSignOut }) {
+function UserPanel({ user, roomLabel, onSignOut }) {
   const { t } = useTranslation();
   return (
     <div className="border-t border-white/10 p-3">
@@ -417,14 +460,12 @@ function UserPanel({ user, flats, onSignOut }) {
           <LogOut className="size-3.5" />
         </button>
       </div>
-      {flats ? <p className="mt-2 truncate px-2.5 text-[11px] text-white/35">{flats}</p> : null}
+      {roomLabel ? <p className="mt-2 truncate px-2.5 text-[11px] text-white/35">{roomLabel}</p> : null}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-
-function UserMenu({ user, flats, onSignOut, onClose, t: tProp }) {
+function UserMenu({ user, roomLabel, onSignOut, onClose, t: tProp }) {
   const { t: tContext } = useTranslation();
   const t = tProp || tContext;
   const ref = useRef(null);
@@ -444,7 +485,7 @@ function UserMenu({ user, flats, onSignOut, onClose, t: tProp }) {
     };
   }, [onClose]);
 
-  const content = (
+  return (
     <div
       ref={ref}
       role="menu"
@@ -463,10 +504,10 @@ function UserMenu({ user, flats, onSignOut, onClose, t: tProp }) {
           <dt className="text-slate-500">Role</dt>
           <dd className="font-semibold text-slate-800">{titleCase(user.role)}</dd>
         </div>
-        {flats ? (
+        {roomLabel ? (
           <div className="flex items-center justify-between gap-3 py-1">
-            <dt className="text-slate-500">Flat</dt>
-            <dd className="font-semibold text-slate-800">{flats}</dd>
+            <dt className="text-slate-500">Assignment</dt>
+            <dd className="font-semibold text-slate-800 truncate max-w-32">{roomLabel}</dd>
           </div>
         ) : null}
       </dl>
@@ -488,6 +529,4 @@ function UserMenu({ user, flats, onSignOut, onClose, t: tProp }) {
       </div>
     </div>
   );
-
-  return content;
 }

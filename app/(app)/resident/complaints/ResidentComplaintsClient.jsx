@@ -26,7 +26,7 @@ import { api, fieldErrors } from "@/lib/client/api";
 import { COMPLAINT_CATEGORY, COMPLAINT_PRIORITY } from "@/lib/constants";
 import { formatDateTime, titleCase } from "@/lib/format";
 
-export default function ResidentComplaintsClient({ complaints, flats }) {
+export default function ResidentComplaintsClient({ complaints, flats = [], rooms = [] }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState(null);
@@ -36,7 +36,7 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
     const q = query.trim().toLowerCase();
     if (!q) return complaints;
     return complaints.filter((c) =>
-      [c.title, c.description, c.flat?.flatNumber, c.flat?.block]
+      [c.title, c.description, c.flat?.flatNumber, c.flat?.block, c.unit?.unitNumber]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
@@ -65,7 +65,7 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
 
       {awaitingYou > 0 ? (
         <CardNote tone="emerald" icon={CheckCircle} title="Waiting on your confirmation">
-          The society marked {awaitingYou} {awaitingYou === 1 ? "complaint" : "complaints"} as
+          The management marked {awaitingYou} {awaitingYou === 1 ? "complaint" : "complaints"} as
           resolved. Open {awaitingYou === 1 ? "it" : "them"} to confirm the fix or reopen.
         </CardNote>
       ) : null}
@@ -75,7 +75,7 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Search title or flat"
+            placeholder="Search title, room or flat"
             className="w-full sm:max-w-sm"
           />
         </div>
@@ -84,7 +84,7 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
           <EmptyState
             icon={AlertTriangle}
             title="No complaints raised"
-            description="Report anything that needs fixing in your flat and track it here."
+            description="Report anything that needs fixing in your room or flat and track it here."
             action={
               <Button onClick={() => setCreating(true)}>
                 <Plus />
@@ -111,12 +111,17 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
 
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                     <Badge tone="slate" size="xs">{titleCase(c.category)}</Badge>
-                    {c.flat?.flatNumber && (
+                    {c.unit?.unitNumber ? (
+                      <>
+                        <span>•</span>
+                        <span>Room {c.unit.unitNumber}</span>
+                      </>
+                    ) : c.flat?.flatNumber ? (
                       <>
                         <span>•</span>
                         <span>Flat {c.flat?.block ? `${c.flat.block}-` : ""}{c.flat.flatNumber}</span>
                       </>
-                    )}
+                    ) : null}
                     <span>•</span>
                     <span>{formatDateTime(c.createdAt)}</span>
                   </div>
@@ -146,7 +151,7 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
                 dense
                 head={[
                   { label: "Complaint" },
-                  { label: "Flat", className: "hidden sm:table-cell" },
+                  { label: "Unit / Room", className: "hidden sm:table-cell" },
                   { label: "Category", className: "hidden lg:table-cell" },
                   { label: "Raised", className: "hidden md:table-cell" },
                   { label: "Assigned to" },
@@ -168,8 +173,11 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
                       </span>
                     </Td>
                     <Td dense className="hidden sm:table-cell whitespace-nowrap">
-                      {c.flat?.block ? `${c.flat.block}-` : ""}
-                      {c.flat?.flatNumber}
+                      {c.unit?.unitNumber
+                        ? `Room ${c.unit.unitNumber}`
+                        : c.flat?.flatNumber
+                        ? `${c.flat?.block ? `${c.flat.block}-` : ""}${c.flat?.flatNumber}`
+                        : "—"}
                     </Td>
                     <Td dense className="hidden lg:table-cell">
                       <Badge>{titleCase(c.category)}</Badge>
@@ -179,12 +187,12 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
                     </Td>
                     <Td dense>
                       {c.assignedTo?.name ? (
-                        <span className="inline-flex items-center gap-1.5 text-slate-700">
-                          <UserCheck className="size-3.5 text-emerald-500" />
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-700">
+                          <UserCheck className="size-3.5 text-emerald-600" />
                           {c.assignedTo.name}
                         </span>
                       ) : (
-                        <Badge tone="slate">Not yet assigned</Badge>
+                        <span className="text-xs text-slate-400">Unassigned</span>
                       )}
                     </Td>
                     <Td dense>
@@ -203,15 +211,25 @@ export default function ResidentComplaintsClient({ complaints, flats }) {
         )}
       </div>
 
-      <ComplaintDetail summary={visible.find((c) => c.id === openId)} onClose={() => setOpenId(null)} />
-      <RaiseModal open={creating} onClose={() => setCreating(false)} flats={flats} />
+      <DetailModal
+        id={openId}
+        onClose={() => setOpenId(null)}
+        summary={complaints.find((c) => c.id === openId)}
+      />
+
+      <RaiseModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        flats={flats}
+        rooms={rooms}
+      />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
 
-function ComplaintDetail({ summary, onClose }) {
+function DetailModal({ id, onClose, summary }) {
   const router = useRouter();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -219,40 +237,39 @@ function ComplaintDetail({ summary, onClose }) {
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const id = summary?.id ?? null;
-
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError(null);
     try {
-      setDetail(await api.get(`/api/complaints/${id}`));
+      const data = await api.get(`/api/complaints/${id}`);
+      setDetail(data);
     } catch (err) {
-      setError(err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    if (!id) {
+    if (id) {
+      load();
+      setComment("");
+    } else {
       setDetail(null);
-      return;
     }
-    setComment("");
-    load();
   }, [id, load]);
 
-  async function act(fn, clearComment) {
+  async function act(run, refreshDetailOnly = false) {
     setBusy(true);
     setError(null);
     try {
-      await fn();
+      await run();
       await load();
-      router.refresh();
-      if (clearComment) setComment("");
+      if (!refreshDetailOnly) router.refresh();
+      setComment("");
     } catch (err) {
-      setError(err);
+      setError(err.message);
     } finally {
       setBusy(false);
     }
@@ -260,15 +277,20 @@ function ComplaintDetail({ summary, onClose }) {
 
   const resolved = detail?.status === "RESOLVED";
 
+  const locLabel = summary?.unit?.unitNumber
+    ? `Room ${summary.unit.unitNumber}`
+    : summary?.flat?.flatNumber
+    ? `${summary.flat?.block ? `${summary.flat.block}-` : ""}${summary.flat.flatNumber}`
+    : "";
+
   return (
     <Modal
-      open={Boolean(summary)}
+      open={Boolean(id)}
       onClose={onClose}
-      size="lg"
-      title={summary?.title ?? ""}
+      title={summary?.title ?? "Complaint"}
       description={
         summary
-          ? `${summary.flat?.block ? `${summary.flat.block}-` : ""}${summary.flat?.flatNumber} · ${titleCase(summary.category)}`
+          ? `${locLabel ? `${locLabel} · ` : ""}${titleCase(summary.category)}`
           : ""
       }
     >
@@ -305,12 +327,11 @@ function ComplaintDetail({ summary, onClose }) {
             </div>
           ) : null}
 
-          {/* Section 26: the resident confirms or rejects once resolved. */}
           {resolved ? (
             <div className="rounded-xl bg-emerald-50/70 px-4 py-3 ring-1 ring-emerald-200/80">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-900">
                 <CheckCircle className="size-4" />
-                The society marked this as resolved
+                Management marked this as resolved
               </p>
               <p className="mt-1 text-xs text-emerald-800">
                 If the issue is fixed, close it. If it is still there, reopen it.
@@ -334,15 +355,12 @@ function ComplaintDetail({ summary, onClose }) {
                   loading={busy}
                   onClick={() =>
                     act(() =>
-                      api.post(`/api/complaints/${detail.id}/status`, {
-                        status: "REOPENED",
-                        comment: "Issue is not resolved yet",
-                      })
+                      api.post(`/api/complaints/${detail.id}/status`, { status: "IN_PROGRESS" })
                     )
                   }
                 >
                   <RotateCcw />
-                  Still not fixed, reopen
+                  Still an issue, reopen
                 </Button>
               </div>
             </div>
@@ -355,10 +373,10 @@ function ComplaintDetail({ summary, onClose }) {
                 Updates
               </p>
               <ol className="relative space-y-4 border-l border-slate-200 pl-5">
-                {detail.comments.length === 0 ? (
+                {detail.comments?.length === 0 ? (
                   <li className="text-sm text-slate-400">No updates yet.</li>
                 ) : (
-                  detail.comments.map((c) => (
+                  detail.comments?.map((c) => (
                     <li key={c.id} className="relative">
                       <span className="absolute top-1.5 -left-[26px] size-2.5 rounded-full bg-brand-400 ring-4 ring-white" />
                       <div className="min-w-0 flex-1">
@@ -379,7 +397,7 @@ function ComplaintDetail({ summary, onClose }) {
                     rows={2}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Add a comment for the society"
+                    placeholder="Add a comment for management"
                   />
                   <div className="flex justify-end">
                     <Button
@@ -403,7 +421,7 @@ function ComplaintDetail({ summary, onClose }) {
                 </div>
               ) : (
                 <p className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">
-                  This complaint is closed. Reopen it from the society if the issue returns.
+                  This complaint is closed. Reopen it from management if the issue returns.
                 </p>
               )}
             </div>
@@ -418,10 +436,11 @@ function ComplaintDetail({ summary, onClose }) {
 
 // ---------------------------------------------------------------------------
 
-function RaiseModal({ open, onClose, flats }) {
+function RaiseModal({ open, onClose, flats = [], rooms = [] }) {
   const router = useRouter();
   const [form, setForm] = useState({
     flatId: flats[0]?.id ?? "",
+    unitId: rooms[0]?.id ?? "",
     category: "PLUMBING",
     title: "",
     description: "",
@@ -440,7 +459,10 @@ function RaiseModal({ open, onClose, flats }) {
     setError(null);
     setErrors({});
     try {
-      await api.post("/api/complaints", form);
+      const payload = { ...form };
+      if (!payload.flatId) delete payload.flatId;
+      if (!payload.unitId) delete payload.unitId;
+      await api.post("/api/complaints", payload);
       router.refresh();
       setForm({ ...form, title: "", description: "", priority: "MEDIUM" });
       onClose();
@@ -452,18 +474,20 @@ function RaiseModal({ open, onClose, flats }) {
     }
   }
 
+  const hasAccommodation = flats.length > 0 || rooms.length > 0;
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Raise a complaint"
-      description="Your society admin is notified and will pick this up."
+      description="Management will be notified and pick this up."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit} loading={saving}>
+          <Button onClick={submit} loading={saving} disabled={!hasAccommodation}>
             Submit complaint
           </Button>
         </>
@@ -472,14 +496,33 @@ function RaiseModal({ open, onClose, flats }) {
       <div className="flex flex-col gap-4">
         <ErrorBanner error={error} />
 
-        {flats.length === 0 ? (
-          <CardNote tone="amber" title="No flat linked">
-            No flat is linked to your account, so a complaint cannot be filed. Contact your society
-            admin.
+        {!hasAccommodation ? (
+          <CardNote tone="amber" title="No accommodation linked">
+            No flat or PG room is linked to your account, so a complaint cannot be filed. Contact your management.
           </CardNote>
         ) : (
           <>
-            {flats.length > 1 ? (
+            {rooms.length > 0 && flats.length === 0 ? (
+              rooms.length > 1 ? (
+                <Select
+                  id="unitId"
+                  label="Room"
+                  value={form.unitId}
+                  onChange={set("unitId")}
+                  error={errors.unitId}
+                >
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 border border-slate-100">
+                  Reporting for: <span className="font-semibold text-slate-900">{rooms[0].label}</span>
+                </div>
+              )
+            ) : flats.length > 1 ? (
               <Select
                 id="flatId"
                 label="Flat"
@@ -528,7 +571,7 @@ function RaiseModal({ open, onClose, flats }) {
             <Input
               id="title"
               label="Short title"
-              placeholder="Water leaking in the kitchen"
+              placeholder="e.g. Geyser not heating, AC water leak"
               value={form.title}
               onChange={set("title")}
               error={errors.title}
@@ -537,8 +580,8 @@ function RaiseModal({ open, onClose, flats }) {
             <Textarea
               id="description"
               label="What is the problem?"
-              rows={5}
-              placeholder="Describe where it is, since when, and anything you have already tried."
+              rows={4}
+              placeholder="Explain what is broken, when it started, and any details to help fix it."
               value={form.description}
               onChange={set("description")}
               error={errors.description}

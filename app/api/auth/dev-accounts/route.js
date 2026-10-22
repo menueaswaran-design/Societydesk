@@ -6,24 +6,27 @@ export const dynamic = "force-dynamic";
 
 const PUBLIC_DEMO_ACCOUNTS = [
   {
-    email: "admin@greenvalley.local",
-    name: "Lakshmi Iyer",
-    role: "SOCIETY_ADMIN",
-    societyId: "cmvce8djg0002m7ggemm6z1m7",
-    society: { name: "Green Valley Apartments" },
+    email: "owner@srilakshmipg.local",
+    name: "Suresh Reddy",
+    role: "OWNER",
+    society: { name: "Sri Lakshmi Luxury PG & Coliving" },
   },
   {
-    email: "priya@greenvalley.local",
-    name: "Priya Sharma",
-    role: "FLAT_ADMIN",
-    societyId: "cmvce8djg0002m7ggemm6z1m7",
-    society: { name: "Green Valley Apartments" },
+    email: "manager@srilakshmipg.local",
+    name: "Venkatesh Babu",
+    role: "MANAGER",
+    society: { name: "Sri Lakshmi Luxury PG & Coliving" },
   },
   {
-    email: "ravi@greenvalley.local",
-    name: "Ravi Kumar",
+    email: "resident@srilakshmipg.local",
+    name: "Karthik Raja",
     role: "RESIDENT",
-    societyId: "cmvce8djg0002m7ggemm6z1m7",
+    society: { name: "Sri Lakshmi Luxury PG & Coliving" },
+  },
+  {
+    email: "admin@greenvalley.local",
+    name: "Anand Murthy",
+    role: "SOCIETY_ADMIN",
     society: { name: "Green Valley Apartments" },
   },
 ];
@@ -42,18 +45,27 @@ const GETImpl = handler(async () => {
     const users = await prisma.user.findMany({
       where: {
         role: { not: "SUPER_ADMIN" },
-        email: { in: ["admin@greenvalley.local", "priya@greenvalley.local", "ravi@greenvalley.local"] },
+        email: {
+          in: [
+            "owner@srilakshmipg.local",
+            "manager@srilakshmipg.local",
+            "resident@srilakshmipg.local",
+            "admin@greenvalley.local",
+          ],
+        },
       },
-      select: { email: true, name: true, role: true, societyId: true, society: { select: { name: true } } },
+      select: {
+        email: true,
+        name: true,
+        role: true,
+        societyId: true,
+        society: { select: { name: true } },
+      },
       orderBy: { role: "asc" },
     });
-    const mapped = (users.length > 0 ? users : PUBLIC_DEMO_ACCOUNTS).map((u) => {
-      if (u.email === "priya@greenvalley.local") {
-        return { ...u, role: "FLAT_ADMIN", name: "Priya Sharma" };
-      }
-      return u;
-    });
-    return ok(mapped);
+
+    const list = users.length > 0 ? users : PUBLIC_DEMO_ACCOUNTS;
+    return ok(list);
   } catch (e) {
     return ok(PUBLIC_DEMO_ACCOUNTS);
   }

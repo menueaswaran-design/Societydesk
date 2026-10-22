@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import FlatsClient from "./FlatsClient";
 
-export const metadata = { title: "Flats - SocietyDesk" };
+export const metadata = { title: "Flats - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminFlatsPage() {

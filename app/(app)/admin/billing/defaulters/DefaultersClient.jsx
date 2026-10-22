@@ -2,16 +2,47 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Search, PartyPopper, Clock, Wallet, Flame, FileText } from "lucide-react";
+import { AlertTriangle, Search, PartyPopper, Clock, Wallet, Flame, FileText, MessageCircle } from "lucide-react";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
 import Badge from "@/components/ui/Badge";
+import Button, { TextAction } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/Feedback";
 import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
 import { FilterChips } from "@/components/ui/FilterPills";
-import { TextAction } from "@/components/ui/Button";
 import { formatDate, formatMoney } from "@/lib/format";
+import { buildDefaulterNoticeMessage, getWhatsAppUrl } from "@/lib/billing/whatsapp";
+
+function WhatsAppDefaulterNoticeButton({ defaulter, size = "xs" }) {
+  const handleSend = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const payUrl = `${origin}/pay/${defaulter.id}`;
+    const text = buildDefaulterNoticeMessage({
+      residentName: defaulter.residentName || "Resident",
+      roomLabel: defaulter.unitLabel || `Room ${defaulter.flatNumber}`,
+      daysOverdue: defaulter.daysOverdue,
+      amount: defaulter.outstanding,
+      payUrl,
+      pgName: defaulter.societyName || "Bedy PG",
+    });
+    const url = getWhatsAppUrl(defaulter.phone, text);
+    window.open(url, "_blank");
+  };
+
+  return (
+    <Button
+      variant="secondary"
+      size={size}
+      onClick={handleSend}
+      className="!text-emerald-700 !bg-emerald-50 hover:!bg-emerald-100 !border-emerald-200"
+      title="Send 1-Click WhatsApp Overdue Notice with Instant UPI Pay Link"
+    >
+      <MessageCircle className="size-3 text-emerald-600" />
+      Send Notice
+    </Button>
+  );
+}
 
 const BANDS = [
   { key: "all", label: "All", test: () => true },
@@ -120,14 +151,14 @@ export default function DefaultersClient({ defaulters, summary }) {
             {/* Mobile Cards for Defaulters */}
             <div className="divide-y divide-slate-100 sm:hidden">
               {visible.map((d) => (
-                <div key={d.flatId} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50">
+                <div key={d.targetId || d.occupancyId || d.flatId || d.id} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-semibold text-slate-900 text-sm">
-                        Flat {d.block ? `${d.block}-` : ""}{d.flatNumber}
+                        {d.unitLabel || (d.block ? `${d.block}-${d.flatNumber}` : `Room ${d.flatNumber}`)}
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5">
-                        {d.residentName ?? <span className="text-slate-400">Vacant flat</span>}
+                        {d.residentName ?? <span className="text-slate-400">Vacant room</span>}
                       </div>
                     </div>
                     <div className="text-right">
@@ -147,12 +178,15 @@ export default function DefaultersClient({ defaulters, summary }) {
                     <span className="text-slate-500 text-[11px]">
                       Oldest due: {formatDate(d.oldestDueDate)} ({d.invoiceCount} {d.invoiceCount === 1 ? "inv" : "invs"})
                     </span>
-                    <Link
-                      href="/admin/billing/invoices?status=OVERDUE"
-                      className="font-semibold text-brand-700 hover:text-brand-900"
-                    >
-                      Open invoices →
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      <WhatsAppDefaulterNoticeButton defaulter={d} size="xs" />
+                      <Link
+                        href="/admin/billing/invoices?status=OVERDUE"
+                        className="font-semibold text-brand-700 hover:text-brand-900"
+                      >
+                        Invoices →
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -163,7 +197,7 @@ export default function DefaultersClient({ defaulters, summary }) {
               <Table
                 dense
                 head={[
-                  { label: "Flat" },
+                  { label: "Room / Flat" },
                   { label: "Primary resident" },
                   { label: "Oldest due" },
                   { label: "Invoices", align: "right", className: "hidden sm:table-cell" },
@@ -173,10 +207,9 @@ export default function DefaultersClient({ defaulters, summary }) {
                 ]}
               >
                 {visible.map((d) => (
-                  <Tr key={d.flatId}>
+                  <Tr key={d.targetId || d.occupancyId || d.flatId || d.id}>
                     <Td className="font-semibold text-slate-900 whitespace-nowrap">
-                      {d.block ? `${d.block}-` : ""}
-                      {d.flatNumber}
+                      {d.unitLabel || (d.block ? `${d.block}-${d.flatNumber}` : `Room ${d.flatNumber}`)}
                     </Td>
                     <Td>{d.residentName ?? <span className="text-slate-400">Vacant</span>}</Td>
                     <Td className="whitespace-nowrap">{formatDate(d.oldestDueDate)}</Td>
@@ -194,6 +227,7 @@ export default function DefaultersClient({ defaulters, summary }) {
                     </Td>
                     <Td align="right">
                       <RowActions>
+                        <WhatsAppDefaulterNoticeButton defaulter={d} size="xs" />
                         <Link href="/admin/billing/invoices?status=OVERDUE">
                           <TextAction>Open invoices</TextAction>
                         </Link>

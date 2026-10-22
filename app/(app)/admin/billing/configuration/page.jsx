@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import FeeConfigClient from "./FeeConfigClient";
 
-export const metadata = { title: "Fee Setup - SocietyDesk" };
+export const metadata = { title: "Fee Setup - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function BillingConfigurationPage() {

@@ -5,12 +5,12 @@ import { forbidden } from "@/lib/errors";
 import { prisma } from "@/lib/db/prisma";
 import { recordPayment } from "@/lib/billing/invoice";
 import { paymentCreateSchema } from "@/lib/validation/schemas";
-export const dynamic = "force-dynamic";
 
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/payments
- * Admin: society-wide. Flat admin / Resident: their own flats' payments.
+ * Admin/Owner: property-wide. Resident: their own payments.
  */
 const GETImpl = handler(async (req) => {
   const user = await getSessionUser(req);
@@ -20,10 +20,15 @@ const GETImpl = handler(async (req) => {
   const pageSize = Math.min(200, Number(sp.get("pageSize") || 25));
 
   const where = { societyId };
-  if (isFlatAdmin(user) || !isStaff(user)) {
-    where.flatId = { in: await getResidentFlatIds(user.id) };
+  if (!isStaff(user)) {
+    const flatIds = await getResidentFlatIds(user.id);
+    where.OR = [
+      { flatId: { in: flatIds } },
+      { occupancy: { userId: user.id } },
+    ];
   }
   if (sp.get("flatId")) where.flatId = sp.get("flatId");
+  if (sp.get("occupancyId")) where.occupancyId = sp.get("occupancyId");
   if (sp.get("invoiceId")) where.invoiceId = sp.get("invoiceId");
 
   const [total, payments, agg] = await Promise.all([
@@ -32,6 +37,13 @@ const GETImpl = handler(async (req) => {
       where,
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
+        occupancy: {
+          include: {
+            user: { select: { id: true, name: true, phone: true, email: true } },
+            unit: true,
+            bed: true,
+          },
+        },
         invoice: { select: { id: true, invoiceNumber: true, billingPeriod: true } },
         receipts: true,
         recordedBy: { select: { name: true } },
@@ -55,9 +67,8 @@ const GETImpl = handler(async (req) => {
 });
 
 /**
- * POST /api/payments  (section 21)
- * Records a payment, updates the invoice balance/status and issues a receipt.
- * Permitted for Society Admins, and Flat Admins for their assigned flat.
+ * POST /api/payments
+ * Records a payment, updates invoice status/balance and issues receipt.
  */
 const POSTImpl = handler(async (req) => {
   const user = await getSessionUser(req);

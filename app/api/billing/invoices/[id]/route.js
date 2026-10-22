@@ -6,8 +6,8 @@ import { audit, AUDIT } from "@/lib/audit";
 import { notFound, badRequest, forbidden } from "@/lib/errors";
 import { outstandingOn } from "@/lib/billing/penalty";
 import { invoiceUpdateSchema } from "@/lib/validation/schemas";
-export const dynamic = "force-dynamic";
 
+export const dynamic = "force-dynamic";
 
 /** GET /api/billing/invoices/:id - invoice with items, payments and receipts. */
 const GETImpl = handler(async (req, { params }) => {
@@ -27,6 +27,13 @@ const GETImpl = handler(async (req, { params }) => {
           },
         },
       },
+      occupancy: {
+        include: {
+          user: true,
+          unit: true,
+          bed: true,
+        },
+      },
       items: true,
       payments: {
         include: { receipts: true, recordedBy: { select: { name: true } } },
@@ -37,9 +44,15 @@ const GETImpl = handler(async (req, { params }) => {
 
   if (!invoice || invoice.societyId !== societyId) throw notFound("Invoice");
 
-  // Residents only ever see invoices for their own flats (section 8.3).
+  // Residents only ever see their own invoices (PG occupancy or flat)
   if (user.role === "RESIDENT") {
-    await requireFlatAccess(user, invoice.flatId, { societyId });
+    if (invoice.occupancyId) {
+      if (invoice.occupancy?.userId !== user.id) {
+        throw forbidden("You cannot access another resident's invoice");
+      }
+    } else if (invoice.flatId) {
+      await requireFlatAccess(user, invoice.flatId, { societyId });
+    }
   }
 
   return ok({ ...invoice, outstanding: outstandingOn(invoice) });
@@ -47,8 +60,7 @@ const GETImpl = handler(async (req, { params }) => {
 
 /**
  * PATCH /api/billing/invoices/:id
- * Admin corrections: extend the due date, apply a discount, cancel.
- * Financial edits are audited with the reason.
+ * Admin corrections: extend due date, apply discount, or cancel.
  */
 const PATCHImpl = handler(async (req, { params }) => {
   const user = await getSessionUser(req);

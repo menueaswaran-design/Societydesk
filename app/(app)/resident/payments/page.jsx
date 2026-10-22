@@ -5,37 +5,74 @@ import { prisma } from "@/lib/db/prisma";
 import { receiptDocumentUrl } from "@/lib/billing/receipt";
 import ResidentPaymentsClient from "./ResidentPaymentsClient";
 
-export const metadata = { title: "My Payments - SocietyDesk" };
+export const metadata = { title: "My Payments - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function ResidentPaymentsPage() {
   const user = await getServerSession();
   requirePageRole(user, "RESIDENT");
 
-  // Only the resident's own flats - never another resident's payments.
-  const flatIds = await getResidentFlatIds(user.id);
+  let flatIds = [];
+  try {
+    flatIds = await getResidentFlatIds(user.id);
+  } catch {
+    flatIds = [];
+  }
+
+  const occupancies = await prisma.occupancy.findMany({
+    where: { userId: user.id, status: { in: ["ACTIVE", "NOTICE", "LEFT"] } },
+    select: { id: true },
+  });
+  const occupancyIds = occupancies.map((o) => o.id);
+
+  if (!flatIds.length && !occupancyIds.length) {
+    return (
+      <ResidentPaymentsClient
+        payments={[]}
+        stats={{ totalCount: 0, totalAmount: 0, paidThisMonth: 0 }}
+        pendingOrders={[]}
+      />
+    );
+  }
+
+  const whereClause = {
+    societyId: user.societyId,
+    OR: [
+      ...(flatIds.length ? [{ flatId: { in: flatIds } }] : []),
+      ...(occupancyIds.length ? [{ occupancyId: { in: occupancyIds } }] : []),
+    ],
+  };
+
   const now = new Date();
 
   const [payments, totals, pendingOrders] = await Promise.all([
     prisma.payment.findMany({
-      where: { flatId: { in: flatIds } },
+      where: whereClause,
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
+        occupancy: {
+          include: {
+            unit: { select: { id: true, unitNumber: true } },
+            bed: { select: { id: true, bedLabel: true } },
+          },
+        },
         invoice: { select: { id: true, invoiceNumber: true, billingPeriod: true } },
         receipts: { select: { id: true, receiptNumber: true, pdfUrl: true } },
       },
       orderBy: { paymentDate: "desc" },
     }),
     prisma.payment.aggregate({
-      where: { flatId: { in: flatIds } },
+      where: whereClause,
       _sum: { amount: true },
       _count: { _all: true },
     }),
-    // Online payments the resident started but never finished. Without this the
-    // abandoned half of the flow would be invisible to both sides.
     prisma.paymentOrder.findMany({
       where: {
-        flatId: { in: flatIds },
+        societyId: user.societyId,
+        OR: [
+          ...(flatIds.length ? [{ flatId: { in: flatIds } }] : []),
+          ...(occupancyIds.length ? [{ occupancyId: { in: occupancyIds } }] : []),
+        ],
         status: { in: ["CREATED", "EXPIRED"] },
         expiresAt: { gt: now },
       },
@@ -59,30 +96,56 @@ export default async function ResidentPaymentsPage() {
     .filter((p) => new Date(p.paymentDate) >= monthStart)
     .reduce((s, p) => s + p.amount, 0);
 
-  const rows = payments.map(({ receipts, ...p }) => ({
-    ...p,
-    paymentDate: p.paymentDate?.toISOString() ?? null,
-    receiptNumber: receipts[0]?.receiptNumber ?? null,
-    // Fall back to the canonical route so the link still resolves for receipts
-    // recorded before pdfUrl was persisted (the route backfills it on view).
-    receiptUrl: receipts[0]
-      ? (receipts[0].pdfUrl ?? receiptDocumentUrl(receipts[0].id))
-      : null,
-  }));
+  const rows = payments.map((p) => {
+    const flatLabel = p.flat
+      ? p.flat.block ? `${p.flat.block}-${p.flat.flatNumber}` : p.flat.flatNumber
+      : p.occupancy
+      ? `Room ${p.occupancy.unit?.unitNumber} · Bed ${p.occupancy.bed?.bedLabel}`
+      : "Assigned";
+
+    const receipt = p.receipts[0] ?? null;
+    return {
+      id: p.id,
+      amount: p.amount,
+      paymentMethod: p.paymentMethod,
+      paymentDate: p.paymentDate?.toISOString() ?? null,
+      notes: p.notes,
+      flatLabel,
+      invoice: p.invoice
+        ? {
+            id: p.invoice.id,
+            invoiceNumber: p.invoice.invoiceNumber,
+            billingPeriod: p.invoice.billingPeriod,
+          }
+        : null,
+      receipt: receipt
+        ? {
+            id: receipt.id,
+            receiptNumber: receipt.receiptNumber,
+            downloadUrl: receipt.pdfUrl ?? receiptDocumentUrl(receipt.id),
+          }
+        : null,
+    };
+  });
 
   return (
     <ResidentPaymentsClient
       payments={rows}
-      pendingOrders={pendingOrders.map((o) => ({
-        ...o,
-        createdAt: o.createdAt?.toISOString() ?? null,
-        expiresAt: o.expiresAt?.toISOString() ?? null,
-      }))}
-      summary={{
-        totalPaid: totals._sum.amount ?? 0,
-        count: totals._count._all,
+      stats={{
+        totalCount: totals._count._all ?? 0,
+        totalAmount: totals._sum.amount ?? 0,
         paidThisMonth,
       }}
+      pendingOrders={pendingOrders.map((o) => ({
+        id: o.id,
+        amount: o.amount,
+        status: o.status,
+        gateway: o.gateway,
+        createdAt: o.createdAt?.toISOString() ?? null,
+        expiresAt: o.expiresAt?.toISOString() ?? null,
+        invoiceId: o.invoiceId,
+        invoiceNumber: o.invoice?.invoiceNumber ?? null,
+      }))}
     />
   );
 }

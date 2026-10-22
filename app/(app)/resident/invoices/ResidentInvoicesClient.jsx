@@ -45,7 +45,13 @@ export default function ResidentInvoicesClient({ invoices }) {
       if (dueFilter === "OVERDUE" && inv.status !== "OVERDUE") return false;
       if (dueFilter === "PAID" && inv.outstanding > 0) return false;
       if (!q) return true;
-      return [inv.invoiceNumber, inv.billingPeriod, inv.flat?.flatNumber, inv.flat?.block]
+      return [
+        inv.invoiceNumber,
+        inv.billingPeriod,
+        inv.flatLabel,
+        inv.flat?.flatNumber,
+        inv.flat?.block,
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
@@ -55,7 +61,6 @@ export default function ResidentInvoicesClient({ invoices }) {
   const paid = invoices.reduce((s, i) => s + i.paidAmount, 0);
   const outstanding = invoices.reduce((s, i) => s + i.outstanding, 0);
   const overdue = invoices.filter((i) => i.outstanding > 0 && i.status === "OVERDUE").length;
-  const flatCount = new Set(invoices.map((i) => i.flatId)).size;
 
   const dueInvoices = useMemo(() => invoices.filter((i) => i.outstanding > 0), [invoices]);
 
@@ -80,12 +85,11 @@ export default function ResidentInvoicesClient({ invoices }) {
       </div>
 
       <PageHeader
-        title="Monthly Maintenance Bills"
+        title="Monthly Rent & Bills"
         description="View bills for each month and pay securely online via Razorpay (UPI, Cards, Net Banking)."
         meta={
           <span className="text-[11px] font-semibold text-slate-500">
-            {invoices.length} {invoices.length === 1 ? "bill" : "bills"} · {flatCount}{" "}
-            {flatCount === 1 ? "flat" : "flats"}
+            {invoices.length} {invoices.length === 1 ? "bill" : "bills"}
           </span>
         }
       />
@@ -96,10 +100,10 @@ export default function ResidentInvoicesClient({ invoices }) {
           <div className="flex items-center justify-between gap-3 border-b border-amber-200/60 pb-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                Action Required · Due Maintenance
+                Action Required · Due Bills
               </p>
               <p className="text-xs text-amber-700">
-                You have {dueInvoices.length} monthly bill{dueInvoices.length === 1 ? "" : "s"} ready for payment
+                You have {dueInvoices.length} bill{dueInvoices.length === 1 ? "" : "s"} ready for payment
               </p>
             </div>
             <span className="tabular text-lg font-bold text-amber-900">
@@ -109,9 +113,12 @@ export default function ResidentInvoicesClient({ invoices }) {
 
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {dueInvoices.map((inv) => {
-              const flatLabel = [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
-                .join("")
-                .replace(/-+$/, "");
+              const flatLabel =
+                inv.flatLabel ||
+                [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
+                  .join("")
+                  .replace(/-+$/, "") ||
+                "Assigned Unit";
               return (
                 <div
                   key={inv.id}
@@ -120,12 +127,12 @@ export default function ResidentInvoicesClient({ invoices }) {
                   <div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-slate-900">
-                        {formatPeriod(inv.billingPeriod)} Maintenance
+                        {formatPeriod(inv.billingPeriod)} Bill
                       </span>
                       <StatusBadge status={inv.status} />
                     </div>
                     <p className="mt-1 text-[11px] text-slate-500">
-                      {inv.invoiceNumber} {flatLabel ? `· Flat ${flatLabel}` : ""}
+                      {inv.invoiceNumber} · {flatLabel}
                     </p>
                     <div className="mt-2.5 flex items-baseline justify-between border-t border-slate-100 pt-2">
                       <span className="text-xs text-slate-500">Due {formatDate(inv.dueDate)}</span>
@@ -174,7 +181,7 @@ export default function ResidentInvoicesClient({ invoices }) {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Search invoice number, flat or period"
+            placeholder="Search invoice number, flat, room or period"
             className="w-full sm:max-w-xs"
           />
           <FilterChips
@@ -191,7 +198,7 @@ export default function ResidentInvoicesClient({ invoices }) {
             title={invoices.length === 0 ? "No invoices yet" : "Nothing matches"}
             description={
               invoices.length === 0
-                ? "Your society admin has not billed your flat yet."
+                ? "Your owner or manager has not billed your account yet."
                 : "Try a different search term or switch back to all invoices."
             }
             action={
@@ -215,9 +222,12 @@ export default function ResidentInvoicesClient({ invoices }) {
             <div className="divide-y divide-slate-100 sm:hidden">
               {visible.map((inv) => {
                 const isOpen = expanded === inv.id;
-                const flatLabel = [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
-                  .join("")
-                  .replace(/-+$/, "");
+                const flatLabel =
+                  inv.flatLabel ||
+                  [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
+                    .join("")
+                    .replace(/-+$/, "") ||
+                  "Assigned Unit";
                 return (
                   <div key={inv.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50">
                     <div className="flex items-start justify-between gap-2">
@@ -226,7 +236,7 @@ export default function ResidentInvoicesClient({ invoices }) {
                           {inv.invoiceNumber}
                         </div>
                         <div className="mt-0.5 text-xs text-slate-500">
-                          {inv.flat?.block ? `${inv.flat.block}-` : ""}{inv.flat?.flatNumber} · {formatPeriod(inv.billingPeriod)}
+                          {flatLabel} · {formatPeriod(inv.billingPeriod)}
                         </div>
                       </div>
                       <StatusBadge status={inv.status} />
@@ -288,7 +298,7 @@ export default function ResidentInvoicesClient({ invoices }) {
                 dense
                 head={[
                   { label: "Invoice" },
-                  { label: "Flat", className: "hidden sm:table-cell" },
+                  { label: "Unit / Room", className: "hidden sm:table-cell" },
                   { label: "Period" },
                   { label: "Due", className: "hidden lg:table-cell" },
                   { label: "Total", align: "right" },
@@ -301,9 +311,12 @@ export default function ResidentInvoicesClient({ invoices }) {
                 {visible.map((inv) => {
                   const isOpen = expanded === inv.id;
                   const Chevron = isOpen ? ChevronDown : ChevronRight;
-                  const flatLabel = [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
-                    .join("")
-                    .replace(/-+$/, "");
+                  const flatLabel =
+                    inv.flatLabel ||
+                    [inv.flat?.block ? `${inv.flat.block}-` : "", inv.flat?.flatNumber]
+                      .join("")
+                      .replace(/-+$/, "") ||
+                    "Assigned Unit";
                   return (
                     <Fragment key={inv.id}>
                       <Tr>
@@ -311,8 +324,7 @@ export default function ResidentInvoicesClient({ invoices }) {
                           {inv.invoiceNumber}
                         </Td>
                         <Td dense className="hidden sm:table-cell whitespace-nowrap">
-                          {inv.flat?.block ? `${inv.flat.block}-` : ""}
-                          {inv.flat?.flatNumber}
+                          {flatLabel}
                         </Td>
                         <Td dense>{formatPeriod(inv.billingPeriod)}</Td>
                         <Td dense className="hidden whitespace-nowrap lg:table-cell">

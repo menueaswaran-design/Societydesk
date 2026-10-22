@@ -1,11 +1,9 @@
 // ---------------------------------------------------------------------------
-// SocietyDesk - Prisma schema
+// SocietyDesk / PG & Hostel Manager - Prisma schema
 //
-// PostgreSQL is used for the application database. Enum-like fields remain
-// String and allowed values are enforced in JS by lib/constants.js + zod.
-//
-// NOTE ON MONEY: amounts are Int rupees (no paise) to stay JSON-serialisable in
-// Server Components. Move to Decimal before shipping real accounting.
+// Multi-tenant database supporting both PG/Hostel (rooms, beds, occupancies, deposits)
+// and Apartment Society (flats, flat_residents, committee governance) workspaces.
+// Enum-like fields remain String; allowed values are enforced in JS by lib/constants.js + zod.
 // ---------------------------------------------------------------------------
 
 generator client {
@@ -19,12 +17,16 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
-// 12.1 Society  (the tenant root)
+// 12.1 Society / Tenant (the root tenant entity)
 // ---------------------------------------------------------------------------
 model Society {
   id        String   @id @default(cuid())
   name      String
   code      String   @unique
+  type      String   @default("PG") // PG | SOCIETY
+  rentCycle String   @default("CALENDAR") // CALENDAR | JOIN_DATE
+  dueDay    Int      @default(5)
+  lateFee   Int      @default(0)
   address   String?
   city      String?
   state     String?
@@ -37,6 +39,12 @@ model Society {
   updatedAt DateTime @updatedAt
 
   users           User[]
+  buildings       Building[]
+  units           Unit[]
+  beds            Bed[]
+  occupancies     Occupancy[]
+  deposits        Deposit[]
+  tenantDocuments TenantDocument[]
   flats           Flat[]
   feeConfigs      FeeConfiguration[]
   invoices        Invoice[]
@@ -48,6 +56,7 @@ model Society {
   auditLogs       AuditLog[]
 
   @@index([status])
+  @@index([type])
 }
 
 // ---------------------------------------------------------------------------
@@ -60,31 +69,175 @@ model User {
   name      String
   email     String   @unique
   phone     String?
-  role      String   @default("RESIDENT") // SUPER_ADMIN | SOCIETY_ADMIN | RESIDENT
+  role      String   @default("RESIDENT") // SUPER_ADMIN | OWNER | MANAGER | RESIDENT | SOCIETY_ADMIN | FLAT_ADMIN
   status    String   @default("ACTIVE") // ACTIVE | INACTIVE
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   society Society? @relation(fields: [societyId], references: [id], onDelete: Cascade)
 
-  flatResidents  FlatResident[]
-  invoices       Invoice[]        @relation("InvoiceCreatedBy")
-  paymentsMade   Payment[]        @relation("PaymentRecordedBy")
+  occupancies            Occupancy[]
+  tenantDocuments        TenantDocument[]
+  flatResidents          FlatResident[]
+  invoices               Invoice[]        @relation("InvoiceCreatedBy")
+  paymentsMade           Payment[]        @relation("PaymentRecordedBy")
   paymentOrdersInitiated PaymentOrder[]
-  complaintsMade Complaint[]      @relation("ComplaintCreatedBy")
-  complaintsAssigned Complaint[]   @relation("ComplaintAssignedTo")
-  complaintComments ComplaintComment[]
-  noticesPosted  Notice[]         @relation("NoticePostedBy")
-  noticeReads    NoticeRead[]
-  auditLogs      AuditLog[]
+  complaintsMade         Complaint[]      @relation("ComplaintCreatedBy")
+  complaintsAssigned     Complaint[]      @relation("ComplaintAssignedTo")
+  complaintComments      ComplaintComment[]
+  noticesPosted          Notice[]         @relation("NoticePostedBy")
+  noticeReads            NoticeRead[]
+  auditLogs              AuditLog[]
 
   @@index([societyId])
   @@index([role])
 }
 
 // ---------------------------------------------------------------------------
-// 12.3 Flat
+// PG / Hostel Hierarchy: Building -> Unit (Room) -> Bed -> Occupancy
 // ---------------------------------------------------------------------------
+
+model Building {
+  id        String   @id @default(cuid())
+  societyId String
+  name      String
+  floors    Int?     @default(1)
+  createdAt DateTime @default(now())
+
+  society Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  units   Unit[]
+
+  @@index([societyId])
+}
+
+model Unit {
+  id               String   @id @default(cuid())
+  societyId        String
+  buildingId       String?
+  unitNumber       String   // e.g. "101", "102", "201"
+  floor            String?  // "1", "2"
+  unitType         String   @default("DOUBLE") // SINGLE | DOUBLE | TRIPLE | DORM | FLAT
+  bedCapacity      Int      @default(2)
+  rentAmount       Int      @default(0) // Default monthly rent
+  ac               Boolean  @default(false)
+  attachedBathroom Boolean  @default(true)
+  status           String   @default("AVAILABLE") // AVAILABLE | FULL | MAINTENANCE
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  society     Society     @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  building    Building?   @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  beds        Bed[]
+  occupancies Occupancy[]
+  complaints  Complaint[]
+
+  @@unique([societyId, unitNumber])
+  @@index([societyId, status])
+}
+
+model Bed {
+  id         String   @id @default(cuid())
+  societyId  String
+  unitId     String
+  bedLabel   String   // "A", "B", "C"
+  rentAmount Int?     // overrides unit rent if set
+  status     String   @default("VACANT") // VACANT | OCCUPIED | RESERVED | MAINTENANCE
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  society     Society     @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  unit        Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  occupancies Occupancy[]
+  complaints  Complaint[]
+
+  @@unique([unitId, bedLabel])
+  @@index([societyId, status])
+}
+
+model Occupancy {
+  id               String    @id @default(cuid())
+  societyId        String
+  userId           String
+  unitId           String
+  bedId            String?
+  joinDate         DateTime  @default(now())
+  leaveDate        DateTime?
+  monthlyRent      Int       @default(0)
+  depositAmount    Int       @default(0)
+  noticePeriodDays Int       @default(30)
+  status           String    @default("ACTIVE") // ACTIVE | NOTICE | LEFT
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  society       Society        @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit          Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  bed           Bed?           @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  deposits      Deposit[]
+  invoices      Invoice[]
+  payments      Payment[]
+  paymentOrders PaymentOrder[]
+
+  @@index([societyId, status])
+  @@index([userId])
+  @@index([unitId])
+}
+
+model TenantDocument {
+  id                 String   @id @default(cuid())
+  societyId          String
+  userId             String
+  docType            String   // AADHAAR | PAN | COLLEGE_ID | OFFICE_ID | OTHER
+  cloudinaryPublicId String?
+  fileUrl            String
+  resourceType       String   @default("image")
+  uploadedBy         String?
+  createdAt          DateTime @default(now())
+
+  society Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([societyId, userId])
+}
+
+model Deposit {
+  id              String    @id @default(cuid())
+  societyId       String
+  occupancyId     String
+  amountReceived  Int       @default(0)
+  receivedDate    DateTime  @default(now())
+  deductionsTotal Int       @default(0)
+  refundAmount    Int       @default(0)
+  refundDate      DateTime?
+  status          String    @default("HELD") // HELD | PARTIALLY_REFUNDED | REFUNDED
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  society    Society            @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  occupancy  Occupancy          @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
+  deductions DepositDeduction[]
+
+  @@index([societyId, status])
+  @@index([occupancyId])
+}
+
+model DepositDeduction {
+  id        String   @id @default(cuid())
+  depositId String
+  reason    String
+  amount    Int
+  createdAt DateTime @default(now())
+
+  deposit Deposit @relation(fields: [depositId], references: [id], onDelete: Cascade)
+
+  @@index([depositId])
+}
+
+// ---------------------------------------------------------------------------
+// Society Model: Flats & Flat Residents
+// ---------------------------------------------------------------------------
+
 model Flat {
   id          String   @id @default(cuid())
   societyId   String
@@ -98,30 +251,27 @@ model Flat {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  society      Society        @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  residents    FlatResident[]
-  invoices     Invoice[]
-  payments     Payment[]
+  society       Society        @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  residents     FlatResident[]
+  invoices      Invoice[]
+  payments      Payment[]
   paymentOrders PaymentOrder[]
-  complaints   Complaint[]
+  complaints    Complaint[]
 
   @@unique([societyId, flatNumber])
   @@index([societyId, status])
 }
 
-// ---------------------------------------------------------------------------
-// 12.4 FlatResident  (relationship table, not owner_id/tenant_id columns)
-// ---------------------------------------------------------------------------
 model FlatResident {
-  id            String   @id @default(cuid())
-  societyId     String
-  flatId        String
-  userId        String
-  residentType  String   @default("OWNER") // OWNER | TENANT
-  isPrimary     Boolean  @default(false)
-  startDate     DateTime @default(now())
-  endDate       DateTime?
-  createdAt     DateTime @default(now())
+  id           String    @id @default(cuid())
+  societyId    String
+  flatId       String
+  userId       String
+  residentType String    @default("OWNER") // OWNER | TENANT
+  isPrimary    Boolean   @default(false)
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  createdAt    DateTime  @default(now())
 
   flat Flat @relation(fields: [flatId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -132,37 +282,37 @@ model FlatResident {
 }
 
 // ---------------------------------------------------------------------------
-// 13.1 FeeConfiguration  (one row per charge rule)
+// Billing: FeeConfiguration, Invoice, InvoiceItem, Payment, PaymentOrder, Receipt
 // ---------------------------------------------------------------------------
+
 model FeeConfiguration {
-  id              String   @id @default(cuid())
-  societyId       String
-  name            String // "Monthly Maintenance"
-  type            String   @default("MAINTENANCE") // MAINTENANCE | PARKING | WATER | SINKING_FUND | SPECIAL_FUND | OTHER
-  calculationType String   @default("FIXED") // FIXED | PER_SQFT | FLAT_TYPE
-  amount          Int      @default(0) // used when calculationType = FIXED
-  rate            Float? // used when calculationType = PER_SQFT
-  flatTypeAmounts String? // JSON string, used when calculationType = FLAT_TYPE
-  frequency       String   @default("MONTHLY") // MONTHLY | QUARTERLY | ANNUAL | ONE_TIME
-  appliesToParkingOnly Boolean @default(false)
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  societyId            String
+  name                 String
+  type                 String   @default("MAINTENANCE") // RENT | MAINTENANCE | PARKING | WATER | FOOD | LAUNDRY | ELECTRICITY | OTHER
+  calculationType      String   @default("FIXED") // FIXED | PER_SQFT | FLAT_TYPE
+  amount               Int      @default(0)
+  rate                 Float?
+  flatTypeAmounts      String?
+  frequency            String   @default("MONTHLY") // MONTHLY | QUARTERLY | ANNUAL | ONE_TIME
+  appliesToParkingOnly Boolean  @default(false)
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   society Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
 
   @@index([societyId, active])
 }
 
-// ---------------------------------------------------------------------------
-// 13.2 Invoice
-// ---------------------------------------------------------------------------
 model Invoice {
   id            String   @id @default(cuid())
   societyId     String
-  flatId        String
+  flatId        String?
+  occupancyId   String?
+  billableType  String   @default("OCCUPANCY") // OCCUPANCY | FLAT
   invoiceNumber String
-  billingPeriod String // "2026-10"
+  billingPeriod String   // "2026-10"
   invoiceDate   DateTime @default(now())
   dueDate       DateTime
   subtotal      Int      @default(0)
@@ -176,27 +326,26 @@ model Invoice {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  society Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  flat    Flat    @relation(fields: [flatId], references: [id], onDelete: Cascade)
-  items   InvoiceItem[]
-  payments Payment[]
+  society       Society        @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  flat          Flat?          @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  occupancy     Occupancy?     @relation(fields: [occupancyId], references: [id], onDelete: SetNull)
+  items         InvoiceItem[]
+  payments      Payment[]
   paymentOrders PaymentOrder[]
-  createdBy User? @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+  createdBy     User?          @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
 
   @@unique([societyId, invoiceNumber])
-  @@unique([societyId, flatId, billingPeriod])
   @@index([societyId, status])
   @@index([societyId, dueDate])
+  @@index([societyId, occupancyId, billingPeriod])
+  @@index([societyId, flatId, billingPeriod])
 }
 
-// ---------------------------------------------------------------------------
-// 13.3 InvoiceItem
-// ---------------------------------------------------------------------------
 model InvoiceItem {
   id        String @id @default(cuid())
   invoiceId String
   name      String
-  type      String // MAINTENANCE | PARKING | WATER | SINKING_FUND | SPECIAL_FUND | OTHER
+  type      String // RENT | ELECTRICITY | WATER | FOOD | LAUNDRY | MAINTENANCE | LATE_FEE | DEPOSIT | OTHER
   amount    Int
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
@@ -204,80 +353,73 @@ model InvoiceItem {
   @@index([invoiceId])
 }
 
-// ---------------------------------------------------------------------------
-// 13.4 Payment
-// ---------------------------------------------------------------------------
 model Payment {
-  id                    String   @id @default(cuid())
-  societyId             String
-  invoiceId             String
-  flatId                String
-  amount                Int
-  paymentMethod         String // CASH | CHEQUE | BANK_TRANSFER | UPI | RAZORPAY | OTHER
-  transactionReference  String?
-  paymentDate           DateTime @default(now())
-  notes                 String?
-  proofUrl              String?
-  proofPublicId         String?
-  recordedById          String?
-  orderId               String? @unique // set when this payment settled a PaymentOrder
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  societyId            String
+  invoiceId            String
+  flatId               String?
+  occupancyId          String?
+  amount               Int
+  paymentMethod        String // CASH | CHEQUE | BANK_TRANSFER | UPI | RAZORPAY | OTHER
+  transactionReference String?
+  paymentDate          DateTime @default(now())
+  notes                String?
+  proofUrl             String?
+  proofPublicId        String?
+  recordedById         String?
+  orderId              String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  society    Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  invoice    Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  flat       Flat    @relation(fields: [flatId], references: [id], onDelete: Cascade)
-  recordedBy User?   @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+  society    Society       @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  invoice    Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  flat       Flat?         @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  occupancy  Occupancy?    @relation(fields: [occupancyId], references: [id], onDelete: SetNull)
+  recordedBy User?         @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
   order      PaymentOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
   receipts   Receipt[]
 
   @@index([societyId, paymentDate])
   @@index([invoiceId])
+  @@index([occupancyId])
 }
 
-// ---------------------------------------------------------------------------
-// 13.4a PaymentOrder
-//
-// One row per online payment attempt. Created BEFORE the resident reaches the
-// gateway so an abandoned checkout is still visible to the admin as "pending",
-// and settled exactly once by the verify step.
-// ---------------------------------------------------------------------------
 model PaymentOrder {
-  id                String    @id @default(cuid())
-  societyId         String
-  invoiceId         String
-  flatId            String
-  initiatedById     String
-  amount            Int // rupees, same unit as Payment.amount
-  currency          String    @default("INR")
-  gateway           String // RAZORPAY | MOCK
-  status            String    @default("CREATED") // CREATED | PAID | FAILED | EXPIRED
-  gatewayOrderId    String?   // "order_xxx" from the gateway
-  gatewayPaymentId  String?   // "pay_xxx" once the gateway confirms capture
-  gatewaySignature  String?
-  gatewayMethod     String?   // card | upi | netbanking | wallet ...
-  failureReason     String?
-  receiptUrl        String?   // set once the order settles and a receipt exists
-  expiresAt         DateTime?
-  paidAt            DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  societyId        String
+  invoiceId        String
+  flatId           String?
+  occupancyId      String?
+  initiatedById    String
+  amount           Int
+  currency         String    @default("INR")
+  gateway          String // RAZORPAY | MOCK
+  status           String    @default("CREATED") // CREATED | PAID | FAILED | EXPIRED
+  gatewayOrderId   String?
+  gatewayPaymentId String?
+  gatewaySignature String?
+  gatewayMethod    String?
+  failureReason    String?
+  receiptUrl       String?
+  expiresAt        DateTime?
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  society     Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  flat        Flat     @relation(fields: [flatId], references: [id], onDelete: Cascade)
-  initiatedBy User     @relation(fields: [initiatedById], references: [id])
+  society     Society    @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  invoice     Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  flat        Flat?      @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  occupancy   Occupancy? @relation(fields: [occupancyId], references: [id], onDelete: SetNull)
+  initiatedBy User       @relation(fields: [initiatedById], references: [id])
   payment     Payment?
 
   @@unique([gateway, gatewayOrderId])
   @@index([societyId, status])
   @@index([invoiceId])
   @@index([flatId])
+  @@index([occupancyId])
 }
 
-// ---------------------------------------------------------------------------
-// 13.5 Receipt
-// ---------------------------------------------------------------------------
 model Receipt {
   id            String   @id @default(cuid())
   societyId     String
@@ -294,57 +436,57 @@ model Receipt {
 }
 
 // ---------------------------------------------------------------------------
-// 14.1 Complaint
+// Complaints & Timeline
 // ---------------------------------------------------------------------------
-model Complaint {
-  id          String    @id @default(cuid())
-  societyId   String
-  flatId      String
-  createdById String
-  category    String // PLUMBING | ELECTRICAL | CLEANLINESS | PARKING | SECURITY | NOISE | WATER | OTHER
-  title       String
-  description String
-  priority    String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
-  status      String    @default("OPEN") // OPEN | ASSIGNED | IN_PROGRESS | RESOLVED | CLOSED | REOPENED
-  assignedToId String?
-  resolutionNotes String?
-  resolvedAt  DateTime?
-  closedAt    DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
 
-  society     Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  flat        Flat     @relation(fields: [flatId], references: [id], onDelete: Cascade)
-  createdBy   User     @relation("ComplaintCreatedBy", fields: [createdById], references: [id])
-  assignedTo  User?    @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
+model Complaint {
+  id              String    @id @default(cuid())
+  societyId       String
+  flatId          String?
+  unitId          String?
+  bedId           String?
+  createdById     String
+  category        String // PLUMBING | ELECTRICAL | CLEANLINESS | PARKING | SECURITY | NOISE | WATER | WIFI | OTHER
+  title           String
+  description     String
+  priority        String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status          String    @default("OPEN") // OPEN | ASSIGNED | IN_PROGRESS | RESOLVED | CLOSED | REOPENED
+  assignedToId    String?
+  resolutionNotes String?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  society     Society               @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  flat        Flat?                 @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  unit        Unit?                 @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  bed         Bed?                  @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  createdBy   User                  @relation("ComplaintCreatedBy", fields: [createdById], references: [id])
+  assignedTo  User?                 @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
   attachments ComplaintAttachment[]
   comments    ComplaintComment[]
 
   @@index([societyId, status])
   @@index([flatId])
+  @@index([unitId])
 }
 
-// ---------------------------------------------------------------------------
-// 14.2 ComplaintAttachment
-// ---------------------------------------------------------------------------
 model ComplaintAttachment {
-  id                String   @id @default(cuid())
-  societyId         String
-  complaintId       String
-  fileUrl           String
-  fileName          String
+  id                 String   @id @default(cuid())
+  societyId          String
+  complaintId        String
+  fileUrl            String
+  fileName           String
   cloudinaryPublicId String?
-  resourceType      String   @default("image")
-  createdAt         DateTime @default(now())
+  resourceType       String   @default("image")
+  createdAt          DateTime @default(now())
 
   complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
 
   @@index([complaintId])
 }
 
-// ---------------------------------------------------------------------------
-// 14.3 ComplaintComment  (timeline entries are comments with a status snapshot)
-// ---------------------------------------------------------------------------
 model ComplaintComment {
   id          String   @id @default(cuid())
   societyId   String
@@ -361,22 +503,23 @@ model ComplaintComment {
 }
 
 // ---------------------------------------------------------------------------
-// 15.1 Notice
+// Notices & Read Receipts
 // ---------------------------------------------------------------------------
+
 model Notice {
-  id            String    @id @default(cuid())
-  societyId     String
-  title         String
-  body          String
-  category      String    @default("GENERAL") // GENERAL | URGENT | MAINTENANCE | EVENT | MEETING
-  attachmentUrl String?
+  id                 String    @id @default(cuid())
+  societyId          String
+  title              String
+  body               String
+  category           String    @default("GENERAL") // GENERAL | URGENT | MAINTENANCE | EVENT | RULES
+  attachmentUrl      String?
   attachmentPublicId String?
-  attachmentName String?
-  postedById    String
-  status        String    @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
-  publishedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  attachmentName     String?
+  postedById         String
+  status             String    @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  publishedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   society  Society      @relation(fields: [societyId], references: [id], onDelete: Cascade)
   postedBy User         @relation("NoticePostedBy", fields: [postedById], references: [id])
@@ -385,9 +528,6 @@ model Notice {
   @@index([societyId, status])
 }
 
-// ---------------------------------------------------------------------------
-// 15.2 NoticeRead
-// ---------------------------------------------------------------------------
 model NoticeRead {
   id        String   @id @default(cuid())
   societyId String
@@ -403,13 +543,14 @@ model NoticeRead {
 }
 
 // ---------------------------------------------------------------------------
-// 16. AuditLog
+// Audit Log
 // ---------------------------------------------------------------------------
+
 model AuditLog {
   id         String   @id @default(cuid())
   societyId  String?
   userId     String?
-  action     String // INVOICE_CREATED | PAYMENT_RECORDED | ...
+  action     String
   entityType String
   entityId   String
   oldValue   String?
@@ -422,4 +563,6 @@ model AuditLog {
 
   @@index([societyId, createdAt])
   @@index([entityType, entityId])
+}
+
 }

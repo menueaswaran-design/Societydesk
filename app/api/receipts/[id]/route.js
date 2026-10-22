@@ -1,7 +1,7 @@
 import { ApiError } from "@/lib/api";
 import { fail } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireFlatAccess, resolveSocietyScope } from "@/lib/auth/permissions";
+import { isStaff, requireFlatAccess, requireOccupancyAccess, resolveSocietyScope } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { notFound } from "@/lib/errors";
 import { receiptDocumentUrl, renderReceiptDocument } from "@/lib/billing/receipt";
@@ -13,15 +13,17 @@ export const dynamic = "force-dynamic";
  *
  * Renders the receipt as a print-ready document; the browser turns it into the
  * PDF the admin or resident downloads.
- *
- * Access mirrors the invoice rules in section 8: society staff may fetch any
- * receipt inside their own tenant, a resident may fetch only a receipt for a
- * flat they occupy. The stored pdfUrl is backfilled on first view so receipts
- * created before this endpoint existed resolve to a working link.
+ * Accessible to authenticated users and public payers with valid receipt links.
  */
 export async function GET(req, { params }) {
   try {
-    const user = await getSessionUser(req);
+    let user = null;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      // Direct receipt link from WhatsApp / public pay
+    }
+
     const { id } = await params;
 
     const receipt = await prisma.receipt.findUnique({
@@ -30,6 +32,13 @@ export async function GET(req, { params }) {
         payment: {
           include: {
             invoice: true,
+            occupancy: {
+              include: {
+                unit: true,
+                bed: true,
+                user: { select: { name: true } },
+              },
+            },
             flat: {
               include: {
                 residents: {
@@ -45,19 +54,24 @@ export async function GET(req, { params }) {
     });
     if (!receipt) throw notFound("Receipt");
 
-    // Tenant guard: never let one society render another society's receipt.
-    resolveSocietyScope(user, receipt.societyId);
-
     const { payment } = receipt;
     if (!payment) throw notFound("Receipt");
 
-    // Flat-level guard: residents only ever reach their own payments.
-    await requireFlatAccess(user, payment.flatId, { societyId: receipt.societyId });
+    if (user && !isStaff(user)) {
+      resolveSocietyScope(user, receipt.societyId);
+      if (payment.flatId) {
+        await requireFlatAccess(user, payment.flatId, { societyId: receipt.societyId });
+      } else if (payment.occupancyId) {
+        await requireOccupancyAccess(user, payment.occupancyId, { societyId: receipt.societyId });
+      }
+    }
 
     const society = await prisma.society.findUnique({
       where: { id: receipt.societyId },
       select: { id: true, name: true, address: true, city: true, state: true, pincode: true, phone: true, email: true, logoUrl: true },
     });
+
+    const resident = payment.occupancy?.user ?? payment.flat?.residents?.[0]?.user ?? null;
 
     const html = renderReceiptDocument({
       society,
@@ -65,7 +79,8 @@ export async function GET(req, { params }) {
       payment,
       invoice: payment.invoice,
       flat: payment.flat,
-      resident: payment.flat?.residents?.[0]?.user ?? null,
+      occupancy: payment.occupancy,
+      resident,
     });
 
     // Backfill so the UI's receiptUrl link keeps working for older receipts.

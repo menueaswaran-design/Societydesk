@@ -121,7 +121,7 @@ export default function CollectPaymentButton({
               <p className="flex items-start gap-1.5">
                 <ShieldCheck className="mt-0.5 size-3 shrink-0 text-emerald-500" />
                 <CreditCard className="mt-0.5 size-3 shrink-0" />
-                SocietyDesk never sees or stores card or UPI credentials.
+                Bedy never sees or stores card or UPI credentials.
               </p>
             </div>
           </div>

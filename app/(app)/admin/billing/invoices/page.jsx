@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { outstandingOn } from "@/lib/billing/penalty";
 import InvoicesClient from "./InvoicesClient";
 
-export const metadata = { title: "Invoices - SocietyDesk" };
+export const metadata = { title: "Invoices - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminInvoicesPage({ searchParams }) {
@@ -23,7 +23,27 @@ export default async function AdminInvoicesPage({ searchParams }) {
     prisma.invoice.findMany({
       where,
       include: {
-        flat: { select: { id: true, flatNumber: true, block: true } },
+        society: { select: { id: true, name: true, phone: true } },
+        flat: {
+          select: {
+            id: true,
+            flatNumber: true,
+            block: true,
+            residents: {
+              where: { endDate: null },
+              include: { user: { select: { name: true, phone: true } } },
+              orderBy: { isPrimary: "desc" },
+              take: 1,
+            },
+          },
+        },
+        occupancy: {
+          include: {
+            unit: { select: { unitNumber: true } },
+            bed: { select: { bedLabel: true } },
+            user: { select: { id: true, name: true, phone: true } },
+          },
+        },
         items: true,
         payments: { include: { receipts: true }, orderBy: { paymentDate: "desc" } },
       },
@@ -39,16 +59,38 @@ export default async function AdminInvoicesPage({ searchParams }) {
   const billed = summary._sum.totalAmount ?? 0;
   const collected = summary._sum.paidAmount ?? 0;
 
-  const withOutstanding = invoices.map((inv) => ({
-    ...inv,
-    outstanding: outstandingOn(inv),
-    dueDate: inv.dueDate?.toISOString() ?? null,
-    invoiceDate: inv.invoiceDate?.toISOString() ?? null,
-    payments: inv.payments.map((p) => ({
-      ...p,
-      paymentDate: p.paymentDate?.toISOString() ?? null,
-    })),
-  }));
+  const withOutstanding = invoices.map((inv) => {
+    const residentName =
+      inv.occupancy?.user?.name ||
+      inv.flat?.residents?.[0]?.user?.name ||
+      null;
+    const residentPhone =
+      inv.occupancy?.user?.phone ||
+      inv.flat?.residents?.[0]?.user?.phone ||
+      null;
+    const roomLabel = inv.occupancy
+      ? `Room ${inv.occupancy.unit?.unitNumber || "-"}${
+          inv.occupancy.bed ? ` (${inv.occupancy.bed.bedLabel})` : ""
+        }`
+      : inv.flat?.block
+      ? `${inv.flat.block}-${inv.flat.flatNumber}`
+      : inv.flat?.flatNumber || "Unit";
+
+    return {
+      ...inv,
+      residentName,
+      residentPhone,
+      unitLabel: roomLabel,
+      societyName: inv.society?.name || user.society?.name || "Bedy",
+      outstanding: outstandingOn(inv),
+      dueDate: inv.dueDate?.toISOString() ?? null,
+      invoiceDate: inv.invoiceDate?.toISOString() ?? null,
+      payments: inv.payments.map((p) => ({
+        ...p,
+        paymentDate: p.paymentDate?.toISOString() ?? null,
+      })),
+    };
+  });
 
   return (
     <InvoicesClient

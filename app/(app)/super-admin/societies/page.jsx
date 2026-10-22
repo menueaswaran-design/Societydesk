@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import SocietiesClient from "./SocietiesClient";
 
-export const metadata = { title: "Societies - SocietyDesk" };
+export const metadata = { title: "Societies - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function SuperAdminSocietiesPage() {

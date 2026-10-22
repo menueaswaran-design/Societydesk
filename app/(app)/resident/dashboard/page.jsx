@@ -11,7 +11,20 @@ import Button from "@/components/ui/Button";
 import PayCheckoutButton from "@/components/billing/PayCheckoutButton";
 import Welcome from "@/components/dashboard/Welcome";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { Wallet, AlertTriangle, Megaphone, CreditCard, FileText, Home, CheckCircle2, ArrowUpRight, Receipt } from "lucide-react";
+import {
+  Wallet,
+  AlertTriangle,
+  Megaphone,
+  CreditCard,
+  FileText,
+  Home,
+  CheckCircle2,
+  ArrowUpRight,
+  Receipt,
+  BedSingle,
+  ShieldCheck,
+  DoorOpen,
+} from "lucide-react";
 
 export const metadata = { title: "My Dashboard" };
 export const dynamic = "force-dynamic";
@@ -23,31 +36,61 @@ function greeting() {
   return "Good evening";
 }
 
+function ViewAll({ href }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-700 transition-colors hover:text-brand-800"
+    >
+      View all
+      <ArrowUpRight className="size-4" />
+    </Link>
+  );
+}
+
 export default async function ResidentDashboardPage() {
   const user = await getServerSession();
   requirePageRole(user, "RESIDENT");
 
   const data = await getResidentDashboard(user);
-  const flatById = new Map(data.flats.map((f) => [f.id, f]));
+
+  const flatById = new Map((data.flats || []).map((f) => [f.id, f]));
   const labelFor = (flat, fallback) => {
     const f = flat ? flatById.get(flat) : null;
     if (!f) return fallback ?? "";
     return f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber;
   };
-  const flatLabels = data.flats.map((f) => (f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber));
+
+  const primaryOccupancy = data.primaryOccupancy;
+  const isPgResident = !!primaryOccupancy;
+
+  let unitLabel = "";
+  if (isPgResident) {
+    unitLabel = `Room ${primaryOccupancy.unit?.unitNumber} · Bed ${primaryOccupancy.bed?.bedLabel}`;
+    if (primaryOccupancy.unit?.building?.name) {
+      unitLabel = `${primaryOccupancy.unit.building.name} - ${unitLabel}`;
+    }
+  }
+
+  const flatLabels = (data.flats || []).map((f) => (f.block ? `${f.block}-${f.flatNumber}` : f.flatNumber));
   const firstName = user.name.split(" ")[0];
-  const dueFlatLabel = data.currentDue
-    ? labelFor(data.currentDue.flatId, data.currentDue.flat?.flatNumber)
-    : "";
 
   const due = data.currentDue;
+  const dueLabel = due?.occupancy
+    ? `Room ${due.occupancy.unit?.unitNumber} · Bed ${due.occupancy.bed?.bedLabel}`
+    : due?.flatId
+    ? labelFor(due.flatId, due.flat?.flatNumber)
+    : unitLabel || "";
+
   const paidPct =
     due && due.totalAmount > 0 ? Math.round((due.paidAmount / due.totalAmount) * 100) : 100;
+
+  const hasLinkedUnit = (data.flats && data.flats.length > 0) || (data.occupancies && data.occupancies.length > 0);
 
   const quickActions = [
     {
       href: "/resident/invoices",
-      title: "Pay maintenance",
+      title: isPgResident ? "Pay rent & bills" : "Pay maintenance",
       caption: due ? `${formatMoney(due.outstanding)} payable` : "All dues are cleared",
       icon: Wallet,
       tone: due ? (due.isOverdue ? "red" : "amber") : "green",
@@ -57,11 +100,11 @@ export default async function ResidentDashboardPage() {
       href: "/resident/complaints",
       title: "Raise a complaint",
       caption:
-        data.activeComplaints.length > 0
-          ? `${data.activeComplaints.length} active in your flat`
+        data.activeComplaints?.length > 0
+          ? `${data.activeComplaints.length} active tickets`
           : "Something needs fixing?",
       icon: AlertTriangle,
-      tone: data.activeComplaints.length > 0 ? "red" : "brand",
+      tone: data.activeComplaints?.length > 0 ? "red" : "brand",
     },
     {
       href: "/resident/notices",
@@ -84,11 +127,13 @@ export default async function ResidentDashboardPage() {
   return (
     <div className="stack">
       <Welcome
-        eyebrow={flatLabels.join(", ") || "Your home"}
+        eyebrow={unitLabel || flatLabels.join(", ") || "Your home"}
         title={`${greeting()}, ${firstName}`}
         description={
-          data.flats.length
-            ? "Everything you need for your home, in one place."
+          hasLinkedUnit
+            ? isPgResident
+              ? "Everything you need for your PG stay in one place."
+              : "Everything you need for your home in one place."
             : "Your resident portal"
         }
         badge={
@@ -102,7 +147,7 @@ export default async function ResidentDashboardPage() {
               invoiceId={due.id}
               invoiceNumber={due.invoiceNumber}
               amount={due.outstanding}
-              flatLabel={dueFlatLabel}
+              flatLabel={dueLabel}
               size="lg"
               label="Pay now"
             />
@@ -114,12 +159,66 @@ export default async function ResidentDashboardPage() {
         }
       />
 
-      {!data.flats.length ? (
+      {!hasLinkedUnit ? (
         <Card>
-          <EmptyState icon={Home} title="No flat is linked to your account" description={data.message} />
+          <EmptyState
+            icon={Home}
+            title="No room or flat is linked to your account"
+            description={data.message || "Contact your PG owner or admin to link your accommodation."}
+          />
         </Card>
       ) : (
         <>
+          {/* PG Stay & Deposit Summary Card */}
+          {isPgResident && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex items-center gap-3">
+                <div className="p-2.5 bg-brand-50 text-brand-600 rounded-xl">
+                  <BedSingle className="size-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Assigned Room</p>
+                  <p className="text-base font-bold text-slate-900 mt-0.5">
+                    Room {primaryOccupancy.unit?.unitNumber} · Bed {primaryOccupancy.bed?.bedLabel}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {primaryOccupancy.unit?.ac ? "AC" : "Non-AC"} · {primaryOccupancy.unit?.unitType || "Sharing"}
+                  </p>
+                </div>
+              </Card>
+
+              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex items-center gap-3">
+                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                  <ShieldCheck className="size-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Security Deposit</p>
+                  <p className="text-base font-bold text-slate-900 mt-0.5">
+                    {data.depositStatus ? formatMoney(data.depositStatus.amount) : "Recorded"}
+                  </p>
+                  <p className="text-xs text-emerald-600 font-medium">
+                    Status: {data.depositStatus?.status || "HELD"} (Refundable at move-out)
+                  </p>
+                </div>
+              </Card>
+
+              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <Wallet className="size-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Monthly Rent</p>
+                  <p className="text-base font-bold text-slate-900 mt-0.5">
+                    {formatMoney(primaryOccupancy.monthlyRent)}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Joined on {formatDate(primaryOccupancy.joinDate)}
+                  </p>
+                </div>
+              </Card>
+            </div>
+          )}
+
           {due ? (
             <Card className="p-6 sm:p-8">
               <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[auto_1fr_auto]">
@@ -133,12 +232,12 @@ export default async function ResidentDashboardPage() {
                 />
 
                 <div className="min-w-0">
-                  <p className="label-xs">Your maintenance</p>
+                  <p className="label-xs">{isPgResident ? "Your rent bill" : "Your maintenance"}</p>
                   <p className="mt-1 text-xl font-semibold text-slate-900">
                     Invoice {due.invoiceNumber}
                   </p>
                   <p className="mt-0.5 text-[13px] text-slate-500">
-                    {formatPeriod(due.billingPeriod)} · {dueFlatLabel} · Due {formatDate(due.dueDate)}
+                    {formatPeriod(due.billingPeriod)} · {dueLabel} · Due {formatDate(due.dueDate)}
                   </p>
                   <div className="mt-4 max-w-md space-y-2 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-900/5">
                     <StatLine label="Billed" value={formatMoney(due.totalAmount)} tone="muted" />
@@ -157,7 +256,7 @@ export default async function ResidentDashboardPage() {
                     invoiceId={due.id}
                     invoiceNumber={due.invoiceNumber}
                     amount={due.outstanding}
-                    flatLabel={dueFlatLabel}
+                    flatLabel={dueLabel}
                     size="lg"
                     label="Pay now"
                   />
@@ -179,8 +278,9 @@ export default async function ResidentDashboardPage() {
               <div className="min-w-0 flex-1">
                 <p className="text-xl font-semibold text-slate-900">You are all settled</p>
                 <p className="mt-1 text-[15px] text-slate-500">
-                  No pending maintenance for your home right now. New invoices will show up here
-                  automatically.
+                  {isPgResident
+                    ? "No pending rent or dues for your room right now. New bills will appear here automatically."
+                    : "No pending maintenance for your home right now. New invoices will appear here automatically."}
                 </p>
               </div>
               <Button as="a" href="/resident/invoices" variant="secondary">
@@ -238,7 +338,7 @@ export default async function ResidentDashboardPage() {
                 action={<ViewAll href="/resident/payments" />}
               />
               {data.recentPayments.length === 0 ? (
-                <EmptyState icon={CreditCard} title="No payments recorded yet" compact />
+                <EmptyState icon={Receipt} title="No payments recorded yet" compact />
               ) : (
                 <ul className="divide-y divide-slate-100">
                   {data.recentPayments.map((p) => (
@@ -248,64 +348,26 @@ export default async function ResidentDashboardPage() {
                     >
                       <div className="min-w-0">
                         <p className="truncate text-[15px] font-semibold text-slate-900">
-                          {formatPeriod(p.invoice?.billingPeriod)}
+                          {p.receipts?.[0]?.receiptNumber || p.invoice?.invoiceNumber || "Payment"}
                         </p>
                         <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                          {p.receipts?.[0]?.receiptNumber ?? p.invoice?.invoiceNumber} ·{" "}
-                          {formatDate(p.paymentDate)}
+                          {formatDate(p.paymentDate)} · {p.invoice?.billingPeriod ? formatPeriod(p.invoice.billingPeriod) : "Direct"}
                         </p>
                       </div>
-                      <p className="tabular shrink-0 text-[15px] font-semibold text-emerald-600">
-                        {formatMoney(p.amount)}
-                      </p>
+                      <div className="text-right">
+                        <p className="tabular text-sm font-bold text-emerald-600">
+                          {formatMoney(p.amount)}
+                        </p>
+                        <p className="text-[11px] text-slate-400 capitalize">{p.paymentMethod?.toLowerCase()}</p>
+                      </div>
                     </li>
                   ))}
                 </ul>
               )}
             </Card>
           </div>
-
-          {data.activeComplaints.length > 0 ? (
-            <Card>
-              <CardHeader
-                title="Your active complaints"
-                subtitle="Not yet closed"
-                icon={AlertTriangle}
-                action={<ViewAll href="/resident/complaints" />}
-              />
-              <ul className="divide-y divide-slate-100">
-                {data.activeComplaints.map((c) => (
-                  <li
-                    key={c.id}
-                    className="flex items-start justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-[15px] font-semibold text-slate-900">{c.title}</p>
-                      <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                        {titleCase(c.category)} · {formatDate(c.createdAt)}
-                        {c.assignedTo?.name ? ` · ${c.assignedTo.name}` : ""}
-                      </p>
-                    </div>
-                    <StatusBadge status={c.status} />
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          ) : null}
         </>
       )}
     </div>
-  );
-}
-
-function ViewAll({ href }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-brand-700 transition-colors hover:bg-brand-50"
-    >
-      View all
-      <ArrowUpRight className="size-4" />
-    </Link>
   );
 }

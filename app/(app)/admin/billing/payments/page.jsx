@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { PAYMENT_METHOD } from "@/lib/constants";
 import PaymentsClient from "./PaymentsClient";
 
-export const metadata = { title: "Payments - SocietyDesk" };
+export const metadata = { title: "Payments - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentsPage() {

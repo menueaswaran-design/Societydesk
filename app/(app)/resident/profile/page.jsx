@@ -4,7 +4,7 @@ import { getResidentFlatIds } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import ProfileClient from "./ProfileClient";
 
-export const metadata = { title: "My Profile - SocietyDesk" };
+export const metadata = { title: "My Profile - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function ResidentProfilePage() {

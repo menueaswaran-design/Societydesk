@@ -1,15 +1,21 @@
 import { getServerSession } from "@/lib/auth/server";
-import { requirePageRole } from "@/lib/auth/guard";
+import { requirePageRole, ADMIN_ROLES } from "@/lib/auth/guard";
 import { getResidentFlatIds, isFlatAdmin } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import ResidentsClient from "./ResidentsClient";
 
-export const metadata = { title: "Residents - SocietyDesk" };
+export const metadata = { title: "Residents & Check-in" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminResidentsPage() {
   const user = await getServerSession();
-  requirePageRole(user, ["SOCIETY_ADMIN", "FLAT_ADMIN"]);
+  requirePageRole(user, ADMIN_ROLES);
+
+  const society = await prisma.society.findUnique({
+    where: { id: user.societyId },
+    select: { id: true, name: true, type: true },
+  });
+  const isPg = society?.type !== "SOCIETY"; // Default to PG!
 
   const flatAdmin = isFlatAdmin(user);
   const managedFlatIds = flatAdmin ? await getResidentFlatIds(user.id) : null;
@@ -24,13 +30,44 @@ export default async function AdminResidentsPage() {
   const flatWhere = { societyId: user.societyId };
   if (flatAdmin) flatWhere.id = { in: managedFlatIds };
 
-  const [residents, flats, totalSocietyFlats] = await Promise.all([
+  const [occupancies, units, residents, flats, totalSocietyFlats] = await Promise.all([
+    prisma.occupancy.findMany({
+      where: { societyId: user.societyId },
+      include: {
+        user: true,
+        unit: { include: { building: true } },
+        bed: true,
+        deposits: { where: { status: "HELD" }, take: 1 },
+        invoices: {
+          where: { status: { in: ["PENDING", "OVERDUE", "PARTIALLY_PAID"] } },
+          orderBy: { dueDate: "asc" },
+          take: 1,
+        },
+      },
+      orderBy: [{ status: "asc" }, { joinDate: "desc" }],
+    }),
+    prisma.unit.findMany({
+      where: { societyId: user.societyId },
+      include: {
+        beds: {
+          include: {
+            occupancies: { where: { status: { in: ["ACTIVE", "NOTICE"] } } },
+          },
+          orderBy: { bedLabel: "asc" },
+        },
+      },
+      orderBy: [{ floor: "asc" }, { unitNumber: "asc" }],
+    }),
     prisma.user.findMany({
       where: residentWhere,
       include: {
         flatResidents: {
           where: { endDate: null },
           include: { flat: { select: { id: true, flatNumber: true, block: true } } },
+        },
+        occupancies: {
+          where: { status: { in: ["ACTIVE", "NOTICE"] } },
+          include: { unit: true, bed: true },
         },
       },
       orderBy: { name: "asc" },
@@ -45,10 +82,14 @@ export default async function AdminResidentsPage() {
 
   return (
     <ResidentsClient
+      isPg={isPg}
+      societyName={society?.name || "Bedy PG"}
       userRole={user.role}
-      totalSocietyFlats={totalSocietyFlats}
+      occupancies={occupancies}
+      units={units}
       residents={residents}
       flats={flats}
+      totalSocietyFlats={totalSocietyFlats}
     />
   );
 }

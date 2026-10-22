@@ -11,12 +11,12 @@ const inter = Inter({
 
 export const metadata = {
   title: {
-    default: "SocietyDesk",
-    template: "%s · SocietyDesk",
+    default: "Bedy — Smart PG, Hostel & Rental Living Management",
+    template: "%s · Bedy",
   },
   description:
-    "Property management, billing, and apartment society administration system.",
-  applicationName: "SocietyDesk",
+    "Bedy is the modern operating system for PG, hostel, co-living and rental living managers. Live occupancy, automated rent billing, 1-click WhatsApp reminders with instant UPI, and security deposit settlements.",
+  applicationName: "Bedy",
   formatDetection: { telephone: false },
 };
 

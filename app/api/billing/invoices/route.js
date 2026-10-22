@@ -4,18 +4,18 @@ import { resolveSocietyScope, getResidentFlatIds, isStaff } from "@/lib/auth/per
 import { prisma } from "@/lib/db/prisma";
 import { outstandingOn } from "@/lib/billing/penalty";
 import { invoiceListSchema } from "@/lib/validation/schemas";
-export const dynamic = "force-dynamic";
 
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/billing/invoices
- * Admin: society-wide with filters. Resident: only their own flats.
- * Query: ?status=&period=&flatId=&page=&pageSize=
+ * Admin: property/society-wide with filters. Resident: only their own invoices.
+ * Query: ?status=&period=&flatId=&occupancyId=&page=&pageSize=
  */
-const GETImpl = handler(async (req) => {
+export const GET = handler(async (req) => {
   const user = await getSessionUser(req);
   const sp = req.nextUrl.searchParams;
-  const { page, pageSize, status, period, flatId } = invoiceListSchema.parse(
+  const { page, pageSize, status, period, flatId, occupancyId } = invoiceListSchema.parse(
     Object.fromEntries(sp)
   );
 
@@ -24,13 +24,15 @@ const GETImpl = handler(async (req) => {
   const where = { societyId };
   if (status) where.status = status;
   if (period) where.billingPeriod = period;
+  if (occupancyId) where.occupancyId = occupancyId;
+  if (flatId) where.flatId = flatId;
+
   if (!isStaff(user)) {
     const flatIds = await getResidentFlatIds(user.id);
-    if (flatId) {
-      where.flatId = flatIds.includes(flatId) ? flatId : { in: [] };
-    } else {
-      where.flatId = { in: flatIds };
-    }
+    where.OR = [
+      { flatId: { in: flatIds } },
+      { occupancy: { userId: user.id } },
+    ];
   }
 
   const [total, invoices, agg] = await Promise.all([
@@ -39,6 +41,13 @@ const GETImpl = handler(async (req) => {
       where,
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
+        occupancy: {
+          include: {
+            user: { select: { id: true, name: true, phone: true, email: true } },
+            unit: true,
+            bed: true,
+          },
+        },
         items: true,
       },
       orderBy: [{ billingPeriod: "desc" }, { invoiceNumber: "desc" }],
@@ -73,7 +82,3 @@ const GETImpl = handler(async (req) => {
     }
   );
 });
-
-export async function GET(request, context) {
-  return GETImpl(request, context);
-}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getServerSession } from "@/lib/auth/server";
-import { requirePageRole } from "@/lib/auth/guard";
+import { requirePageRole, ADMIN_ROLES } from "@/lib/auth/guard";
 import { getAdminDashboard } from "@/lib/queries/dashboard";
 import { formatMoney, formatDate, formatPeriod, titleCase } from "@/lib/format";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -25,6 +25,9 @@ import {
   Users,
   ArrowUpRight,
   TrendingUp,
+  BedSingle,
+  DoorOpen,
+  ArrowRight,
 } from "lucide-react";
 
 export const metadata = { title: "Dashboard" };
@@ -32,10 +35,11 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   const user = await getServerSession();
-  requirePageRole(user, "SOCIETY_ADMIN");
+  requirePageRole(user, ADMIN_ROLES);
 
   const data = await getAdminDashboard(user.societyId);
   const { cards, collection } = data;
+  const isPg = data.workspaceType === "PG";
 
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
@@ -51,62 +55,150 @@ export default async function AdminDashboardPage() {
     </span>
   );
 
-  const quickActions = [
-    {
-      href: "/admin/billing/payments",
-      title: "Record payment",
-      caption: `${cards.collectedThisMonthCount} received this month`,
-      icon: Wallet,
-      tone: "green",
-    },
-    {
-      href: "/admin/billing/invoices",
-      title: "Raise invoices",
-      caption: `${collection.invoiceCount} billed in total`,
-      icon: FileText,
-      tone: "sky",
-    },
-    {
-      href: "/admin/complaints",
-      title: "Open complaints",
-      caption:
-        cards.urgentComplaints > 0
-          ? `${cards.openComplaints} open · ${cards.urgentComplaints} urgent`
-          : `${cards.openComplaints} open · nothing urgent`,
-      icon: AlertTriangle,
-      tone: cards.urgentComplaints > 0 ? "red" : "amber",
-      badge: cards.openComplaints > 0 ? `${cards.openComplaints}` : undefined,
-    },
-    {
-      href: "/admin/notices",
-      title: "Post a notice",
-      caption: "Tell every resident at once",
-      icon: Megaphone,
-      tone: "violet",
-    },
-  ];
+  const quickActions = isPg
+    ? [
+        {
+          href: "/admin/rooms",
+          title: "Rooms & Beds",
+          caption: `${cards.vacantBeds} beds available now`,
+          icon: BedSingle,
+          tone: "brand",
+        },
+        {
+          href: "/admin/residents",
+          title: "Residents & Check-in",
+          caption: `${cards.activeOccupants} currently staying`,
+          icon: Users,
+          tone: "sky",
+        },
+        {
+          href: "/admin/billing/invoices",
+          title: "Generate Rent Invoices",
+          caption: `${collection.invoiceCount} billed to date`,
+          icon: FileText,
+          tone: "blue",
+        },
+        {
+          href: "/admin/deposits",
+          title: "Security Deposits",
+          caption: `${formatMoney(cards.totalDepositsHeld)} held safely`,
+          icon: ShieldCheck,
+          tone: "green",
+        },
+      ]
+    : [
+        {
+          href: "/admin/billing/payments",
+          title: "Record payment",
+          caption: `${cards.collectedThisMonthCount} received this month`,
+          icon: Wallet,
+          tone: "green",
+        },
+        {
+          href: "/admin/billing/invoices",
+          title: "Raise invoices",
+          caption: `${collection.invoiceCount} billed in total`,
+          icon: FileText,
+          tone: "sky",
+        },
+        {
+          href: "/admin/complaints",
+          title: "Open complaints",
+          caption:
+            cards.urgentComplaints > 0
+              ? `${cards.openComplaints} open · ${cards.urgentComplaints} urgent`
+              : `${cards.openComplaints} open`,
+          icon: AlertTriangle,
+          tone: cards.urgentComplaints > 0 ? "red" : "amber",
+          badge: cards.openComplaints > 0 ? `${cards.openComplaints}` : undefined,
+        },
+        {
+          href: "/admin/notices",
+          title: "Post a notice",
+          caption: "Broadcast to all members",
+          icon: Megaphone,
+          tone: "violet",
+        },
+      ];
 
-  const chips = [
-    { label: "Total flats", value: cards.totalFlats, hint: `${cards.occupiedFlats} occupied · ${cards.vacantFlats} vacant`, icon: Building2 },
-    { label: "Residents", value: cards.totalResidents, hint: "Active resident accounts", icon: Users },
-    { label: "Pending dues", value: formatMoney(cards.pending), hint: "Billed but not yet paid", icon: Clock },
-    { label: "Overdue", value: formatMoney(cards.overdue), hint: `${cards.overdueInvoiceCount} invoices past due`, icon: AlertTriangle },
-  ];
+  const chips = isPg
+    ? [
+        {
+          label: "Rooms & Beds",
+          value: `${cards.totalBeds} beds`,
+          hint: `${cards.occupiedBeds} occupied · ${cards.vacantBeds} vacant`,
+          icon: BedSingle,
+        },
+        {
+          label: "Occupancy Rate",
+          value: `${cards.occupancyRate}%`,
+          hint: `${cards.activeOccupants} active residents`,
+          icon: Users,
+        },
+        {
+          label: "Security Deposits",
+          value: formatMoney(cards.totalDepositsHeld),
+          hint: "Held under management",
+          icon: ShieldCheck,
+        },
+        {
+          label: "Overdue Rent",
+          value: formatMoney(cards.overdue),
+          hint: `${cards.overdueInvoiceCount} invoices past due`,
+          icon: AlertTriangle,
+        },
+      ]
+    : [
+        { label: "Total flats", value: cards.totalFlats, hint: `${cards.occupiedFlats} occupied · ${cards.vacantFlats} vacant`, icon: Building2 },
+        { label: "Residents", value: cards.totalResidents, hint: "Active resident accounts", icon: Users },
+        { label: "Pending dues", value: formatMoney(cards.pending), hint: "Billed but not yet paid", icon: Clock },
+        { label: "Overdue", value: formatMoney(cards.overdue), hint: `${cards.overdueInvoiceCount} invoices past due`, icon: AlertTriangle },
+      ];
 
   return (
     <div className="stack">
       <Welcome
-        eyebrow="Society administration"
+        eyebrow={isPg ? "PG & Hostel Management" : "Society administration"}
         title="Dashboard"
         description={`${today} · ${collection.collectionRate}% of everything billed has been collected.`}
         badge={heroBadge}
         actions={
-          <Button as="a" href="/admin/billing/payments" variant="secondary" size="lg">
-            <Plus />
-            Record payment
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button as="a" href="/admin/residents" variant="secondary" size="lg">
+              <Plus />
+              {isPg ? "Check-in Resident" : "Add Resident"}
+            </Button>
+            <Button as="a" href="/admin/billing/payments" variant="primary" size="lg">
+              <Wallet />
+              Record payment
+            </Button>
+          </div>
         }
       />
+
+      {/* Upcoming Move-outs notice for PG */}
+      {isPg && data.upcomingMoveOuts?.length > 0 ? (
+        <div className="flex items-center justify-between rounded-xl bg-amber-50 p-4 border border-amber-200/80 text-amber-950">
+          <div className="flex items-center gap-3">
+            <DoorOpen className="size-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">
+                {data.upcomingMoveOuts.length} Resident(s) Scheduled for Move-out
+              </p>
+              <p className="text-xs text-amber-800/90 mt-0.5">
+                {data.upcomingMoveOuts.map((o) => `${o.user.name} (Room ${o.unit?.unitNumber || "-"})`).join(", ")}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/residents"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 shrink-0"
+          >
+            Review & Settle Deposit
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+      ) : null}
 
       <Card className="p-5 sm:p-6">
         <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[auto_1fr]">
@@ -119,7 +211,7 @@ export default async function AdminDashboardPage() {
           />
 
           <div className="w-full min-w-0">
-            <p className="label-xs">Collection this month</p>
+            <p className="label-xs">{isPg ? "Rent Collection This Month" : "Collection this month"}</p>
             <div className="mt-2.5 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <p className="text-xs text-slate-500">Billed</p>
@@ -166,7 +258,7 @@ export default async function AdminDashboardPage() {
               <LinkRow
                 href="/admin/billing/defaulters"
                 title="Review defaulters"
-                caption="See which flats are past due"
+                caption={isPg ? "See occupants with pending dues" : "See which flats are past due"}
                 icon={ArrowUpRight}
               />
             </div>
@@ -211,29 +303,40 @@ export default async function AdminDashboardPage() {
             />
           ) : (
             <ul className="divide-y divide-slate-100">
-              {data.recentPayments.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-[15px] font-semibold text-slate-900">
-                      {p.flat?.block ? `${p.flat.block}-` : ""}
-                      {p.flat?.flatNumber}
-                      <span className="ml-2 font-normal text-slate-500">
-                        {formatPeriod(p.invoice?.billingPeriod)}
-                      </span>
+              {data.recentPayments.map((p) => {
+                const targetLabel = p.occupancy
+                  ? `Room ${p.occupancy.unit?.unitNumber || "-"}${p.occupancy.bed ? ` (${p.occupancy.bed.bedLabel})` : ""}`
+                  : `${p.flat?.block ? `${p.flat.block}-` : ""}${p.flat?.flatNumber || "-"}`;
+                const residentName = p.occupancy?.user?.name || null;
+
+                return (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold text-slate-900">
+                        {targetLabel}
+                        {residentName ? (
+                          <span className="ml-1.5 text-xs font-normal text-slate-600">
+                            · {residentName}
+                          </span>
+                        ) : null}
+                        <span className="ml-2 font-normal text-slate-500">
+                          {formatPeriod(p.invoice?.billingPeriod)}
+                        </span>
+                      </p>
+                      <p className="mt-0.5 truncate text-[13px] text-slate-500">
+                        {p.receipts?.[0]?.receiptNumber ?? p.invoice?.invoiceNumber} ·{" "}
+                        {titleCase(p.paymentMethod)} · {formatDate(p.paymentDate)}
+                      </p>
+                    </div>
+                    <p className="tabular shrink-0 text-[15px] font-semibold text-emerald-600">
+                      {formatMoney(p.amount)}
                     </p>
-                    <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                      {p.receipts?.[0]?.receiptNumber ?? p.invoice?.invoiceNumber} ·{" "}
-                      {titleCase(p.paymentMethod)} · {formatDate(p.paymentDate)}
-                    </p>
-                  </div>
-                  <p className="tabular shrink-0 text-[15px] font-semibold text-emerald-600">
-                    {formatMoney(p.amount)}
-                  </p>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>
@@ -254,22 +357,28 @@ export default async function AdminDashboardPage() {
             />
           ) : (
             <ul className="divide-y divide-slate-100">
-              {data.recentComplaints.map((c) => (
-                <li key={c.id} className="px-6 py-4 transition-colors hover:bg-slate-50/70">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-[15px] font-semibold text-slate-900">{c.title}</p>
-                      <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                        {c.flat?.flatNumber} · {titleCase(c.category)} · {c.createdBy?.name}
-                      </p>
+              {data.recentComplaints.map((c) => {
+                const locationLabel = c.unit
+                  ? `Room ${c.unit.unitNumber}${c.bed ? ` (${c.bed.bedLabel})` : ""}`
+                  : c.flat?.flatNumber || "PG";
+
+                return (
+                  <li key={c.id} className="px-6 py-4 transition-colors hover:bg-slate-50/70">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-[15px] font-semibold text-slate-900">{c.title}</p>
+                        <p className="mt-0.5 truncate text-[13px] text-slate-500">
+                          {locationLabel} · {titleCase(c.category)} · {c.createdBy?.name}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <StatusBadge status={c.status} />
+                        <StatusBadge status={c.priority} />
+                      </div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <StatusBadge status={c.status} />
-                      <StatusBadge status={c.priority} />
-                    </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>

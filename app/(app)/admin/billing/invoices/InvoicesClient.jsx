@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Receipt,
   Sparkle,
+  MessageCircle,
 } from "lucide-react";
 import Button, { IconButton } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
@@ -29,6 +30,38 @@ import CollectPaymentButton from "@/components/billing/CollectPaymentButton";
 import { api, fieldErrors } from "@/lib/client/api";
 import { INVOICE_STATUS, PAYMENT_METHOD } from "@/lib/constants";
 import { formatDate, formatMoney, formatPeriod, titleCase } from "@/lib/format";
+import { buildRentReminderMessage, getWhatsAppUrl } from "@/lib/billing/whatsapp";
+
+function WhatsAppReminderButton({ invoice, size = "xs" }) {
+  const handleSend = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const payUrl = `${origin}/pay/${invoice.id}`;
+    const text = buildRentReminderMessage({
+      residentName: invoice.residentName || "Resident",
+      roomLabel: invoice.unitLabel || "Room",
+      period: formatPeriod(invoice.billingPeriod),
+      amount: invoice.outstanding,
+      dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : "the due date",
+      payUrl,
+      pgName: invoice.societyName || "Bedy PG",
+    });
+    const url = getWhatsAppUrl(invoice.residentPhone, text);
+    window.open(url, "_blank");
+  };
+
+  return (
+    <Button
+      variant="secondary"
+      size={size}
+      onClick={handleSend}
+      className="!text-emerald-700 !bg-emerald-50 hover:!bg-emerald-100 !border-emerald-200"
+      title="Send 1-Click WhatsApp Reminder with Instant UPI Pay Link"
+    >
+      <MessageCircle className="size-3 text-emerald-600" />
+      Remind
+    </Button>
+  );
+}
 
 function currentPeriod() {
   const d = new Date();
@@ -51,7 +84,14 @@ export default function InvoicesClient({ invoices, summary, filters }) {
     const q = query.trim().toLowerCase();
     if (!q) return invoices;
     return invoices.filter((i) =>
-      [i.invoiceNumber, i.flat?.flatNumber, i.flat?.block, i.billingPeriod]
+      [
+        i.invoiceNumber,
+        i.flat?.flatNumber,
+        i.flat?.block,
+        i.unitLabel,
+        i.residentName,
+        i.billingPeriod,
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
@@ -137,7 +177,8 @@ export default function InvoicesClient({ invoices, summary, filters }) {
                           {inv.invoiceNumber}
                         </div>
                         <div className="mt-0.5 text-xs text-slate-500">
-                          Flat {inv.flat?.block ? `${inv.flat.block}-` : ""}{inv.flat?.flatNumber} · {formatPeriod(inv.billingPeriod)}
+                          {inv.unitLabel || (inv.flat?.block ? `${inv.flat.block}-${inv.flat.flatNumber}` : inv.flat?.flatNumber)}
+                          {inv.residentName ? ` · ${inv.residentName}` : ""} · {formatPeriod(inv.billingPeriod)}
                         </div>
                       </div>
                       <StatusBadge status={inv.status} />
@@ -175,7 +216,8 @@ export default function InvoicesClient({ invoices, summary, filters }) {
                       </button>
 
                       {inv.outstanding > 0 && inv.status !== "CANCELLED" ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <WhatsAppReminderButton invoice={inv} size="xs" />
                           <CollectPaymentButton
                             invoiceId={inv.id}
                             invoiceNumber={inv.invoiceNumber}
@@ -206,7 +248,7 @@ export default function InvoicesClient({ invoices, summary, filters }) {
                 dense
                 head={[
                   { label: "Invoice" },
-                  { label: "Flat" },
+                  { label: "Flat / Room" },
                   { label: "Period", className: "hidden md:table-cell" },
                   { label: "Due", className: "hidden lg:table-cell" },
                   { label: "Total", align: "right" },
@@ -224,8 +266,14 @@ export default function InvoicesClient({ invoices, summary, filters }) {
                       <Tr>
                         <Td className="font-mono font-semibold text-slate-900 whitespace-nowrap">{inv.invoiceNumber}</Td>
                         <Td className="tabular whitespace-nowrap">
-                          {inv.flat?.block ? `${inv.flat.block}-` : ""}
-                          {inv.flat?.flatNumber}
+                          <span className="font-semibold text-slate-900">
+                            {inv.unitLabel || (inv.flat?.block ? `${inv.flat.block}-${inv.flat.flatNumber}` : inv.flat?.flatNumber)}
+                          </span>
+                          {inv.residentName && (
+                            <span className="block text-[11px] text-slate-500 font-normal">
+                              {inv.residentName}
+                            </span>
+                          )}
                         </Td>
                         <Td className="hidden md:table-cell">{formatPeriod(inv.billingPeriod)}</Td>
                         <Td className="hidden lg:table-cell whitespace-nowrap">{formatDate(inv.dueDate)}</Td>
@@ -251,6 +299,7 @@ export default function InvoicesClient({ invoices, summary, filters }) {
                           <RowActions>
                             {inv.outstanding > 0 && inv.status !== "CANCELLED" ? (
                               <>
+                                <WhatsAppReminderButton invoice={inv} size="xs" />
                                 <CollectPaymentButton
                                   invoiceId={inv.id}
                                   invoiceNumber={inv.invoiceNumber}

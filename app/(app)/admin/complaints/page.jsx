@@ -4,7 +4,7 @@ import { getResidentFlatIds } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import ComplaintsClient from "./ComplaintsClient";
 
-export const metadata = { title: "Complaints - SocietyDesk" };
+export const metadata = { title: "Complaints - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminComplaintsPage({ searchParams }) {

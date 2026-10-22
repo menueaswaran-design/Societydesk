@@ -26,7 +26,16 @@ import {
   Clock,
   Eye,
   Download,
-  Building
+  Building,
+  BedSingle,
+  DoorOpen,
+  MessageCircle,
+  QrCode,
+  Shield,
+  Zap,
+  TrendingUp,
+  FileSpreadsheet,
+  XCircle,
 } from "lucide-react";
 import { api } from "@/lib/client/api";
 import { homeForRole } from "@/lib/routing";
@@ -37,7 +46,7 @@ export default function HomePageClient({ user = null }) {
   const router = useRouter();
   const { t, locale } = useTranslation();
   const [loggingIn, setLoggingIn] = useState(null);
-  const [demoTab, setDemoTab] = useState("billing"); // "billing" | "resident" | "complaints" | "notices"
+  const [demoTab, setDemoTab] = useState("whatsapp"); // "whatsapp" | "beds" | "deposit" | "maintenance"
 
   const quickLogin = async (email, path) => {
     setLoggingIn(email);
@@ -64,12 +73,12 @@ export default function HomePageClient({ user = null }) {
   const isTa = locale === "ta";
 
   return (
-    <div className="min-h-screen bg-slate-50/50 text-slate-900 flex flex-col font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50/60 text-slate-900 flex flex-col font-sans overflow-x-hidden antialiased selection:bg-emerald-500 selection:text-white">
       {/* Top Session Banner if user is already logged in */}
       {user ? (
         <aside
           aria-label="Active session banner"
-          className="bg-slate-900 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold border-b border-slate-800"
+          className="bg-slate-950 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold border-b border-slate-800"
         >
           <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -83,7 +92,7 @@ export default function HomePageClient({ user = null }) {
               href={
                 user.role === "SUPER_ADMIN"
                   ? "/super-admin/dashboard"
-                  : user.role === "SOCIETY_ADMIN"
+                  : user.role === "OWNER" || user.role === "MANAGER" || user.role === "SOCIETY_ADMIN"
                   ? "/admin/dashboard"
                   : user.role === "FLAT_ADMIN"
                   ? "/admin/residents"
@@ -98,33 +107,44 @@ export default function HomePageClient({ user = null }) {
         </aside>
       ) : null}
 
-      {/* Modern Responsive Header */}
+      {/* Modern Clean Header */}
       <header className="border-b border-slate-200/80 bg-white/95 sticky top-0 z-30 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="flex size-8 sm:size-9 items-center justify-center rounded-xl bg-slate-900 text-white text-xs font-bold tracking-tight shadow-2xs">
-              SD
+        <div className="mx-auto max-w-6xl flex h-14 sm:h-16 items-center justify-between px-3.5 sm:px-6">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white text-base font-black tracking-tight shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
+              B
             </span>
             <div className="flex flex-col">
-              <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 leading-tight">
-                SocietyDesk
-              </span>
-              <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium leading-tight hidden xs:block">
-                Housing Society OS
+              <div className="flex items-center gap-1.5">
+                <span className="text-base sm:text-lg font-black tracking-tight text-slate-950 leading-tight">
+                  Bedy
+                </span>
+                <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[9px] font-bold text-emerald-800 uppercase tracking-wide">
+                  PG & Hostel
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium leading-tight hidden xs:block">
+                Smart Operations OS
               </span>
             </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
+            <a href="#live-preview" className="hover:text-slate-950 transition-colors">
+              {isTa ? "நேரடி மாதிரி" : "Live Showcase"}
+            </a>
+            <a href="#why-bedy" className="hover:text-slate-950 transition-colors">
+              {isTa ? "ஏன் Bedy?" : "Why Bedy"}
+            </a>
             <a href="#features" className="hover:text-slate-950 transition-colors">
               {isTa ? "வசதிகள்" : "Features"}
             </a>
             <a href="#demo-portals" className="hover:text-slate-950 transition-colors">
-              {isTa ? "மாதிரி கணக்குகள்" : "Demo Portals"}
+              {isTa ? "மாதிரி கணக்குகள்" : "Demo Logins"}
             </a>
           </nav>
 
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Language Switcher */}
             <div className="scale-90 sm:scale-100 origin-right">
               <LanguageSwitcher />
@@ -135,21 +155,21 @@ export default function HomePageClient({ user = null }) {
                 href={
                   user.role === "SUPER_ADMIN"
                     ? "/super-admin/dashboard"
-                    : user.role === "SOCIETY_ADMIN"
+                    : user.role === "OWNER" || user.role === "MANAGER" || user.role === "SOCIETY_ADMIN"
                     ? "/admin/dashboard"
                     : user.role === "FLAT_ADMIN"
                     ? "/admin/residents"
                     : "/resident/dashboard"
                 }
-                className="inline-flex items-center gap-1 sm:gap-1.5 rounded-xl bg-slate-900 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-white hover:bg-slate-800 transition-colors shadow-2xs"
+                className="inline-flex items-center gap-1 sm:gap-1.5 rounded-xl bg-slate-950 px-3 sm:px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition-colors shadow-2xs"
               >
                 <span>{isTa ? "டாஷ்போர்டு" : "Dashboard"}</span>
-                <ArrowRight className="size-3 sm:size-3.5" />
+                <ArrowRight className="size-3.5" />
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1 sm:gap-1.5 rounded-xl bg-slate-900 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-white hover:bg-slate-800 transition-colors shadow-2xs"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-950 px-3 sm:px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition-colors shadow-2xs"
               >
                 <LogIn className="size-3.5" />
                 <span>{isTa ? "உள்நுழை" : "Sign In"}</span>
@@ -161,53 +181,113 @@ export default function HomePageClient({ user = null }) {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="py-8 sm:py-16 border-b border-slate-200/70 bg-gradient-to-b from-white to-slate-50/70">
+        <section className="py-10 sm:py-16 lg:py-20 border-b border-slate-200/70 bg-gradient-to-b from-white via-white to-slate-50/70">
           <div className="mx-auto max-w-6xl px-3.5 sm:px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-              {/* Left Column: Authentic, clear messaging */}
-              <div className="lg:col-span-6 space-y-4 sm:space-y-5 text-left">
-                <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 border border-slate-200/80 px-3 py-1 text-[11px] sm:text-xs font-semibold text-slate-700">
-                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+              {/* Left Column: Authentic, punchy messaging */}
+              <div className="lg:col-span-6 space-y-4 sm:space-y-6 text-left">
+                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/80 px-3 py-1 text-[11px] sm:text-xs font-bold text-emerald-800">
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>
-                    {isTa ? "குடியிருப்பு & அடுக்குமாடி நிர்வாக மென்பொருள்" : "Purpose-Built for Indian Apartment Societies & RWAs"}
+                    {isTa
+                      ? "பிஜி & விடுதிகளுக்கான நவீன மென்பொருள்"
+                      : "Purpose-Built for PGs, Hostels & Co-Living Spaces"}
                   </span>
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
-                  {isTa
-                    ? "அடுக்குமாடி நிர்வாகம், எளிமையாகவும் நேர்த்தியாகவும்."
-                    : "Apartment operations, clear and stress-free."}
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-950 leading-[1.12]">
+                  {isTa ? (
+                    <>
+                      வாடகை வசூல் தானியங்கி முறையில்.{" "}
+                      <span className="text-emerald-700">கணக்கு நோட்டுகள் தேவையில்லை.</span>
+                    </>
+                  ) : (
+                    <>
+                      Rent Collection on Autopilot.{" "}
+                      <span className="text-emerald-700">Zero Notebook Chasing.</span>
+                    </>
+                  )}
                 </h1>
 
                 <p className="text-xs sm:text-sm lg:text-base text-slate-600 leading-relaxed max-w-xl">
                   {isTa
-                    ? "வாட்ஸ்அப் குழப்பங்கள் மற்றும் கணக்குப் பதிவேடுகளுக்கு முற்றுப்புள்ளி வையுங்கள். தானியங்கி மாதாந்திர பில், யுபிஐ கட்டணம், புகார் கண்காணிப்பு மற்றும் முக்கிய அறிவிப்புகளை ஒரே இடத்தில் நிர்வகியுங்கள்."
-                    : "Replace chaotic WhatsApp messages and manual spreadsheets. Automated monthly maintenance billing, instant 1-click UPI payments with PDF receipts, repair ticket tracking, and digital broadcast notices."}
+                    ? "கணக்கு நோட்டுகள், எக்செல் தாள்கள் மற்றும் வாட்ஸ்அப் குழப்பங்களுக்கு முற்றுப்புள்ளி வையுங்கள். படுக்கை வாரியான ஆக்கிரமிப்பு, 1-கிளிக் வாட்ஸ்அப் யுபிஐ நினைவூட்டல், பாதுகாப்புக் கட்டணக் கணக்கு மற்றும் பராமரிப்புப் புகார்கள் அனைத்தும் ஒரே இடத்தில்."
+                    : "Bedy replaces paper registers, Excel sheets, and awkward rent phone calls. Track bed occupancy live, send 1-click WhatsApp payment reminders with instant UPI links, settle security deposits with itemized deductions, and resolve tenant complaints digitally."}
                 </p>
 
-                {/* 1-Click Public Demo Action Buttons - 200% Mobile Optimized */}
-                <div className="pt-2">
-                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    {isTa ? "நேரடி மாதிரி கணக்குகள் (1-கிளிக்):" : "Try live demo instantly (No password needed):"}
-                  </p>
+                {/* 1-Click Public Demo Action Buttons */}
+                <div className="pt-2 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      {isTa ? "நேரடி மாதிரி கணக்குகள் (1-கிளிக்):" : "Try live demo instantly (No password needed):"}
+                    </p>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      Ready to test
+                    </span>
+                  </div>
 
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full">
-                    {/* Resident Demo Button */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 w-full">
+                    {/* PG Owner Demo Button */}
                     <button
                       type="button"
-                      onClick={() => quickLogin("ravi@greenvalley.local", "/resident/dashboard")}
+                      onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
                       disabled={Boolean(loggingIn)}
-                      className="flex items-center justify-between sm:justify-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white hover:bg-indigo-700 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[44px]"
+                      className="flex items-center justify-between gap-2 rounded-xl bg-slate-950 px-3.5 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
                     >
-                      <div className="flex items-center gap-2">
-                        {loggingIn === "ravi@greenvalley.local" ? (
+                      <div className="flex items-center gap-2.5">
+                        {loggingIn === "owner@srilakshmipg.local" ? (
                           <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          <User className="size-4 shrink-0" />
+                          <Building2 className="size-4 shrink-0 text-emerald-400" />
                         )}
-                        <span>{isTa ? "குடியிருப்பாளர் (Resident)" : "Test as Resident"}</span>
+                        <div className="text-left">
+                          <div className="font-bold">{isTa ? "பிஜி உரிமையாளர்" : "PG Owner Portal"}</div>
+                          <div className="text-[10px] text-slate-400 font-normal">Sri Lakshmi Luxury PG (42 Beds)</div>
+                        </div>
                       </div>
                       <ArrowRight className="size-3.5 opacity-80" />
+                    </button>
+
+                    {/* PG Manager Demo Button */}
+                    <button
+                      type="button"
+                      onClick={() => quickLogin("manager@srilakshmipg.local", "/admin/dashboard")}
+                      disabled={Boolean(loggingIn)}
+                      className="flex items-center justify-between gap-2 rounded-xl bg-emerald-700 px-3.5 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-800 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {loggingIn === "manager@srilakshmipg.local" ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="size-4 shrink-0 text-emerald-200" />
+                        )}
+                        <div className="text-left">
+                          <div className="font-bold">{isTa ? "பிஜி மேலாளர்" : "PG Manager Portal"}</div>
+                          <div className="text-[10px] text-emerald-100 font-normal">Check-in, deposits & rent</div>
+                        </div>
+                      </div>
+                      <ArrowRight className="size-3.5 opacity-80" />
+                    </button>
+
+                    {/* PG Resident Demo Button */}
+                    <button
+                      type="button"
+                      onClick={() => quickLogin("resident@srilakshmipg.local", "/resident/dashboard")}
+                      disabled={Boolean(loggingIn)}
+                      className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {loggingIn === "resident@srilakshmipg.local" ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <User className="size-4 shrink-0 text-indigo-600" />
+                        )}
+                        <div className="text-left">
+                          <div className="font-bold">{isTa ? "குடியிருப்பாளர்" : "Resident / Tenant"}</div>
+                          <div className="text-[10px] text-slate-500 font-normal">Karthik Raja · Room 201</div>
+                        </div>
+                      </div>
+                      <ArrowRight className="size-3.5 text-slate-400" />
                     </button>
 
                     {/* Society Admin Demo Button */}
@@ -215,69 +295,54 @@ export default function HomePageClient({ user = null }) {
                       type="button"
                       onClick={() => quickLogin("admin@greenvalley.local", "/admin/dashboard")}
                       disabled={Boolean(loggingIn)}
-                      className="flex items-center justify-between sm:justify-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[44px]"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         {loggingIn === "admin@greenvalley.local" ? (
                           <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          <Building2 className="size-4 shrink-0" />
+                          <KeyRound className="size-4 text-slate-600 shrink-0" />
                         )}
-                        <span>{isTa ? "நிர்வாகி (Society Admin)" : "Test as Society Admin"}</span>
+                        <div className="text-left">
+                          <div className="font-bold">{isTa ? "அடுக்குமாடி நிர்வாகி" : "Apartment Society"}</div>
+                          <div className="text-[10px] text-slate-500 font-normal">Green Valley (100 Flats)</div>
+                        </div>
                       </div>
-                      <ArrowRight className="size-3.5 opacity-80" />
-                    </button>
-
-                    {/* Flat Admin Demo Button */}
-                    <button
-                      type="button"
-                      onClick={() => quickLogin("priya@greenvalley.local", "/admin/residents")}
-                      disabled={Boolean(loggingIn)}
-                      className="flex items-center justify-between sm:justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[44px]"
-                    >
-                      <div className="flex items-center gap-2">
-                        {loggingIn === "priya@greenvalley.local" ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <KeyRound className="size-4 text-amber-600 shrink-0" />
-                        )}
-                        <span>{isTa ? "வீட்டு நிர்வாகி (Flat Admin)" : "Test as Flat Admin"}</span>
-                      </div>
-                      <ArrowRight className="size-3.5 opacity-60 text-slate-400" />
+                      <ArrowRight className="size-3.5 text-slate-400" />
                     </button>
                   </div>
                 </div>
 
-                {/* Key feature pills */}
-                <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-600 font-medium">
+                {/* Key value checkmarks */}
+                <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-600 font-medium border-t border-slate-100">
                   <span className="flex items-center gap-1.5">
                     <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-                    <span>{isTa ? "தானியங்கி மாதாந்திர பில்லிங்" : "Batch Maintenance Bills"}</span>
+                    <span>{isTa ? "1-கிளிக் வாட்ஸ்அப் வசூல்" : "1-Click WhatsApp Pay"}</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-                    <span>{isTa ? "உடனடி யுபிஐ & பிடிஎஃப் ரசீது" : "UPI QR & Instant Receipts"}</span>
+                    <span>{isTa ? "நேரடி படுக்கை ஆக்கிரமிப்பு" : "Live Bed Matrix"}</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-                    <span>{isTa ? "புகார் & அறிவிப்பு மேஜை" : "Repairs & Circulars Desk"}</span>
+                    <span>{isTa ? "வைப்புத்தொகை & ரசீது" : "Deposit Settlements"}</span>
                   </span>
                 </div>
               </div>
 
-              {/* Right Column: Expanded, Crisp Product Showcase (4 Live Feature Views) */}
-              <div className="lg:col-span-6 w-full lg:max-w-xl mx-auto lg:ml-auto">
-                <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
-                  {/* Clean Top Bar */}
-                  <div className="bg-slate-900 text-white px-3.5 py-2.5 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
+              {/* Right Column: Modern Interactive Live Showcase */}
+              <div id="live-preview" className="lg:col-span-6 w-full lg:max-w-xl mx-auto lg:ml-auto">
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-md shadow-slate-200/50 overflow-hidden">
+                  {/* Top Bar with PG Brand */}
+                  <div className="bg-slate-950 text-white px-4 py-3 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <span className="size-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                      <span className="font-semibold text-xs truncate">Green Valley (GVA)</span>
-                      <span className="text-slate-400 text-[10px] hidden sm:inline">· Live Demo Showcase</span>
+                      <span className="font-bold text-xs truncate">Sri Lakshmi Luxury PG & Coliving</span>
+                      <span className="text-slate-400 text-[10px] hidden sm:inline">· Live Bedy OS</span>
                     </div>
 
-                    <span className="text-[10px] text-slate-400 font-medium shrink-0">
-                      {isTa ? "4 காட்சிகள்" : "4 Views"}
+                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                      84% Full
                     </span>
                   </div>
 
@@ -285,257 +350,252 @@ export default function HomePageClient({ user = null }) {
                   <div className="flex items-center gap-1 bg-slate-100/90 p-1.5 border-b border-slate-200/80 overflow-x-auto no-scrollbar text-xs font-semibold">
                     <button
                       type="button"
-                      onClick={() => setDemoTab("billing")}
+                      onClick={() => setDemoTab("whatsapp")}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer text-[11px] ${
-                        demoTab === "billing"
-                          ? "bg-white text-slate-900 shadow-2xs font-bold"
+                        demoTab === "whatsapp"
+                          ? "bg-white text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-600/20"
                           : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                       }`}
                     >
-                      <Receipt className="size-3.5 text-indigo-600" />
-                      <span>{isTa ? "பில்லிங் & ரசீது" : "Billing & Dues"}</span>
+                      <MessageCircle className="size-3.5 text-emerald-600" />
+                      <span>{isTa ? "வாட்ஸ்அப் வசூல்" : "WhatsApp Pay"}</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => setDemoTab("resident")}
+                      onClick={() => setDemoTab("beds")}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer text-[11px] ${
-                        demoTab === "resident"
+                        demoTab === "beds"
                           ? "bg-white text-slate-900 shadow-2xs font-bold"
                           : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                       }`}
                     >
-                      <Smartphone className="size-3.5 text-emerald-600" />
-                      <span>{isTa ? "குடியிருப்பாளர்" : "Resident App"}</span>
+                      <BedSingle className="size-3.5 text-indigo-600" />
+                      <span>{isTa ? "படுக்கை ஆக்கிரமிப்பு" : "Bed Matrix"}</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => setDemoTab("complaints")}
+                      onClick={() => setDemoTab("deposit")}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer text-[11px] ${
-                        demoTab === "complaints"
+                        demoTab === "deposit"
                           ? "bg-white text-slate-900 shadow-2xs font-bold"
                           : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                       }`}
                     >
-                      <AlertTriangle className="size-3.5 text-amber-600" />
-                      <span>{isTa ? "புகார் மேஜை" : "Complaints"}</span>
+                      <Receipt className="size-3.5 text-amber-600" />
+                      <span>{isTa ? "வைப்புத்தொகை கழிவு" : "Deposit Refund"}</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => setDemoTab("notices")}
+                      onClick={() => setDemoTab("maintenance")}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer text-[11px] ${
-                        demoTab === "notices"
+                        demoTab === "maintenance"
                           ? "bg-white text-slate-900 shadow-2xs font-bold"
                           : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                       }`}
                     >
-                      <Megaphone className="size-3.5 text-rose-600" />
-                      <span>{isTa ? "அறிவிப்புகள்" : "Circulars"}</span>
+                      <AlertTriangle className="size-3.5 text-rose-600" />
+                      <span>{isTa ? "பழுது மேஜை" : "Repairs Desk"}</span>
                     </button>
                   </div>
 
                   {/* Body Content */}
-                  <div className="p-3.5 sm:p-4 min-h-[260px] flex flex-col justify-between">
-                    {/* View 1: Billing & Dues */}
-                    {demoTab === "billing" && (
+                  <div className="p-4 min-h-[300px] flex flex-col justify-between">
+                    {/* View 1: 1-Click WhatsApp Rent Collection Showcase */}
+                    {demoTab === "whatsapp" && (
                       <div className="space-y-3">
-                        {/* KPI Strip */}
-                        <div className="rounded-xl bg-slate-50 p-2.5 sm:p-3 border border-slate-100">
-                          <div className="flex items-center justify-between text-xs">
+                        {/* WhatsApp Message Preview Bubble */}
+                        <div className="rounded-xl bg-emerald-50/70 border border-emerald-200/80 p-3 space-y-2">
+                          <div className="flex items-center justify-between text-[11px] text-emerald-800 font-bold border-b border-emerald-200/60 pb-1.5">
+                            <span className="flex items-center gap-1.5">
+                              <MessageCircle className="size-3.5 text-emerald-600" />
+                              WhatsApp Auto-Reminder to Karthik Raja
+                            </span>
+                            <span className="text-[10px] text-emerald-600 font-normal">Delivered 10:02 AM</span>
+                          </div>
+                          <p className="text-xs text-slate-800 leading-relaxed font-mono">
+                            &quot;Hi Karthik, your Room 201 (Bed A) rent for Oct (₹14,000) is due by 5th. Tap to pay via UPI: <strong className="text-emerald-700 underline">https://bedy.in/pay/inv_123</strong>. Thank you! — Sri Lakshmi Luxury PG&quot;
+                          </p>
+                        </div>
+
+                        {/* Frictionless Public Pay Sheet Result */}
+                        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
                             <div>
-                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                                {isTa ? "அக்டோபர் மாதாந்திர வசூல்" : "October 2026 Collections"}
-                              </span>
-                              <p className="font-extrabold text-slate-900 text-sm sm:text-base mt-0.5">
-                                ₹3,12,000 <span className="text-[11px] font-semibold text-emerald-600">(91.7%)</span>
-                              </p>
+                              <span className="text-[10px] uppercase font-bold text-slate-400">Public 1-Click Pay</span>
+                              <div className="font-bold text-slate-900 text-sm">Room 201 · Bed A</div>
                             </div>
                             <div className="text-right">
-                              <span className="text-[10px] font-semibold text-slate-500">
-                                {isTa ? "செலுத்திய வீடுகள்" : "Settled"}
-                              </span>
-                              <p className="font-bold text-slate-900 text-xs sm:text-sm">
-                                96 <span className="text-slate-400 font-normal">/ 100 Flats</span>
-                              </p>
+                              <span className="text-[10px] text-slate-400 block">Amount Due</span>
+                              <span className="font-extrabold text-emerald-700 text-base">₹14,000</span>
                             </div>
-                          </div>
-                          <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
-                            <div className="bg-emerald-500 h-full rounded-full w-[91.7%]" />
-                          </div>
-                        </div>
-
-                        {/* Recent Transactions */}
-                        <div className="space-y-1.5 text-xs">
-                          <div className="flex items-center justify-between rounded-lg bg-white p-2 border border-slate-100">
-                            <div className="min-w-0 pr-2">
-                              <p className="font-semibold text-slate-900 text-[11px] truncate">Flat A-101 · Ravi Kumar</p>
-                              <p className="text-[10px] text-slate-500">2 BHK Maintenance · Instant UPI</p>
-                            </div>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200 shrink-0">
-                              <CheckCheck className="size-3" />
-                              <span>₹3,200 Paid</span>
-                            </span>
                           </div>
 
-                          <div className="flex items-center justify-between rounded-lg bg-white p-2 border border-slate-100">
-                            <div className="min-w-0 pr-2">
-                              <p className="font-semibold text-slate-900 text-[11px] truncate">Flat B-204 · Ananya Roy</p>
-                              <p className="text-[10px] text-slate-500">3 BHK Maintenance · NetBanking</p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <div className="flex-1 rounded-lg bg-emerald-600 text-white font-bold text-center py-2 text-xs shadow-sm flex items-center justify-center gap-1.5">
+                              <Smartphone className="size-3.5" />
+                              <span>1-Tap UPI (GPay / PhonePe)</span>
                             </div>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200 shrink-0">
-                              <CheckCheck className="size-3" />
-                              <span>₹3,800 Paid</span>
-                            </span>
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-slate-700 flex items-center gap-1 font-semibold text-[11px]">
+                              <QrCode className="size-3.5 text-slate-500" />
+                              <span>QR</span>
+                            </div>
                           </div>
 
-                          <div className="flex items-center justify-between rounded-lg bg-white p-2 border border-slate-100">
-                            <div className="min-w-0 pr-2">
-                              <p className="font-semibold text-slate-900 text-[11px] truncate">Flat C-102 · Priya Sharma</p>
-                              <p className="text-[10px] text-slate-500">2 BHK Maintenance · Auto-Reconciled</p>
-                            </div>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200 shrink-0">
-                              <CheckCheck className="size-3" />
-                              <span>₹3,200 Paid</span>
-                            </span>
+                          <div className="rounded-lg bg-slate-50 p-1.5 text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
+                            <CheckCheck className="size-3 text-emerald-600" />
+                            <span>Instant PDF receipt delivered straight back to tenant WhatsApp</span>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* View 2: Resident App View */}
-                    {demoTab === "resident" && (
+                    {/* View 2: Live Room & Bed Occupancy Matrix */}
+                    {demoTab === "beds" && (
                       <div className="space-y-3">
-                        <div className="rounded-xl bg-slate-50 p-2.5 sm:p-3 border border-slate-100 flex items-center justify-between">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="size-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                              RK
-                            </div>
-                            <div className="min-w-0 truncate">
-                              <p className="text-xs font-bold text-slate-900 leading-tight truncate">Ravi Kumar</p>
-                              <p className="text-[10px] text-slate-500 leading-tight">Flat A-101 (2 BHK) · Owner</p>
-                            </div>
-                          </div>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200 shrink-0">
-                            <CheckCheck className="size-3" />
-                            <span>No Outstanding Dues</span>
-                          </span>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-700">Live Bed Status Roster</span>
+                          <span className="text-[11px] text-slate-500">35 Occupied · 6 Vacant · 1 Reserved</span>
                         </div>
 
-                        {/* Invoice breakdown card */}
-                        <div className="rounded-xl border border-slate-100 p-2.5 sm:p-3 text-xs space-y-1.5">
-                          <div className="flex items-center justify-between font-bold text-slate-800 border-b border-slate-100 pb-1.5">
-                            <span className="text-[11px]">October 2026 Maintenance</span>
-                            <span className="text-emerald-700 text-xs font-bold">PAID · ₹3,200</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          {/* Room 101 */}
+                          <div className="rounded-xl border border-slate-200 p-2.5 bg-slate-50/50 space-y-1.5">
+                            <div className="flex items-center justify-between font-bold text-slate-900 text-xs">
+                              <span>Room 101 (2-Sharing)</span>
+                              <span className="text-[10px] font-semibold text-emerald-700">₹7,500/mo</span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between rounded bg-white p-1.5 border border-slate-200/70 text-[11px]">
+                                <span className="font-semibold text-slate-800">Bed A: Rahul Sharma</span>
+                                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">PAID</span>
+                              </div>
+                              <div className="flex items-center justify-between rounded bg-emerald-50/60 p-1.5 border border-dashed border-emerald-300 text-[11px]">
+                                <span className="font-bold text-emerald-800">Bed B: VACANT</span>
+                                <span className="text-[9.5px] font-semibold text-emerald-700 underline">Check-in</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-3 gap-2 text-slate-600 text-[10px] pt-1">
-                            <div>
-                              <span className="text-slate-400 block">Base Rate:</span>
-                              <span className="font-semibold text-slate-900">₹2,500</span>
+
+                          {/* Room 201 */}
+                          <div className="rounded-xl border border-slate-200 p-2.5 bg-slate-50/50 space-y-1.5">
+                            <div className="flex items-center justify-between font-bold text-slate-900 text-xs">
+                              <span>Room 201 (3-Sharing AC)</span>
+                              <span className="text-[10px] font-semibold text-emerald-700">₹14,000/mo</span>
                             </div>
-                            <div>
-                              <span className="text-slate-400 block">Car Parking:</span>
-                              <span className="font-semibold text-slate-900">₹500</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-400 block">Water:</span>
-                              <span className="font-semibold text-slate-900">₹200</span>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between rounded bg-white p-1.5 border border-slate-200/70 text-[11px]">
+                                <span className="font-semibold text-slate-800">Bed A: Karthik Raja</span>
+                                <span className="text-[9.5px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded">DUE 5th</span>
+                              </div>
+                              <div className="flex items-center justify-between rounded bg-white p-1.5 border border-slate-200/70 text-[11px]">
+                                <span className="font-semibold text-slate-800">Bed B: Suresh M</span>
+                                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">PAID</span>
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* PDF Receipt Banner */}
-                        <div className="rounded-lg bg-emerald-50/70 p-2.5 border border-emerald-100 flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2 min-w-0 pr-2">
-                            <Receipt className="size-4 text-emerald-700 shrink-0" />
-                            <span className="text-emerald-900 font-semibold text-[11px] truncate">
-                              Official Receipt #REC-GVA-0081
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-emerald-700 font-bold underline cursor-pointer shrink-0">
-                            Download PDF ↓
-                          </span>
+                        <div className="rounded-lg bg-indigo-50/70 p-2 text-indigo-900 text-[11px] font-medium flex items-center justify-between">
+                          <span>Auto-calculated mid-month join pro-rata rent supported</span>
+                          <span className="font-bold text-indigo-700">✓ Enabled</span>
                         </div>
                       </div>
                     )}
 
-                    {/* View 3: Complaints Desk Timeline */}
-                    {demoTab === "complaints" && (
-                      <div className="space-y-3">
+                    {/* View 3: Deposit Tracking & Check-Out Settlement */}
+                    {demoTab === "deposit" && (
+                      <div className="space-y-2.5 text-xs">
+                        <div className="rounded-xl border border-slate-200 p-3 bg-white space-y-2">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <div>
+                              <div className="font-bold text-slate-900">Arun Kumar · Check-out Settlement</div>
+                              <div className="text-[10px] text-slate-500">Room 102 (Bed A) · Notice Period: 30 Days</div>
+                            </div>
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              SETTLING
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5 text-[11px] text-slate-600">
+                            <div className="flex justify-between">
+                              <span>Security Deposit Held:</span>
+                              <span className="font-bold text-slate-900">₹15,000</span>
+                            </div>
+                            <div className="flex justify-between text-rose-600">
+                              <span>Less: Room Repainting / Cleaning:</span>
+                              <span className="font-bold">-₹1,000</span>
+                            </div>
+                            <div className="flex justify-between text-rose-600">
+                              <span>Less: Electricity & Water arrears:</span>
+                              <span className="font-bold">-₹1,200</span>
+                            </div>
+                            <div className="flex justify-between text-rose-600">
+                              <span>Less: Mid-month stay (10 days pro-rata):</span>
+                              <span className="font-bold">-₹2,500</span>
+                            </div>
+                            <div className="flex justify-between border-t border-slate-200 pt-1.5 text-xs font-bold text-slate-900">
+                              <span>Net Refund Payable to Tenant:</span>
+                              <span className="text-emerald-700 text-sm">₹10,300</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg bg-slate-50 p-2 text-[10px] text-slate-500 flex items-center justify-between">
+                          <span>Written to immutable audit log with deduction reasons</span>
+                          <span className="font-semibold text-slate-700">Bed vacated auto</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* View 4: Maintenance & Repairs Desk */}
+                    {demoTab === "maintenance" && (
+                      <div className="space-y-3 text-xs">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-rose-600 uppercase bg-rose-50 px-2 py-0.5 rounded-full ring-1 ring-rose-200">
-                            Ticket #CMP-104 · Plumbing Repair
+                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full ring-1 ring-rose-200">
+                            Ticket #CMP-104 · AC Cooling Leak
                           </span>
-                          <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full ring-1 ring-amber-200">
-                            In Progress
+                          <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full ring-1 ring-amber-200">
+                            Technician Assigned
                           </span>
                         </div>
 
                         <div>
-                          <p className="text-xs font-bold text-slate-900">Kitchen sink water pipe leakage</p>
-                          <p className="text-[10px] text-slate-500">Raised by Ravi Kumar (Flat A-101)</p>
+                          <p className="font-bold text-slate-900">Room 201 AC leaking water inside room</p>
+                          <p className="text-[10px] text-slate-500">Raised by Karthik Raja · Photo attached</p>
                         </div>
 
-                        {/* Resolution Timeline */}
-                        <div className="relative pl-5 space-y-2 border-l-2 border-indigo-200 ml-1 py-0.5 text-xs">
+                        <div className="relative pl-5 space-y-2 border-l-2 border-emerald-300 ml-1 py-0.5 text-xs">
                           <div className="relative">
                             <span className="absolute -left-[25px] top-0.5 size-3 rounded-full bg-emerald-500 ring-2 ring-white" />
-                            <p className="font-semibold text-slate-900 text-[11px]">Complaint Filed · 10:00 AM</p>
+                            <p className="font-semibold text-slate-900 text-[11px]">Ticket Created by Tenant · 09:30 AM</p>
                           </div>
                           <div className="relative">
                             <span className="absolute -left-[25px] top-0.5 size-3 rounded-full bg-emerald-500 ring-2 ring-white" />
-                            <p className="font-semibold text-slate-900 text-[11px]">Assigned to Plumber (Kumar) · 10:15 AM</p>
+                            <p className="font-semibold text-slate-900 text-[11px]">Manager Assigned AC Tech (Manoj) · 09:45 AM</p>
                           </div>
                           <div className="relative">
                             <span className="absolute -left-[25px] top-0.5 size-3 rounded-full bg-amber-500 ring-2 ring-white animate-pulse" />
-                            <p className="font-semibold text-amber-800 text-[11px]">Visit Scheduled · Today 3:00 PM</p>
+                            <p className="font-semibold text-amber-800 text-[11px]">Service Scheduled · Today 2:00 PM</p>
                           </div>
                         </div>
 
                         <div className="rounded-lg bg-slate-50 p-2 border border-slate-100 flex items-center justify-between text-[11px]">
-                          <span className="text-slate-600">Assigned Technician: <strong>Kumar (+91 98765-43210)</strong></span>
-                          <span className="text-[10px] text-indigo-700 font-semibold">Active</span>
+                          <span className="text-slate-600">Assigned Technician: <strong>Manoj (+91 98450-11223)</strong></span>
+                          <span className="text-[10px] text-emerald-700 font-bold">In Progress</span>
                         </div>
                       </div>
                     )}
 
-                    {/* View 4: Circulars & Notices */}
-                    {demoTab === "notices" && (
-                      <div className="space-y-3">
-                        <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                              MAINTENANCE NOTICE
-                            </span>
-                            <span className="text-[10px] text-slate-400">Oct 15, 2026</span>
-                          </div>
-                          <h4 className="text-xs font-bold text-slate-900">
-                            Overhead Tank Cleaning & Pipeline Servicing
-                          </h4>
-                          <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                            Water supply will be paused on Sunday 9:00 AM to 1:00 PM for scheduled descaling. Please store required water in advance.
-                          </p>
-                        </div>
-
-                        {/* Read Counter Metric */}
-                        <div className="rounded-lg bg-indigo-50/80 p-2.5 border border-indigo-100 flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <Eye className="size-4 text-indigo-700" />
-                            <span className="text-slate-800 font-medium text-[11px]">Read Acknowledgments:</span>
-                          </div>
-                          <span className="text-[11px] font-bold text-indigo-800">87 of 120 Flats (72.5%)</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Bottom Status bar */}
-                    <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    {/* Bottom Link to Full Live Evaluation */}
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                       <span className="truncate">
-                        {isTa ? "மாதிரித் தகவல்களை முழுமையாகச் சோதிக்க:" : "Experience live with full controls:"}
+                        {isTa ? "நேரடி மாதிரி கணக்கில் நுழைய:" : "Want to test live features yourself?"}
                       </span>
-                      <a href="#demo-portals" className="text-indigo-600 font-semibold hover:underline shrink-0 ml-2">
-                        {isTa ? "கணக்குகள் →" : "Demo Logins →"}
+                      <a href="#demo-portals" className="text-emerald-700 font-bold hover:underline shrink-0 ml-2">
+                        {isTa ? "மாதிரி கணக்குகள் →" : "Demo Logins →"}
                       </a>
                     </div>
                   </div>
@@ -545,190 +605,302 @@ export default function HomePageClient({ user = null }) {
           </div>
         </section>
 
-        {/* Core Pillars: 3 Clean Minimalist Cards */}
-        <section id="features" className="py-12 sm:py-16 border-b border-slate-200/70 bg-white">
+        {/* Why Bedy: Pain vs Solution (Clean & Modern Table) */}
+        <section id="why-bedy" className="py-12 sm:py-16 border-b border-slate-200/70 bg-white">
           <div className="mx-auto max-w-6xl px-3.5 sm:px-6">
-            <div className="text-center max-w-2xl mx-auto space-y-2">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-                {isTa ? "அத்தியாவசியக் கருவிகள் மட்டுமே, வீண் குழப்பங்கள் இல்லை" : "Core Tools Without Bloatware"}
+            <div className="text-center max-w-2xl mx-auto space-y-2 mb-10">
+              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                The Bedy Advantage
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-950">
+                {isTa ? "பழைய நோட்டுகளுக்கு விடை கொடுங்கள்" : "Why PG Owners Are Ditching Excel & Notebooks"}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500">
                 {isTa
-                  ? "நிர்வாகக் குழு மற்றும் குடியிருப்பாளர்கள் தினமும் பயன்படுத்தும் முக்கிய செயல்பாடுகள்."
-                  : "Carefully engineered for committee secretaries, flat owners, and residents."}
+                  ? "வாடகை பாக்கியைத் துரத்துவதைத் தவிர்த்து, உங்கள் விடுதியை எளிதாக வளருங்கள்."
+                  : "Collect rent 3x faster with zero stress. Here is how Bedy transforms your daily routine."}
               </p>
             </div>
 
-            <div className="mt-8 sm:mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {/* Old Way */}
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/30 p-5 sm:p-6 space-y-3.5">
+                <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
+                  <XCircle className="size-4.5" />
+                  <span>The Old Way (Notebooks, Excel & Calls)</span>
+                </div>
+                <ul className="space-y-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-500 font-bold">✕</span>
+                    <span>Calling tenants 10 times to chase overdue rent</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-500 font-bold">✕</span>
+                    <span>Double-booking beds or forgetting who stayed in Bed B</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-500 font-bold">✕</span>
+                    <span>Arguments over security deposit deductions at check-out</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-500 font-bold">✕</span>
+                    <span>Lost paper receipts and manual calculations for mid-month joins</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Bedy Way */}
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 sm:p-6 space-y-3.5 shadow-sm">
+                <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                  <CheckCircle2 className="size-4.5 text-emerald-600" />
+                  <span>The Bedy Way (Effortless Autopilot)</span>
+                </div>
+                <ul className="space-y-2.5 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <Check className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>1-Click WhatsApp Reminders</strong> with instant UPI pay links</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Real-time bed matrix</strong> with instant vacant & occupied status</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Itemized deposit refund calculator</strong> logged to audit trail</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Official PDF receipts</strong> sent to tenant WhatsApp automatically</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Core Pillars: 6 Clean Minimalist Feature Cards */}
+        <section id="features" className="py-12 sm:py-16 border-b border-slate-200/70 bg-slate-50/40">
+          <div className="mx-auto max-w-6xl px-3.5 sm:px-6">
+            <div className="text-center max-w-2xl mx-auto space-y-2 mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-950">
+                {isTa ? "முக்கிய வசதிகள்" : "Everything You Need to Run 10 to 60+ Beds"}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                {isTa
+                  ? "வீண் குழப்பங்கள் இல்லாத எளிய வடிவமைப்பு."
+                  : "No complex software training required. Built for quick daily phone or laptop usage."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               {/* Feature 1 */}
-              <div className="rounded-2xl border border-slate-200/90 bg-slate-50/40 p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 mb-4">
-                  <FileText className="size-5" />
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 mb-4">
+                  <MessageCircle className="size-5" />
                 </div>
                 <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "பில்லிங் மற்றும் கட்டணங்கள்" : "Billing & Dues Reconciliation"}
+                  {isTa ? "1-கிளிக் வாட்ஸ்அப் வசூல்" : "1-Click WhatsApp Rent Collection"}
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
                   {isTa
-                    ? "ஒவ்வொரு மாதமும் தானாக பில் உருவாக்குதல். யுபிஐ, நெப்ட் அல்லது ரொக்கப் பணத்தைக் குறித்துக்கொண்டு உடனடி பிடிஎஃப் ரசீது வழங்குதல்."
-                    : "Generate monthly invoices in batch with fixed, per-sqft, or BHK rates. Settle online via UPI or record cash/cheque payments with instant PDF receipts."}
+                    ? "ஒவ்வொரு மாதமும் தானாக பில் உருவாகும். வாட்ஸ்அப்பில் ஒரே கிளிக்கில் யுபிஐ கட்டண இணைப்பை அனுப்பி உடனடி ரசீது வழங்குங்கள்."
+                    : "Generate monthly rent with 1 tap. Send pre-filled personalized WhatsApp reminders with direct UPI payment links."}
                 </p>
               </div>
 
               {/* Feature 2 */}
-              <div className="rounded-2xl border border-slate-200/90 bg-slate-50/40 p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 mb-4">
-                  <AlertTriangle className="size-5" />
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 mb-4">
+                  <BedSingle className="size-5" />
                 </div>
                 <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "புகார் மற்றும் பராமரிப்பு மேஜை" : "Complaints & Service Timeline"}
+                  {isTa ? "நேரடி படுக்கை ஆக்கிரமிப்பு" : "Live Bed-by-Bed Matrix"}
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
                   {isTa
-                    ? "குழாய், மின்சாரம், லிப்ட் பழுதுகளை குடியிருப்பாளர்கள் பதிவு செய்யலாம். செயலாளர்கள் ஊழியர்களை நியமித்து நிலவரத்தைக் கண்காணிக்கலாம்."
-                    : "Residents file plumbing, electrical, or lift repairs with photos. The secretary assigns staff and both parties track the step-by-step resolution."}
+                    ? "ஒற்றை, இரட்டை மற்றும் மூன்று பகிர்வு அறைகளில் காலியாக உள்ள படுக்கைகளை உடனே தெரிந்துகொள்ளுங்கள்."
+                    : "Track Vacant, Occupied, Reserved, and Maintenance beds across floors and sharing categories with real-time occupancy rates."}
                 </p>
               </div>
 
               {/* Feature 3 */}
-              <div className="rounded-2xl border border-slate-200/90 bg-slate-50/40 p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 mb-4">
-                  <Megaphone className="size-5" />
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 mb-4">
+                  <Receipt className="size-5" />
                 </div>
                 <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "அறிவிப்பு பலகை மற்றும் முகவரி ஏடு" : "Notices & Member Directory"}
+                  {isTa ? "வைப்புத்தொகை & காசோலை" : "Security Deposits & Check-Out"}
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
                   {isTa
-                    ? "பொதுக்கூட்டம் மற்றும் குடிநீர் பராமரிப்பு போன்ற முக்கிய தகவல்களைப் பகிருங்கள். எத்தனை பேர் பார்த்தார்கள் என்ற விவரத்தையும் தெரிந்துகொள்ளுங்கள்."
-                    : "Publish emergency circulars and AGM announcements with real-time read receipts. Manage owner and tenant directory with one-click bulk CSV import."}
+                    ? "ஆதார் ஆவணம் சேமிப்பு மற்றும் வெளியேறும் போது துல்லியமான கழிவுகள் கணக்கிட்டு பணத்தைத் திருப்பியளித்தல்."
+                    : "Secure KYC document uploads at check-in. Auto-calculate net refunds on check-out after deducting cleaning, repairs, or pro-rata stay."}
+                </p>
+              </div>
+
+              {/* Feature 4 */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-700 mb-4">
+                  <Clock className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "நிலுவைத் தொகை & அபராதம்" : "Defaulters & Due Reminders"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  {isTa
+                    ? "வாடகை செலுத்தாதவர்களை உடனே கண்டறிந்து நினைவூட்டல் அனுப்புங்கள். தாமதக் கட்டணங்களை சுலபமாக நிர்வகியுங்கள்."
+                    : "Instant defaulter list showing overdue days and outstanding amounts. Send 1-tap WhatsApp overdue notices with zero friction."}
+                </p>
+              </div>
+
+              {/* Feature 5 */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700 mb-4">
+                  <AlertTriangle className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "பழுது மற்றும் புகார் மேஜை" : "Repairs & Maintenance Desk"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  {isTa
+                    ? "மின்சாரம், குடிநீர், ஏசி பழுதுகளைப் புகைப்படத்துடன் பதிவு செய்து பணியாளர்களை நியமிக்கவும்."
+                    : "Tenants report WiFi, AC, or plumbing issues with photos. Assign technicians and let tenants track the step-by-step resolution."}
+                </p>
+              </div>
+
+              {/* Feature 6 */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xs hover:border-slate-300 transition-colors">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-800 mb-4">
+                  <Building className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "பிஜி & அடுக்குமாடி ஆதரவு" : "Dual PG & Society Workspaces"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  {isTa
+                    ? "பிஜி விடுதிகள் மற்றும் அடுக்குமாடி குடியிருப்புகள் இரண்டிற்கும் ஒரே மென்பொருளில் தனித்தனி வசதிகள்."
+                    : "One unified platform supporting both PG/hostel bed-level billing and apartment society flat maintenance on the same architecture."}
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Public Demo Portals Section: Strictly 3 Roles (Super Admin is NEVER listed here) */}
-        <section id="demo-portals" className="py-12 sm:py-16 bg-slate-50/60">
+        {/* Public Demo Portals Section */}
+        <section id="demo-portals" className="py-12 sm:py-16 bg-white">
           <div className="mx-auto max-w-6xl px-3.5 sm:px-6">
-            <div className="text-center max-w-xl mx-auto space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                {isTa ? "நேரடி மாதிரி" : "Live Demo"}
+            <div className="text-center max-w-xl mx-auto space-y-2 mb-10">
+              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                {isTa ? "நேரடி மாதிரி" : "Live Demo Accounts"}
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-                {isTa ? "ஒரே கிளிக்கில் சோதித்துப் பாருங்கள்" : "Explore Public Roles with One Click"}
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-950">
+                {isTa ? "ஒரே கிளிக்கில் சோதித்துப் பாருங்கள்" : "Test Bedy Roles in 1-Click"}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500">
                 {isTa
                   ? "கீழே உள்ள ஏதேனும் ஒரு பாத்திரத்தைத் தேர்ந்தெடுத்து மாதிரித் தகவல்களை உடனே பார்வையிடுங்கள்."
-                  : "Click any account below to jump straight into their portal with pre-populated demo data."}
+                  : "Click any account below to jump straight into their portal with real seeded PG data."}
               </p>
             </div>
 
-            <div className="mt-8 sm:mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              {/* Card 1: Resident */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+              {/* Card 1: PG Owner */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-slate-300 transition-colors shadow-2xs">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-slate-950 text-white font-bold">
+                      <Building2 className="size-5" />
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-full uppercase">
+                      PG Owner
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">Sri Lakshmi Luxury PG</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">42 Beds · 18 Rooms · Calendar Month Cycle</p>
+                  <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+                    Full owner controls: view bed occupancy, generate batch rent, send WhatsApp reminders, track defaulters, and view revenue analytics.
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
+                    disabled={Boolean(loggingIn)}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-slate-950 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
+                  >
+                    {loggingIn === "owner@srilakshmipg.local" ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : null}
+                    <span>Open PG Owner Portal</span>
+                    <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 2: PG Manager */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-slate-300 transition-colors shadow-2xs">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                      <ShieldCheck className="size-5" />
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full uppercase">
+                      PG Manager
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">Suresh Kumar</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Manager · On-site Operations</p>
+                  <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+                    Check-in new tenants, upload ID proofs, record cash/UPI payments, assign maintenance complaints, and settle check-out deposits.
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => quickLogin("manager@srilakshmipg.local", "/admin/dashboard")}
+                    disabled={Boolean(loggingIn)}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-700 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-800 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
+                  >
+                    {loggingIn === "manager@srilakshmipg.local" ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : null}
+                    <span>Open PG Manager Portal</span>
+                    <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 3: Resident Tenant */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-slate-300 transition-colors shadow-2xs">
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
                       <User className="size-5" />
                     </span>
-                    <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full uppercase">
-                      Resident
+                    <span className="text-[11px] font-bold text-indigo-800 bg-indigo-50 px-2.5 py-0.5 rounded-full uppercase">
+                      Tenant / Resident
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Ravi Kumar</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Flat A-101 · Green Valley Apartments</p>
+                  <h3 className="text-base font-bold text-slate-900">Karthik Raja</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Room 201 (Bed A) · Active Occupant</p>
                   <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-                    {isTa
-                      ? "மாதாந்திர கட்டண நிலுவைகளைப் பார்க்கவும், யுபிஐ மூலம் மாதிரி கட்டணம் செலுத்தவும், அதிகாரப்பூர்வ ரசீதுகளைப் பதிவிறக்கவும்."
-                      : "Check monthly maintenance dues, make test UPI payments, download official receipts, and raise plumbing complaints."}
+                    View rent breakdown, pay instantly with UPI QR/Cards, download official PDF receipts, and file repair requests.
                   </p>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-100">
                   <button
                     type="button"
-                    onClick={() => quickLogin("ravi@greenvalley.local", "/resident/dashboard")}
+                    onClick={() => quickLogin("resident@srilakshmipg.local", "/resident/dashboard")}
                     disabled={Boolean(loggingIn)}
                     className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-indigo-700 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
                   >
-                    {loggingIn === "ravi@greenvalley.local" ? (
+                    {loggingIn === "resident@srilakshmipg.local" ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : null}
-                    <span>{isTa ? "குடியிருப்பாளர் பக்கம் செல்" : "Open Resident Portal"}</span>
-                    <ArrowRight className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Card 2: Society Admin */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-slate-300 transition-colors shadow-2xs">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-slate-900 text-white">
-                      <Building2 className="size-5" />
-                    </span>
-                    <span className="text-[11px] font-bold text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-full uppercase">
-                      Society Admin
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900">Lakshmi Iyer</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Secretary · Green Valley Apartments</p>
-                  <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-                    {isTa
-                      ? "அனைத்து வீடுகளுக்கும் பில் உருவாக்குதல், பணம் செலுத்துதல் பதிவு, புகார்களைப் பணியாளர்களுக்குப் பிரித்து வழங்குதல், சுற்றறிக்கை வெளியிடுதல்."
-                      : "Generate monthly invoices for all flats, record cash/cheque payments, assign complaints, view defaulters, and post notices."}
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => quickLogin("admin@greenvalley.local", "/admin/dashboard")}
-                    disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
-                  >
-                    {loggingIn === "admin@greenvalley.local" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : null}
-                    <span>{isTa ? "நிர்வாகி பக்கம் செல்" : "Open Admin Portal"}</span>
-                    <ArrowRight className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Card 3: Flat Admin (Priya Sharma - Replaces Super Admin) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-slate-300 transition-colors shadow-2xs">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-                      <KeyRound className="size-5" />
-                    </span>
-                    <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full uppercase">
-                      Flat Admin
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900">Priya Sharma</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Flat A-102 · Green Valley Apartments</p>
-                  <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-                    {isTa
-                      ? "வீடு A-102 குடியிருப்பாளர்களை நிர்வகிக்கவும், புதிய வாடகைதாரர்களைச் சேர்க்கவும், பராமரிப்புக் கட்டண நிலுவைகளைப் பார்க்கவும்."
-                      : "Manage Flat A-102 residents and tenants, track flat payments, view flat-level dues, and submit maintenance tickets."}
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => quickLogin("priya@greenvalley.local", "/admin/residents")}
-                    disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white py-3 text-xs sm:text-sm font-semibold text-slate-900 hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
-                  >
-                    {loggingIn === "priya@greenvalley.local" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : null}
-                    <span>{isTa ? "வீட்டு நிர்வாகி பக்கம் செல்" : "Open Flat Admin Portal"}</span>
+                    <span>Open Resident Portal</span>
                     <ArrowRight className="size-3.5" />
                   </button>
                 </div>
@@ -739,15 +911,18 @@ export default function HomePageClient({ user = null }) {
       </main>
 
       {/* Clean Minimalist Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6 sm:py-8 text-xs text-slate-500">
+      <footer className="border-t border-slate-200 bg-white py-8 text-xs text-slate-500">
         <div className="mx-auto max-w-6xl px-3.5 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900">SocietyDesk</span>
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-600 text-white font-black text-xs">
+              B
+            </span>
+            <span className="font-bold text-slate-900 text-sm">Bedy</span>
             <span>·</span>
             <span>
               {isTa
-                ? "அடுக்குமாடி மற்றும் குடியிருப்பு நிர்வாக மென்பொருள்"
-                : "Apartment & Housing Society Management"}
+                ? "பிஜி மற்றும் விடுதி நிர்வாக மென்பொருள்"
+                : "Smart PG, Hostel & Co-Living Operations"}
             </span>
           </div>
 
@@ -758,6 +933,9 @@ export default function HomePageClient({ user = null }) {
             <Link href="/forgot-password" className="hover:text-slate-950 transition-colors">
               {isTa ? "கடவுச்சொல் மீட்பு" : "Reset Password"}
             </Link>
+            <a href="#live-preview" className="hover:text-slate-950 transition-colors">
+              {isTa ? "மாதிரி" : "Live Demo"}
+            </a>
           </div>
         </div>
       </footer>

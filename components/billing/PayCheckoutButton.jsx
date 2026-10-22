@@ -100,7 +100,7 @@ export default function PayCheckoutButton({
       order_id: co.orderId,
       amount: co.razorpayAmount,
       currency: co.currency,
-      name: "Society Desk",
+      name: "Bedy",
       description: `Invoice ${invoiceNumber ?? ""}`.trim(),
       prefill: { name: flatLabel },
       notes: { invoiceNumber: invoiceNumber ?? "" },

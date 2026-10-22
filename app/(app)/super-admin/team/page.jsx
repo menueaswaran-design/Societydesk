@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import TeamClient from "@/components/team/TeamClient";
 
-export const metadata = { title: "Society Admins - SocietyDesk" };
+export const metadata = { title: "Society Admins - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function SuperAdminTeamPage() {

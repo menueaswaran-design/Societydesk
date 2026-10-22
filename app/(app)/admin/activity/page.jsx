@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import ActivityClient from "./ActivityClient";
 
-export const metadata = { title: "Activity - SocietyDesk" };
+export const metadata = { title: "Activity - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminActivityPage({ searchParams }) {

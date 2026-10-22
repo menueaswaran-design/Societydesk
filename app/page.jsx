@@ -2,9 +2,9 @@ import { getServerSessionOrNull } from "@/lib/auth/server";
 import HomePageClient from "@/components/HomePageClient";
 
 export const metadata = {
-  title: "SocietyDesk — Apartment & Society Operations",
+  title: "Bedy — Smart PG, Hostel & Co-Living Operations",
   description:
-    "Modern web platform for maintenance billing, 1-click payments, complaint tracking, and resident notices.",
+    "Modern web platform for PG and hostel owners: live bed occupancy, 1-click WhatsApp rent collection, instant UPI, deposit settlements, and complaint tracking.",
 };
 
 export default async function HomePage() {
