@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db/prisma";
 export const dynamic = "force-dynamic";
 
 const DEMO_USERS = {
+  "bedy@bedy.in": { id: "cmvl59khg0000m7og4a8uysdi", email: "bedy@bedy.in", role: "SUPER_ADMIN", societyId: null, name: "Bedy Super Admin" },
+  "bedy@in": { id: "cmvl59khg0000m7og4a8uysdi", email: "bedy@bedy.in", role: "SUPER_ADMIN", societyId: null, name: "Bedy Super Admin" },
   "kumarvignesh865@gmail.com": { id: "cmvckm8mk0000m7gocp8bbb3f", email: "kumarvignesh865@gmail.com", role: "SUPER_ADMIN", societyId: null, name: "Kumar Vignesh" },
   "superadmin@societydesk.local": { id: "demo-super", email: "superadmin@societydesk.local", role: "SUPER_ADMIN", societyId: null, name: "Platform Owner" },
   "admin@greenvalley.local": { id: "demo-admin", email: "admin@greenvalley.local", role: "SOCIETY_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Lakshmi Iyer" },

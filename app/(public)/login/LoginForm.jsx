@@ -204,6 +204,7 @@ export default function LoginForm({ next }) {
         } catch {
           if (
             form.email.toLowerCase().includes("superadmin") ||
+            form.email.toLowerCase().includes("bedy") ||
             form.email.toLowerCase() === "kumarvignesh865@gmail.com"
           ) {
             target = "/super-admin/dashboard";
