@@ -36,6 +36,7 @@ export default function PayCheckoutButton({
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [checkout, setCheckout] = useState(null);
+  const orderRef = useRef(null);
 
   // Keeps a dismissed / closing Razorpay popup from being counted as a payment.
   const dismissed = useRef(false);
@@ -44,6 +45,7 @@ export default function PayCheckoutButton({
     if (!open) {
       setStage("idle");
       setCheckout(null);
+      orderRef.current = null;
       setResult(null);
       setError(null);
       dismissed.current = false;
@@ -72,6 +74,7 @@ export default function PayCheckoutButton({
     setOpen(true);
     try {
       const order = await api.post("/api/payment-orders", { invoiceId });
+      orderRef.current = order;
       setCheckout(order);
       setStage("checkout");
 
@@ -129,7 +132,7 @@ export default function PayCheckoutButton({
       },
       handler: async (response) => {
         // Razorpay's checkout finished; the server still has to verify it.
-        await confirm({
+        await confirm(order?.id || orderRef.current?.id, {
           paymentId: response.razorpay_payment_id,
           signature: response.razorpay_signature,
           transactionReference: response.razorpay_payment_id,
@@ -139,8 +142,9 @@ export default function PayCheckoutButton({
         ondismiss: () => {
           if (dismissed.current) return;
           // Resident backed out. Release the order so it stops looking pending.
-          if (order?.id) {
-            api.post(`/api/payment-orders/${order.id}/cancel`, {}).catch(() => {});
+          const id = order?.id || orderRef.current?.id;
+          if (id) {
+            api.post(`/api/payment-orders/${id}/cancel`, {}).catch(() => {});
           }
           setStage("idle");
           close();
@@ -152,14 +156,21 @@ export default function PayCheckoutButton({
   }
 
   /** POST the gateway's signed result. Identical in mock and live mode. */
-  async function confirm({ paymentId, signature, transactionReference }) {
+  async function confirm(orderId, { paymentId, signature, transactionReference, paymentMethod } = {}) {
+    const id = orderId || orderRef.current?.id || checkout?.id;
+    if (!id) {
+      setError("Payment order not found. Please refresh and try again.");
+      setStage("idle");
+      return;
+    }
     setStage("verifying");
     setError(null);
     try {
-      const settled = await api.post(`/api/payment-orders/${checkout.id}/verify`, {
+      const settled = await api.post(`/api/payment-orders/${id}/verify`, {
         paymentId,
         signature,
         transactionReference,
+        paymentMethod,
       });
       setResult(settled);
       setStage("done");
@@ -213,8 +224,8 @@ export default function PayCheckoutButton({
               {stage === "checkout" && isMock ? (
                 <Button
                   className="bg-[#0c2340] hover:bg-[#13335c] text-white"
-                  onClick={() => confirm({
-                    ...checkout.checkout.mock,
+                  onClick={() => confirm(checkout?.id || orderRef.current?.id, {
+                    ...checkout?.checkout?.mock,
                     paymentMethod: selectedMethod === "card" ? "CARD" : selectedMethod === "netbanking" ? "NET_BANKING" : "UPI",
                   })}
                 >
