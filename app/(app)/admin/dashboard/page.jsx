@@ -212,40 +212,44 @@ export default async function AdminDashboardPage() {
 
           <div className="w-full min-w-0">
             <p className="label-xs">{isPg ? "Rent Collection This Month" : "Collection this month"}</p>
-            <div className="mt-2.5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <p className="text-xs text-slate-500">Billed</p>
-                <p className="tabular mt-1 text-2xl font-bold tracking-tight text-slate-900">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3.5 shadow-2xs">
+                <p className="text-xs font-semibold text-slate-500">Billed</p>
+                <p className="tabular mt-1 text-2xl font-extrabold tracking-tight text-slate-900">
                   {formatMoney(collection.billed)}
                 </p>
               </div>
-              <div>
-                <p className="text-xs text-slate-500">Collected</p>
-                <p className="tabular mt-1 text-2xl font-bold tracking-tight text-emerald-600">
+              <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-3.5 shadow-2xs">
+                <p className="text-xs font-semibold text-emerald-800">Collected</p>
+                <p className="tabular mt-1 text-2xl font-extrabold tracking-tight text-emerald-700">
                   {formatMoney(collection.collected)}
                 </p>
               </div>
-              <div>
-                <p className="text-xs text-slate-500">Outstanding</p>
-                <p className="tabular mt-1 text-2xl font-bold tracking-tight text-amber-600">
+              <div className="rounded-xl border border-amber-200/70 bg-amber-50/50 p-3.5 shadow-2xs">
+                <p className="text-xs font-semibold text-amber-800">Outstanding</p>
+                <p className="tabular mt-1 text-2xl font-extrabold tracking-tight text-amber-700">
                   {formatMoney(collection.outstanding)}
                 </p>
               </div>
             </div>
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-900/5">
-                <TrendingUp className="size-5 shrink-0 text-brand-500" />
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-2xs">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60">
+                  <TrendingUp className="size-4 shrink-0" />
+                </span>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-slate-900">
+                  <p className="text-[13px] font-bold text-slate-900">
                     {collection.collectionRate}%
                   </p>
                   <p className="text-xs text-slate-500">collection rate</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-900/5 sm:col-span-2">
-                <AlertTriangle className="size-5 shrink-0 text-amber-500" />
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-2xs sm:col-span-2">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60">
+                  <AlertTriangle className="size-4 shrink-0" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-slate-900">
+                  <p className="text-[13px] font-bold text-slate-900">
                     {formatMoney(cards.overdue)} overdue
                   </p>
                   <p className="text-xs text-slate-500">
@@ -269,14 +273,14 @@ export default async function AdminDashboardPage() {
       <QuickActions items={quickActions} />
 
       <Card className="px-5 py-4 sm:px-6">
-        <div className="grid grid-cols-2 gap-x-5 gap-y-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {chips.map((c) => (
-            <div key={c.label} className="flex items-start gap-2.5">
-              <span className="inline-flex size-8.5 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <div key={c.label} className="flex items-start gap-3 rounded-xl p-2 transition-colors hover:bg-slate-50/80">
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 border border-slate-200/80 shadow-2xs">
                 <c.icon className="size-4" />
               </span>
               <div className="min-w-0">
-                <p className="tabular text-base font-bold text-slate-900 leading-tight">
+                <p className="tabular text-base sm:text-lg font-extrabold text-slate-900 leading-tight">
                   {c.value}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-500 leading-normal">{c.hint}</p>

@@ -167,38 +167,38 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
 
       {/* Metric Tiles */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Card className="p-3.5 sm:p-4">
-          <p className="text-xs font-medium text-slate-500">Total Rooms</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-slate-900">{units.length}</p>
-        </Card>
-        <Card className="p-3.5 sm:p-4">
-          <p className="text-xs font-medium text-slate-500">Total Beds</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-slate-900">{totalBeds}</p>
-        </Card>
-        <Card className="p-3.5 sm:p-4 bg-emerald-50/50 border-emerald-200/60">
-          <p className="text-xs font-medium text-emerald-800">Vacant Beds</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-emerald-700">{vacantBeds}</p>
-        </Card>
-        <Card className="p-3.5 sm:p-4 bg-blue-50/50 border-blue-200/60">
-          <p className="text-xs font-medium text-blue-800">Occupied Beds</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-blue-700">{occupiedBeds}</p>
-        </Card>
-        <Card className="p-3.5 sm:p-4 col-span-2 sm:col-span-1">
-          <p className="text-xs font-medium text-slate-500">Occupancy Rate</p>
-          <p className="mt-1 text-xl sm:text-2xl font-bold text-primary-700">{occupancyRate}%</p>
-        </Card>
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+          <p className="text-xs font-semibold text-slate-500">Total Rooms</p>
+          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">{units.length}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+          <p className="text-xs font-semibold text-slate-500">Total Beds</p>
+          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">{totalBeds}</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-4 shadow-2xs">
+          <p className="text-xs font-semibold text-emerald-800">Vacant Beds</p>
+          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-emerald-700">{vacantBeds}</p>
+        </div>
+        <div className="rounded-2xl border border-sky-200/70 bg-sky-50/50 p-4 shadow-2xs">
+          <p className="text-xs font-semibold text-sky-800">Occupied Beds</p>
+          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-sky-700">{occupiedBeds}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs col-span-2 sm:col-span-1">
+          <p className="text-xs font-semibold text-slate-500">Occupancy Rate</p>
+          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">{occupancyRate}%</p>
+        </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-col gap-3 rounded-xl bg-white p-3.5 sm:p-4 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl bg-white p-3.5 sm:p-4 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search room (e.g. 101)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 py-2 sm:py-1.5 pl-9 pr-3 text-xs focus:border-primary-500 focus:outline-none"
+            className="w-full rounded-xl border border-slate-200/90 bg-white py-2 pl-9.5 pr-3.5 text-xs text-slate-800 shadow-2xs placeholder:text-slate-400 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
           />
         </div>
 
@@ -206,7 +206,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 sm:py-1.5 text-xs font-medium text-slate-700"
+            className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
           >
             <option value="ALL">All Bed Statuses</option>
             <option value="VACANT">Has Vacant Beds</option>
@@ -217,7 +217,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 sm:py-1.5 text-xs font-medium text-slate-700"
+            className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
           >
             <option value="ALL">All Sharing Types</option>
             <option value="SINGLE">Single Room</option>
@@ -312,7 +312,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                       return (
                         <div
                           key={bed.id}
-                          className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/40 p-2.5 text-xs transition-colors hover:bg-slate-50"
+                          className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-2.5 text-xs transition-all hover:border-slate-300 shadow-2xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white font-bold text-slate-700 border border-slate-200/80 shadow-2xs">

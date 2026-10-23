@@ -86,7 +86,7 @@ export default function CollectPaymentButton({
 
         {order ? (
           <div className="space-y-4">
-            <div className="space-y-2 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-900/5">
+            <div className="space-y-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-4 py-3 shadow-2xs">
               <StatLine label="Amount due" value={formatMoney(order.amount)} />
               <StatLine label="Channel" value={order.checkout?.isMock ? "Test mode (mock)" : "Razorpay"} tone="muted" />
               <StatLine label="Expires" value={formatDateTime(order.expiresAt)} tone="muted" />
@@ -94,7 +94,7 @@ export default function CollectPaymentButton({
 
             <div>
               <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                <Send className="size-3.5 text-brand-500" />
+                <Send className="size-3.5 text-emerald-600" />
                 Send this link to the resident
               </p>
               <div className="flex gap-2">
@@ -103,7 +103,7 @@ export default function CollectPaymentButton({
                   value={paymentLink(order.id)}
                   onFocus={(e) => e.currentTarget.select()}
                   aria-label="Payment link"
-                  className="h-9 min-w-0 flex-1 rounded-xl bg-white px-3 text-xs text-slate-600 shadow-xs ring-1 ring-slate-900/10 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  className="h-9 min-w-0 flex-1 rounded-xl bg-white px-3 text-xs text-slate-700 shadow-2xs border border-slate-200/90 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
                 />
                 <Button variant="secondary" size="sm" onClick={copyLink}>
                   {copied ? <Check /> : <Copy />}

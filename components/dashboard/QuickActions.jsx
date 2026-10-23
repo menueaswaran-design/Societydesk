@@ -77,16 +77,16 @@ export function QuickAction({ href, icon: Icon, title, caption, tone = "brand", 
   return (
     <Link
       href={href}
-      className="surface animate-rise group flex items-center gap-3 rounded-lg p-3.5 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lift sm:p-4"
+      className="group flex items-center gap-3.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs hover:border-slate-300"
     >
       <span
-        className={`inline-flex size-9.5 shrink-0 items-center justify-center rounded-lg ring-1 [&_svg]:size-4.5 ${tTone}`}
+        className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ring-1 [&_svg]:size-5 transition-transform duration-200 group-hover:scale-105 ${tTone}`}
       >
         {Icon ? <Icon /> : null}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[13px] font-semibold text-slate-900 leading-tight sm:text-sm">
+          <span className="text-sm font-bold text-slate-900 leading-tight">
             {localizedTitle}
           </span>
           {localizedBadge ? (
@@ -96,12 +96,12 @@ export function QuickAction({ href, icon: Icon, title, caption, tone = "brand", 
           ) : null}
         </span>
         {localizedCaption ? (
-          <span className="mt-0.5 block text-xs text-slate-500 leading-normal">
+          <span className="mt-0.5 block text-xs text-slate-500 font-medium leading-normal">
             {localizedCaption}
           </span>
         ) : null}
       </span>
-      <ArrowUpRight className="size-4 shrink-0 text-slate-400 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-brand-600" />
+      <ArrowUpRight className="size-4 shrink-0 text-slate-400 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-emerald-600" />
     </Link>
   );
 }

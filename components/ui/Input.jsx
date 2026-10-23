@@ -1,10 +1,10 @@
 import { ChevronDown } from "lucide-react";
 
 const BASE =
-  "w-full rounded-lg bg-white text-[13px] text-slate-900 ring-1 ring-slate-300 transition-[box-shadow,border-color] duration-150 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
+  "w-full rounded-xl bg-white text-[13px] text-slate-900 border border-slate-200/90 shadow-2xs transition-all duration-150 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
 
 const FIELD =
-  "h-9.5 px-3 focus:border-transparent aria-[invalid=true]:ring-rose-400 aria-[invalid=true]:focus:ring-rose-400";
+  "h-9.5 px-3 aria-[invalid=true]:border-rose-400 aria-[invalid=true]:focus:ring-rose-400/20";
 
 function Shell({ label, labelRight, error, hint, id, required, className = "", children, htmlFor }) {
   return (
@@ -12,7 +12,7 @@ function Shell({ label, labelRight, error, hint, id, required, className = "", c
       {label || labelRight ? (
         <div className="mb-1 flex items-center justify-between gap-2">
           {label ? (
-            <label htmlFor={htmlFor ?? id} className="flex items-center gap-1 text-xs font-medium text-slate-700">
+            <label htmlFor={htmlFor ?? id} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
               {label}
               {required ? <span className="text-rose-500">*</span> : null}
             </label>
@@ -22,7 +22,7 @@ function Shell({ label, labelRight, error, hint, id, required, className = "", c
       ) : null}
       {children}
       {error ? (
-        <p className="mt-1.5 text-[12px] text-rose-600">{error}</p>
+        <p className="mt-1.5 text-[12px] font-medium text-rose-600">{error}</p>
       ) : hint ? (
         <p className="mt-1.5 text-[12px] text-slate-500">{hint}</p>
       ) : null}

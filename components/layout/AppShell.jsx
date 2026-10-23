@@ -430,11 +430,11 @@ function NavLink({ item, label, pathname, onNavigate }) {
       {active ? (
         <span
           aria-hidden="true"
-          className="absolute top-1/2 -left-2.5 h-5 w-1 -translate-y-1/2 rounded-r-full bg-linear-to-b from-brand-300 to-accent-400"
+          className="absolute top-1/2 -left-2.5 h-5 w-1 -translate-y-1/2 rounded-r-full bg-emerald-400"
         />
       ) : null}
       <Icon
-        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-200" : "text-white/45 group-hover:text-white/80"}`}
+        className={`size-4.5 shrink-0 transition-colors ${active ? "text-emerald-400" : "text-white/45 group-hover:text-white/80"}`}
       />
       {label ?? item.label}
     </Link>
@@ -489,7 +489,7 @@ function UserMenu({ user, roomLabel, onSignOut, onClose, t: tProp }) {
     <div
       ref={ref}
       role="menu"
-      className="animate-pop absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-lg bg-white shadow-pop ring-1 ring-slate-900/5"
+      className="animate-pop absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl bg-white shadow-pop border border-slate-200/80"
     >
       <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-4">
         <Avatar name={user.name} size="md" />

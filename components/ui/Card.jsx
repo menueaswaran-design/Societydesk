@@ -1,7 +1,7 @@
 export function Card({ className = "", hover = false, children, ...props }) {
   return (
     <div
-      className={`surface animate-rise overflow-hidden ${hover ? "transition-shadow duration-150 hover:shadow-lift" : ""} ${className}`}
+      className={`rounded-2xl border border-slate-200/80 bg-white shadow-2xs overflow-hidden ${hover ? "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs hover:border-slate-300" : ""} ${className}`}
       {...props}
     >
       {children}
@@ -12,18 +12,18 @@ export function Card({ className = "", hover = false, children, ...props }) {
 export function CardHeader({ title, subtitle, action, icon: Icon, className = "" }) {
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5 ${className}`}
+      className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100/90 bg-slate-50/50 px-5 py-3.5 sm:py-4 ${className}`}
     >
       <div className="flex min-w-0 items-center gap-2.5">
         {Icon ? (
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 [&_svg]:size-4">
+          <span className="flex size-8.5 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200/80 text-slate-700 shadow-2xs [&_svg]:size-4">
             <Icon />
           </span>
         ) : null}
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-semibold text-slate-900 sm:text-[15px]">{title}</h2>
+          <h2 className="truncate text-sm font-bold text-slate-900 sm:text-[15px]">{title}</h2>
           {subtitle ? (
-            <p className="mt-0.5 truncate text-xs text-slate-500">{subtitle}</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500 font-medium">{subtitle}</p>
           ) : null}
         </div>
       </div>

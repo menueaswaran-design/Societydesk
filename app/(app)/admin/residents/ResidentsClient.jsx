@@ -257,15 +257,15 @@ export default function ResidentsClient({
       {tab === "list" && (
         <div className="space-y-4">
           {/* Filters Bar */}
-          <div className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-2xl bg-white p-3.5 sm:p-4 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative flex-1 max-w-sm">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder={isPg ? "Search resident, room, phone..." : "Search resident..."}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 py-2 sm:py-1.5 pl-9 pr-3 text-xs focus:border-primary-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200/90 bg-white py-2 pl-9.5 pr-3 text-xs text-slate-800 shadow-2xs placeholder:text-slate-400 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
               />
             </div>
 
@@ -274,7 +274,7 @@ export default function ResidentsClient({
                 <select
                   value={filterRoom}
                   onChange={(e) => setFilterRoom(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 sm:py-1.5 text-xs font-medium text-slate-700"
+                  className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
                 >
                   <option value="ALL">All Rooms</option>
                   {units.map((u) => (
@@ -288,7 +288,7 @@ export default function ResidentsClient({
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 sm:py-1.5 text-xs font-medium text-slate-700"
+                className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
               >
                 <option value="ACTIVE">Active Staying</option>
                 <option value="NOTICE">On Notice</option>
@@ -439,10 +439,10 @@ export default function ResidentsClient({
               </div>
 
               {/* Desktop Table (>= 640px) */}
-              <div className="hidden sm:block overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
+              <div className="hidden sm:block overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xs">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <thead className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                       <tr>
                         <th className="px-5 py-3.5">Occupant</th>
                         <th className="px-4 py-3.5">Room & Bed</th>

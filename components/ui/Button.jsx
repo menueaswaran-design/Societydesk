@@ -1,27 +1,29 @@
 const VARIANTS = {
   primary:
-    "bg-primary-800 text-white shadow-soft ring-1 ring-primary-900/10 hover:bg-primary-900 focus-visible:outline-primary-700",
+    "bg-slate-900 text-white shadow-2xs hover:bg-slate-800 active:scale-[0.98] focus-visible:outline-slate-900",
+  brand:
+    "bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 active:scale-[0.98] focus-visible:outline-emerald-600",
   accent:
-    "bg-slate-700 text-white shadow-soft ring-1 ring-slate-900/10 hover:bg-slate-800 focus-visible:outline-slate-700",
+    "bg-slate-800 text-white shadow-2xs hover:bg-slate-900 active:scale-[0.98] focus-visible:outline-slate-800",
   secondary:
-    "bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-slate-500",
+    "bg-white text-slate-700 border border-slate-200/90 shadow-2xs hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 focus-visible:outline-slate-500",
   outline:
-    "bg-transparent text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 focus-visible:outline-slate-500",
-  ghost: "text-slate-600 hover:bg-slate-900/5 hover:text-slate-900",
+    "bg-transparent text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:outline-slate-500",
+  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
   danger:
-    "bg-danger-600 text-white shadow-soft ring-1 ring-danger-700/10 hover:bg-danger-700 focus-visible:outline-danger-600",
+    "bg-rose-600 text-white shadow-2xs hover:bg-rose-700 active:scale-[0.98] focus-visible:outline-rose-600",
   "danger-ghost":
-    "text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:outline-danger-600",
+    "text-rose-600 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-rose-600",
   success:
-    "bg-success-600 text-white shadow-soft ring-1 ring-success-700/10 hover:bg-success-700 focus-visible:outline-success-600",
-  subtle: "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200",
+    "bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 active:scale-[0.98] focus-visible:outline-emerald-600",
+  subtle: "bg-slate-100 text-slate-700 hover:bg-slate-200/80",
 };
 
 const SIZES = {
-  xs: "h-7.5 gap-1.5 px-2.5 text-xs font-medium",
-  sm: "h-8.5 gap-1.5 px-3 text-xs font-medium",
-  md: "h-9.5 gap-2 px-3.5 text-[13px] font-medium",
-  lg: "h-10 gap-2 px-4 text-sm font-semibold",
+  xs: "h-7.5 gap-1.5 px-2.5 text-xs font-semibold rounded-lg",
+  sm: "h-8.5 gap-1.5 px-3 text-xs font-semibold rounded-lg",
+  md: "h-9.5 gap-2 px-3.5 text-[13px] font-semibold rounded-xl",
+  lg: "h-10.5 gap-2 px-4 text-sm font-semibold rounded-xl",
 };
 
 export default function Button({
@@ -43,7 +45,7 @@ export default function Button({
       disabled={Tag === "button" ? isDisabled : undefined}
       aria-disabled={Tag !== "button" && isDisabled ? true : undefined}
       aria-busy={loading || undefined}
-      className={`inline-flex shrink-0 items-center justify-center rounded-lg font-semibold whitespace-nowrap transition-all duration-150 select-none focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 ${VARIANTS[variant] ?? VARIANTS.primary} ${SIZES[size] ?? SIZES.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center font-semibold whitespace-nowrap transition-all duration-150 select-none focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 ${VARIANTS[variant] ?? VARIANTS.primary} ${SIZES[size] ?? SIZES.md} ${className}`}
       {...props}
     >
       {loading ? <Spinner /> : null}

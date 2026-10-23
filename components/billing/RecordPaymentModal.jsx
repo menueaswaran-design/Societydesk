@@ -185,7 +185,7 @@ export default function RecordPaymentModal({
 
       {receipt ? (
         <div className="space-y-4">
-          <div className="flex items-center gap-3 rounded-xl bg-emerald-50 px-4 py-3.5 ring-1 ring-emerald-200/80">
+          <div className="flex items-center gap-3 rounded-xl bg-emerald-50/70 p-4 border border-emerald-200/80 shadow-2xs">
             <CheckCircle2 className="size-6 shrink-0 text-emerald-600" />
             <div>
               <p className="text-sm font-bold text-emerald-900">
@@ -195,7 +195,7 @@ export default function RecordPaymentModal({
             </div>
           </div>
 
-          <div className="space-y-2 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-900/5">
+          <div className="space-y-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-4 py-3 shadow-2xs">
             <StatLine label="Receipt Number" value={receipt.receiptNumber} tone="muted" />
             <StatLine label="Payment Method" value={titleCase(paymentMethod)} />
             <StatLine label="Payment Date" value={paymentDate} tone="muted" />
@@ -219,18 +219,18 @@ export default function RecordPaymentModal({
                 Select Monthly Bill <span className="text-rose-500">*</span>
               </label>
               {invoices.length === 1 ? (
-                <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200 text-xs">
+                <div className="rounded-xl bg-slate-50/80 p-3.5 border border-slate-200/80 text-xs shadow-2xs">
                   <div className="flex justify-between font-semibold text-slate-900">
                     <span>{formatPeriod(invoices[0].billingPeriod)} Maintenance</span>
-                    <span className="text-amber-600">{formatMoney(invoices[0].outstanding)} due</span>
+                    <span className="text-amber-600 font-bold">{formatMoney(invoices[0].outstanding)} due</span>
                   </div>
-                  <p className="mt-0.5 text-slate-500">{invoices[0].invoiceNumber}</p>
+                  <p className="mt-0.5 text-slate-500 font-mono text-[11px]">{invoices[0].invoiceNumber}</p>
                 </div>
               ) : (
                 <select
                   value={selectedInvoiceId}
                   onChange={(e) => handleSelectInvoice(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs text-slate-900 shadow-2xs focus:outline-none focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15"
                 >
                   {invoices.map((inv) => (
                     <option key={inv.id} value={inv.id}>
@@ -257,7 +257,7 @@ export default function RecordPaymentModal({
 
             {/* Payment method */}
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-700">
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
                 Payment Method <span className="text-rose-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -266,10 +266,10 @@ export default function RecordPaymentModal({
                     key={m.value}
                     type="button"
                     onClick={() => setPaymentMethod(m.value)}
-                    className={`rounded-lg p-2.5 text-center text-xs font-medium transition-all ${
+                    className={`rounded-xl p-2.5 text-center text-xs font-semibold transition-all ${
                       paymentMethod === m.value
-                        ? "border-2 border-primary-800 bg-primary-50 text-primary-900 font-semibold"
-                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "border-2 border-emerald-600 bg-emerald-50/70 text-emerald-900 shadow-2xs"
+                        : "border border-slate-200/90 bg-white text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300"
                     }`}
                   >
                     {m.label}

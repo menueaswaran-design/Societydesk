@@ -46,7 +46,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === "string" ? title : undefined}
-        className={`animate-pop relative flex max-h-[92vh] w-full ${WIDTHS[size] ?? WIDTHS.md} flex-col overflow-hidden rounded-t-3xl bg-white shadow-pop sm:rounded-lg`}
+        className={`animate-pop relative flex max-h-[92vh] w-full ${WIDTHS[size] ?? WIDTHS.md} flex-col overflow-hidden rounded-t-3xl bg-white shadow-pop sm:rounded-2xl border border-slate-200/80`}
       >
         <span aria-hidden="true" className={`h-1 w-full shrink-0 ${accent}`} />
 

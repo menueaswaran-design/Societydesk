@@ -12,7 +12,7 @@ export function EmptyState({
       className={`flex flex-col items-center justify-center px-6 text-center ${compact ? "py-10" : "py-20"}`}
     >
       <span className="relative mb-5 inline-flex">
-        <span className="relative inline-flex size-14 items-center justify-center rounded-xl bg-slate-100 text-slate-500 ring-1 ring-slate-200 [&_svg]:size-6">
+        <span className="relative inline-flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 border border-slate-200/80 shadow-2xs [&_svg]:size-6">
           <Icon />
         </span>
       </span>
@@ -32,7 +32,7 @@ export function ErrorBanner({ error, onRetry, className = "" }) {
   return (
     <div
       role="alert"
-      className={`animate-pop flex items-start gap-3 rounded-lg bg-rose-50/80 px-4 py-3 text-sm ring-1 ring-rose-200/80 ${className}`}
+      className={`animate-pop flex items-start gap-3 rounded-xl bg-rose-50/80 px-4 py-3 text-sm border border-rose-200/80 shadow-2xs ${className}`}
     >
       <AlertCircle className="mt-0.5 size-4 shrink-0 text-rose-500" />
       <div className="min-w-0 flex-1">
@@ -55,7 +55,7 @@ export function ErrorBanner({ error, onRetry, className = "" }) {
 export function SuccessBanner({ title, children, icon: Icon, className = "" }) {
   return (
     <div
-      className={`animate-pop flex items-start gap-3 rounded-lg bg-emerald-50/80 px-4 py-3 text-sm ring-1 ring-emerald-200/80 ${className}`}
+      className={`animate-pop flex items-start gap-3 rounded-xl bg-emerald-50/80 px-4 py-3 text-sm border border-emerald-200/80 shadow-2xs ${className}`}
     >
       {Icon ? <Icon className="mt-0.5 size-4 shrink-0 text-emerald-500" /> : null}
       <div className="min-w-0 flex-1">

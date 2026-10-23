@@ -79,7 +79,7 @@ export default function PayCheckoutButton({
         // Simulated gateway. Show the confirmation step instead of a real popup.
         return;
       }
-      await openRazorpay(order.checkout);
+      await openRazorpay(order);
     } catch (err) {
       setError(err.message);
       setStage("idle");
@@ -87,7 +87,8 @@ export default function PayCheckoutButton({
   }
 
   /** Load Razorpay's script once, then open the real checkout popup. */
-  async function openRazorpay(co) {
+  async function openRazorpay(order) {
+    const co = order.checkout;
     const razorpay = await loadRazorpay();
     if (!razorpay) {
       setError("Could not load the payment window. Check your connection and try again.");
@@ -102,9 +103,30 @@ export default function PayCheckoutButton({
       currency: co.currency,
       name: "Bedy",
       description: `Invoice ${invoiceNumber ?? ""}`.trim(),
-      prefill: { name: flatLabel },
+      prefill: {
+        name: flatLabel || "Resident",
+        contact: "9876543210",
+      },
       notes: { invoiceNumber: invoiceNumber ?? "" },
-      theme: { color: "#4f46e5" },
+      theme: { color: "#10b981" },
+      config: {
+        display: {
+          blocks: {
+            upi: {
+              name: "Pay via UPI (GPay / PhonePe / Paytm / QR)",
+              instruments: [{ method: "upi" }],
+            },
+            other: {
+              name: "Other Payment Modes (Cards, NetBanking)",
+              instruments: [{ method: "card" }, { method: "netbanking" }],
+            },
+          },
+          sequence: ["block.upi", "block.other"],
+          preferences: {
+            show_default_blocks: true,
+          },
+        },
+      },
       handler: async (response) => {
         // Razorpay's checkout finished; the server still has to verify it.
         await confirm({
@@ -117,7 +139,9 @@ export default function PayCheckoutButton({
         ondismiss: () => {
           if (dismissed.current) return;
           // Resident backed out. Release the order so it stops looking pending.
-          api.post(`/api/payment-orders/${checkout.id}/cancel`, {}).catch(() => {});
+          if (order?.id) {
+            api.post(`/api/payment-orders/${order.id}/cancel`, {}).catch(() => {});
+          }
           setStage("idle");
           close();
         },

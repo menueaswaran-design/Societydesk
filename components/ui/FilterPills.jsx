@@ -3,10 +3,10 @@ import Link from "next/link";
 function Chip({ active, children, className = "" }) {
   return (
     <span
-      className={`inline-flex h-8 items-center rounded-full px-3.5 text-[13px] font-semibold whitespace-nowrap transition-all duration-150 ${
+      className={`inline-flex h-8 items-center rounded-full px-3.5 text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
         active
-          ? "bg-brand-600 text-white shadow-glow"
-          : "bg-white text-slate-600 ring-1 ring-slate-900/8 hover:bg-slate-50 hover:text-slate-900"
+          ? "bg-slate-900 text-white shadow-2xs"
+          : "bg-white text-slate-600 border border-slate-200/90 shadow-2xs hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300"
       } ${className}`}
     >
       {children}
@@ -44,10 +44,10 @@ export function FilterChips({ options, value, onChange, className = "" }) {
           type="button"
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
-          className={`shrink-0 inline-flex h-8 items-center rounded-full px-3.5 text-[13px] font-semibold whitespace-nowrap transition-all duration-150 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 focus-visible:outline-none ${
+          className={`shrink-0 inline-flex h-8 items-center rounded-full px-3.5 text-xs font-semibold whitespace-nowrap transition-all duration-150 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:outline-none ${
             value === o.value
-              ? "bg-brand-600 text-white shadow-glow"
-              : "bg-white text-slate-600 ring-1 ring-slate-900/8 hover:bg-slate-50 hover:text-slate-900"
+              ? "bg-slate-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 border border-slate-200/90 shadow-2xs hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300"
           }`}
         >
           {o.label}
