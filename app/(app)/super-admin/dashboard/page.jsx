@@ -30,8 +30,17 @@ export default async function SuperAdminDashboardPage() {
   requirePageRole(user, "SUPER_ADMIN");
 
   const data = await getPlatformDashboard();
-  const { cards } = data;
-  const societyAdminCount = cards.usersByRole.SOCIETY_ADMIN ?? 0;
+  const cards = data.cards || {
+    societies: data.totalSocieties || 0,
+    activeSocieties: data.activeSocieties || 0,
+    inactiveSocieties: 0,
+    usersByRole: {},
+    flats: data.totalFlats || 0,
+    invoices: 0,
+    complaints: 0,
+  };
+  const usersByRole = cards.usersByRole || {};
+  const societyAdminCount = usersByRole.SOCIETY_ADMIN ?? usersByRole.OWNER ?? 0;
 
   const snapshot = [
     {
@@ -42,7 +51,7 @@ export default async function SuperAdminDashboardPage() {
     },
     {
       label: "Residents",
-      value: cards.usersByRole.RESIDENT ?? 0,
+      value: usersByRole.RESIDENT ?? 0,
       hint: "Accounts on the platform",
       icon: Users,
     },
@@ -150,7 +159,7 @@ export default async function SuperAdminDashboardPage() {
             </Link>
           }
         />
-        {data.societies.length === 0 ? (
+        {(data.societies || []).length === 0 ? (
           <EmptyState
             icon={Building2}
             title="No societies yet"
@@ -179,7 +188,7 @@ export default async function SuperAdminDashboardPage() {
               { label: "", align: "right" },
             ]}
           >
-            {data.societies.map((s) => (
+            {(data.societies || []).map((s) => (
               <Tr key={s.id}>
                 <Td className="font-semibold text-slate-900">{s.name}</Td>
                 <Td className="hidden md:table-cell">
