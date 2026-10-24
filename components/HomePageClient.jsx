@@ -926,16 +926,25 @@ export default function HomePageClient({ user = null }) {
             </span>
           </div>
 
-          <div className="flex items-center gap-5 font-medium text-slate-600">
-            <Link href="/login" className="hover:text-slate-950 transition-colors">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-5 gap-y-2 font-medium text-slate-600">
+            <Link href="/features" className="hover:text-slate-950 transition-colors">
+              {isTa ? "அம்சங்கள்" : "Features"}
+            </Link>
+            <Link href="/pricing" className="hover:text-slate-950 transition-colors">
+              {isTa ? "கட்டணம்" : "Pricing"}
+            </Link>
+            <Link href="/refund-policy" className="hover:text-slate-950 transition-colors">
+              {isTa ? "திருப்பி அளித்தல்" : "Refund Policy"}
+            </Link>
+            <Link href="/terms" className="hover:text-slate-950 transition-colors">
+              {isTa ? "விதிமுறைகள்" : "Terms"}
+            </Link>
+            <Link href="/privacy" className="hover:text-slate-950 transition-colors">
+              {isTa ? "தனியுரிமை" : "Privacy"}
+            </Link>
+            <Link href="/login" className="hover:text-slate-950 transition-colors font-semibold text-emerald-600">
               {isTa ? "உள்நுழை" : "Sign In"}
             </Link>
-            <Link href="/forgot-password" className="hover:text-slate-950 transition-colors">
-              {isTa ? "கடவுச்சொல் மீட்பு" : "Reset Password"}
-            </Link>
-            <a href="#live-preview" className="hover:text-slate-950 transition-colors">
-              {isTa ? "மாதிரி" : "Live Demo"}
-            </a>
           </div>
         </div>
       </footer>
