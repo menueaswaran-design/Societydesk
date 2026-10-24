@@ -1,12 +1,12 @@
-import { Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import FirebaseBootstrap from "@/components/FirebaseBootstrap";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-manrope",
 });
 
 export const metadata = {
@@ -107,14 +107,14 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={manrope.variable}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${inter.className} min-h-screen text-slate-900 bg-[#F8FAFC] antialiased`}>
+      <body className={`${manrope.className} min-h-screen text-slate-900 bg-[#F8FAFC] antialiased`}>
         <FirebaseBootstrap />
         <LanguageProvider>
           {children}
