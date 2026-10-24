@@ -19,8 +19,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Bedy Notification";
   const options = {
     body: data.body || "You have a new update.",
-    icon: data.icon || "/icons/icon-192.png",
-    badge: data.badge || "/icons/badge-72.png",
+    icon: data.icon || "/icons/icon-192.svg",
+    badge: data.badge || "/icons/badge-72.svg",
     tag: data.tag || "bedy-notification",
     renotify: true,
     data: {

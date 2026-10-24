@@ -45,10 +45,10 @@ export default function PushNotificationPrompt({ user }) {
       // LocalStorage unavailable
     }
 
-    // Delay slightly (2.5 seconds) so user gets oriented with page first
+    // Delay slightly (1.2 seconds) so user gets oriented with page first
     const timer = setTimeout(() => {
       setVisible(true);
-    }, 2500);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, [user]);
