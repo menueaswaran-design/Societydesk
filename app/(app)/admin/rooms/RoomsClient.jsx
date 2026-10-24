@@ -267,7 +267,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
           description="Try clearing your filters or create a new room."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {filteredUnits.map((unit) => {
             const unitBeds = unit.beds || [];
             const vacantCount = unitBeds.filter((b) => b.status === "VACANT").length;
@@ -278,32 +278,36 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
               <div
                 key={unit.id}
                 onClick={() => setSelectedRoom(unit)}
-                className="group relative flex flex-col justify-between h-[152px] rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all duration-150 hover:-translate-y-1 hover:border-slate-400 hover:shadow-md cursor-pointer select-none"
+                className={`group relative flex flex-col justify-between min-h-[175px] rounded-2xl border bg-white p-5 sm:p-6 shadow-2xs transition-all duration-200 hover:-translate-y-1 hover:shadow-lg cursor-pointer select-none ${
+                  isFull
+                    ? "border-slate-200/90 hover:border-slate-400"
+                    : "border-slate-200/90 hover:border-primary-500/60"
+                }`}
               >
                 {/* Top Row: Room Header & Status */}
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-base font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
                         Room {unit.unitNumber}
                       </h3>
                       {unit.floor ? (
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
-                          Fl {unit.floor}
+                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                          Floor {unit.floor}
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500 font-medium">
-                      {unit.unitType} Sharing · {unitBeds.length} Beds
+                    <p className="mt-1 text-xs text-slate-500 font-medium">
+                      {unit.unitType} Sharing · {unitBeds.length} {unitBeds.length === 1 ? "Bed" : "Beds"}
                     </p>
                   </div>
 
                   {/* Clean Status Badge */}
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight ${
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-tight shadow-2xs ${
                       isFull
-                        ? "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
-                        : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
+                        ? "bg-slate-100 text-slate-600 ring-1 ring-slate-200/80"
+                        : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/25"
                     }`}
                   >
                     {!isFull && <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />}
@@ -312,50 +316,42 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 </div>
 
                 {/* Middle Row: Price & Amenities */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-slate-900">
+                <div className="my-2.5 flex items-center justify-between">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-slate-900">
                       {formatMoney(unit.rentAmount)}
                     </span>
-                    <span className="text-[11px] text-slate-400 font-normal">/mo</span>
+                    <span className="text-xs text-slate-400 font-medium">/bed/mo</span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <div className="flex items-center gap-1.5">
                     {unit.ac && (
-                      <span className="inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-sky-700">
-                        <Wind className="size-2.5" /> AC
+                      <span
+                        title="Air Conditioned"
+                        className="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-600/20"
+                      >
+                        <Wind className="size-3" /> AC
                       </span>
                     )}
                     {unit.attachedBathroom && (
-                      <span className="inline-flex items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-indigo-700">
-                        <Bath className="size-2.5" /> Bath
+                      <span
+                        title="Attached Bathroom"
+                        className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-600/20"
+                      >
+                        <Bath className="size-3" /> Bath
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Bottom Row: Segmented Occupancy Bar (Never Wraps, 100% Equal Height) */}
-                <div>
-                  <div className="flex gap-1 h-1.5 w-full rounded-full overflow-hidden bg-slate-100">
-                    {unitBeds.map((b) => (
-                      <div
-                        key={b.id}
-                        className={`flex-1 rounded-full transition-all ${
-                          b.status === "OCCUPIED"
-                            ? "bg-slate-400"
-                            : b.status === "MAINTENANCE"
-                            ? "bg-amber-400"
-                            : "bg-emerald-500"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-400 font-medium">
-                    <span>{occupiedCount} of {unitBeds.length} Occupied</span>
-                    <span className="font-semibold text-primary-600 group-hover:underline inline-flex items-center gap-0.5">
-                      View Beds <ArrowRight className="size-3" />
-                    </span>
-                  </div>
+                {/* Bottom Row: Clean Bed Breakdown & Direct Click Prompt (NO PROGRESS BAR) */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium">
+                  <span className="text-slate-500">
+                    {occupiedCount} of {unitBeds.length} Beds Booked
+                  </span>
+                  <span className="inline-flex items-center gap-1 font-bold text-primary-600 group-hover:translate-x-1 transition-transform">
+                    View Beds & Manage <ArrowRight className="size-3.5" />
+                  </span>
                 </div>
               </div>
             );
