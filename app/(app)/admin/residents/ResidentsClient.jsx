@@ -20,6 +20,7 @@ import {
   Calendar,
   Receipt,
   MessageCircle,
+  FileText,
   X,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
