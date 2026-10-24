@@ -36,6 +36,7 @@ import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { api } from "@/lib/client/api";
 import { formatMoney, formatDate } from "@/lib/format";
 import { buildRentReminderMessage, getWhatsAppUrl } from "@/lib/billing/whatsapp";
+import DocumentUploadSection from "@/components/residents/DocumentUploadSection";
 
 const PG_CSV_TEMPLATE = `Room,Bed,Name,Phone,Email,JoinDate,MonthlyRent,Deposit
 101,A,Ravi Kumar,9876543210,ravi@email.com,2026-06-01,7500,15000
@@ -64,7 +65,23 @@ export default function ResidentsClient({
   residents = [],
   flats = [],
   userRole = "OWNER",
+  initialDocuments = [],
 }) {
+  const [documents, setDocuments] = useState(initialDocuments);
+  const [kycResident, setKycResident] = useState(null);
+
+  function getResidentKyc(userId) {
+    const docs = (documents || []).filter((d) => d.userId === userId);
+    const hasAadhaar = docs.some((d) => d.docType === "AADHAAR");
+    const hasPan = docs.some((d) => d.docType === "PAN");
+    return {
+      isComplete: hasAadhaar && hasPan,
+      hasAadhaar,
+      hasPan,
+      count: docs.length,
+      docs,
+    };
+  }
   const router = useRouter();
   const [tab, setTab] = useState("list");
 
@@ -346,6 +363,25 @@ export default function ResidentsClient({
                             </h3>
                             <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-600">
                               <span className="font-medium text-slate-800">Room {occ.unit?.unitNumber || "-"}</span>
+                              {(() => {
+                                const kyc = getResidentKyc(occ.user?.id);
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => setKycResident(occ.user)}
+                                    className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold transition ${
+                                      kyc.isComplete
+                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                        : kyc.count > 0
+                                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                        : "bg-rose-50 text-rose-700 border border-rose-200"
+                                    }`}
+                                  >
+                                    <ShieldCheck className="size-3" />
+                                    {kyc.isComplete ? "KYC ✓" : kyc.count > 0 ? `KYC ${kyc.count}/2` : "KYC ✕"}
+                                  </button>
+                                );
+                              })()}
                               {occ.bed ? (
                                 <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-700">
                                   Bed {occ.bed.bedLabel}
@@ -420,18 +456,29 @@ export default function ResidentsClient({
                           {occ.leaveDate ? ` · Left ${formatDate(occ.leaveDate)}` : ""}
                         </span>
 
-                        {!isLeft ? (
-                          <Button
-                            variant="secondary"
-                            size="xs"
-                            onClick={() => setCheckoutOccupancy(occ)}
+                        <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              onClick={() => setKycResident(occ.user)}
+                              className="!text-slate-700 hover:!bg-slate-100"
+                            >
+                              <FileText className="size-3" />
+                              KYC Docs
+                            </Button>
+                            {!isLeft ? (
+                              <Button
+                                variant="secondary"
+                                size="xs"
+                                onClick={() => setCheckoutOccupancy(occ)}
                             className="!text-rose-600 hover:!bg-rose-50 !border-rose-200"
                           >
                             Check-out
-                          </Button>
-                        ) : (
-                          <span className="text-slate-400 text-[11px] font-medium">Settled</span>
-                        )}
+                              </Button>
+                            ) : (
+                              <span className="text-slate-400 text-[11px] font-medium">Settled</span>
+                            )}
+                          </div>
                       </div>
                     </div>
                   );
@@ -465,7 +512,29 @@ export default function ResidentsClient({
                               <div className="flex items-center gap-3">
                                 <Avatar name={occ.user?.name} size="sm" />
                                 <div className="min-w-0">
-                                  <p className="font-semibold text-slate-900">{occ.user?.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-semibold text-slate-900">{occ.user?.name}</p>
+                                    {(() => {
+                                      const kyc = getResidentKyc(occ.user?.id);
+                                      return (
+                                        <button
+                                          type="button"
+                                          onClick={() => setKycResident(occ.user)}
+                                          className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.2 text-[10px] font-bold transition cursor-pointer ${
+                                            kyc.isComplete
+                                              ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                                              : kyc.count > 0
+                                              ? "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                                              : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+                                          }`}
+                                          title={kyc.isComplete ? "Aadhaar & PAN submitted" : "KYC incomplete - click to upload"}
+                                        >
+                                          <ShieldCheck className="size-2.5" />
+                                          {kyc.isComplete ? "Verified" : kyc.count > 0 ? `KYC ${kyc.count}/2` : "KYC Missing"}
+                                        </button>
+                                      );
+                                    })()}
+                                  </div>
                                   <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
                                     <span>{occ.user?.phone || occ.user?.email}</span>
                                     {occ.user?.phone ? (() => {
@@ -563,8 +632,18 @@ export default function ResidentsClient({
                             </td>
 
                             <td className="px-5 py-4 text-right">
-                              {!isLeft ? (
-                                <div className="flex items-center justify-end gap-1.5">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setKycResident(occ.user)}
+                                  className="text-[11px] text-slate-700 hover:bg-slate-100 font-semibold"
+                                  title="Manage KYC Documents"
+                                >
+                                  <FileText className="size-3.5" />
+                                  KYC Docs
+                                </Button>
+                                {!isLeft ? (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -931,6 +1010,33 @@ export default function ResidentsClient({
             </form>
           </div>
         </div>
+      ) : null}
+
+      {/* Tenant KYC Document Verification Modal */}
+      {kycResident ? (
+        <Modal
+          open={Boolean(kycResident)}
+          onClose={() => setKycResident(null)}
+          size="lg"
+          title={`Tenant Verification - ${kycResident.name}`}
+          description="View and upload Aadhaar Card, PAN Card, and government identity proofs."
+          footer={
+            <Button onClick={() => setKycResident(null)}>
+              Done
+            </Button>
+          }
+        >
+          <DocumentUploadSection
+            userId={kycResident.id}
+            initialDocuments={(documents || []).filter((d) => d.userId === kycResident.id)}
+            onDocumentsChange={(updatedResidentDocs) => {
+              setDocuments((prev) => [
+                ...updatedResidentDocs,
+                ...prev.filter((d) => d.userId !== kycResident.id),
+              ]);
+            }}
+          />
+        </Modal>
       ) : null}
     </div>
   );

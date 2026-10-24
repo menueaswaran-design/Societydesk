@@ -122,6 +122,14 @@ export default async function ResidentDashboardPage() {
       icon: Receipt,
       tone: "sky",
     },
+    {
+      href: "/resident/profile#documents",
+      title: "KYC Verification",
+      caption: data.kycStatus?.isComplete ? "Identity verified" : "Aadhaar & PAN required",
+      icon: ShieldCheck,
+      tone: data.kycStatus?.isComplete ? "green" : "amber",
+      badge: data.kycStatus?.isComplete ? "Verified" : "Action Needed",
+    },
   ];
 
   return (
@@ -158,6 +166,31 @@ export default async function ResidentDashboardPage() {
           )
         }
       />
+
+      {/* Verification / KYC Notification Banner */}
+      {!data.kycStatus?.isComplete ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50 to-orange-50/70 p-4 text-amber-950 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-2xs font-bold">
+              <ShieldCheck className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-slate-900">
+                Action Required: Tenant Verification Incomplete
+              </p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Please upload your <strong>Aadhaar Card</strong> (or valid Govt ID) and <strong>PAN Card</strong> for tenant verification records.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/resident/profile#documents"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-700 transition-colors shadow-2xs shrink-0"
+          >
+            Upload Documents →
+          </Link>
+        </div>
+      ) : null}
 
       {!hasLinkedUnit ? (
         <Card>

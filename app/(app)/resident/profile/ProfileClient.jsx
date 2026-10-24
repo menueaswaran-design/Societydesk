@@ -2,7 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, UserCircle, Home, ShieldCheck, Info, KeyRound, CheckCircle2, Globe } from "lucide-react";
+import {
+  Save,
+  UserCircle,
+  Home,
+  ShieldCheck,
+  Info,
+  KeyRound,
+  CheckCircle2,
+  Globe,
+  AlertCircle,
+  FileCheck2,
+} from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardHeader, CardNote } from "@/components/ui/Card";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -13,14 +24,20 @@ import Avatar from "@/components/ui/Avatar";
 import { api, fieldErrors } from "@/lib/client/api";
 import { formatDate, titleCase } from "@/lib/format";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import DocumentUploadSection from "@/components/residents/DocumentUploadSection";
 
-export default function ProfileClient({ account, flats }) {
+export default function ProfileClient({ account, flats, initialDocuments = [] }) {
   const router = useRouter();
   const [form, setForm] = useState({ name: account?.name ?? "", phone: account?.phone ?? "" });
+  const [documents, setDocuments] = useState(initialDocuments);
   const [error, setError] = useState(null);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const hasAadhaar = documents.some((d) => d.docType === "AADHAAR");
+  const hasPan = documents.some((d) => d.docType === "PAN");
+  const isKycComplete = hasAadhaar && hasPan;
 
   function set(key) {
     return (e) => {
@@ -62,13 +79,65 @@ export default function ProfileClient({ account, flats }) {
         }
       />
 
+      {/* KYC Alert Notification Banner */}
+      {!isKycComplete ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-amber-950 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white font-bold">
+              <AlertCircle className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-bold">Tenant Verification Documents Missing</p>
+              <p className="text-xs text-amber-800">
+                Please upload both your <strong>Aadhaar Card</strong> and <strong>PAN Card</strong> to complete your verification record.
+              </p>
+            </div>
+          </div>
+          <a
+            href="#documents"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-700 transition-colors shadow-2xs shrink-0"
+          >
+            Upload Documents ↓
+          </a>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-emerald-950 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold">
+              <FileCheck2 className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-bold">KYC Identity Verified</p>
+              <p className="text-xs text-emerald-700">
+                Your Aadhaar Card and PAN Card have been submitted for verification.
+              </p>
+            </div>
+          </div>
+          <a
+            href="#documents"
+            className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline shrink-0"
+          >
+            View Documents ↓
+          </a>
+        </div>
+      )}
+
       <Card className="flex flex-wrap items-center gap-4 p-5">
         <Avatar name={account?.name ?? "?"} size="xl" tone="brand" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-semibold text-slate-900">{account?.name}</p>
           <p className="truncate text-sm text-slate-500">{account?.email}</p>
         </div>
-        <StatusBadge status={account?.status} />
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              isKycComplete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+            }`}
+          >
+            {isKycComplete ? "✓ KYC Verified" : "⚠ KYC Pending"}
+          </span>
+          <StatusBadge status={account?.status} />
+        </div>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -168,6 +237,15 @@ export default function ProfileClient({ account, flats }) {
               <Row label="Account status">
                 <StatusBadge status={account?.status} />
               </Row>
+              <Row label="KYC Verification">
+                <span
+                  className={`inline-flex items-center gap-1 font-semibold text-xs ${
+                    isKycComplete ? "text-emerald-700" : "text-amber-700"
+                  }`}
+                >
+                  {isKycComplete ? "✓ Complete (Aadhaar & PAN)" : "⚠ Missing Documents"}
+                </span>
+              </Row>
               <Row label="Member since">{formatDate(account?.createdAt)}</Row>
               <Row label="Role">
                 <span className="inline-flex items-center gap-1.5 text-slate-700">
@@ -196,6 +274,22 @@ export default function ProfileClient({ account, flats }) {
             </div>
           </Card>
         </div>
+      </div>
+
+      {/* KYC Documents Section */}
+      <div id="documents" className="scroll-mt-6">
+        <Card className="p-5 sm:p-6 space-y-4">
+          <CardHeader
+            title="Tenant Verification & Documents (KYC)"
+            subtitle="Upload Aadhaar card and PAN card for tenant identification and regulatory verification."
+            icon={ShieldCheck}
+          />
+          <DocumentUploadSection
+            userId={account?.id}
+            initialDocuments={documents}
+            onDocumentsChange={(updated) => setDocuments(updated)}
+          />
+        </Card>
       </div>
 
       <CardNote tone="slate" icon={Info} title="Managed by your society">

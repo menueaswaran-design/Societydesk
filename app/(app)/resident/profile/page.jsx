@@ -11,7 +11,7 @@ export default async function ResidentProfilePage() {
   const user = await getServerSession();
   requirePageRole(user, "RESIDENT");
 
-  const [account, flats] = await Promise.all([
+  const [account, flats, documents] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -35,6 +35,10 @@ export default async function ResidentProfilePage() {
       },
       orderBy: [{ block: "asc" }, { flatNumber: "asc" }],
     }),
+    prisma.tenantDocument.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   return (
@@ -43,6 +47,10 @@ export default async function ResidentProfilePage() {
         ...account,
         createdAt: account?.createdAt?.toISOString() ?? null,
       }}
+      initialDocuments={documents.map((d) => ({
+        ...d,
+        createdAt: d.createdAt?.toISOString() ?? null,
+      }))}
       flats={flats.map((f) => ({
         id: f.id,
         flatNumber: f.flatNumber,

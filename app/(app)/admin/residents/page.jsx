@@ -30,7 +30,7 @@ export default async function AdminResidentsPage() {
   const flatWhere = { societyId: user.societyId };
   if (flatAdmin) flatWhere.id = { in: managedFlatIds };
 
-  const [occupancies, units, residents, flats, totalSocietyFlats] = await Promise.all([
+  const [occupancies, units, residents, flats, totalSocietyFlats, documents] = await Promise.all([
     prisma.occupancy.findMany({
       where: { societyId: user.societyId },
       include: {
@@ -78,6 +78,10 @@ export default async function AdminResidentsPage() {
       orderBy: [{ block: "asc" }, { flatNumber: "asc" }],
     }),
     prisma.flat.count({ where: { societyId: user.societyId } }),
+    prisma.tenantDocument.findMany({
+      where: { societyId: user.societyId },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   return (
@@ -90,6 +94,10 @@ export default async function AdminResidentsPage() {
       residents={residents}
       flats={flats}
       totalSocietyFlats={totalSocietyFlats}
+      initialDocuments={documents.map((d) => ({
+        ...d,
+        createdAt: d.createdAt?.toISOString() ?? null,
+      }))}
     />
   );
 }

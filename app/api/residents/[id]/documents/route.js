@@ -1,8 +1,8 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireResidentManager, resolveSocietyScope } from "@/lib/auth/permissions";
+import { requireResidentManager, resolveSocietyScope, isStaff, isSuperAdmin } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
-import { notFound, forbidden } from "@/lib/errors";
+import { notFound, forbidden, badRequest } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,6 @@ export const dynamic = "force-dynamic";
  */
 export const GET = handler(async (req, { params }) => {
   const user = await getSessionUser(req);
-  const societyId = resolveSocietyScope(user, null);
   const { id } = await params;
 
   // Non-staff can only see their own documents
@@ -20,8 +19,16 @@ export const GET = handler(async (req, { params }) => {
     throw forbidden("You cannot access another resident's KYC documents");
   }
 
+  const residentUser = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, societyId: true },
+  });
+  if (!residentUser) throw notFound("Resident not found");
+
+  const societyId = residentUser.societyId || user.societyId;
+
   const documents = await prisma.tenantDocument.findMany({
-    where: { societyId, userId: id },
+    where: { userId: id, ...(societyId ? { societyId } : {}) },
     orderBy: { createdAt: "desc" },
   });
 
@@ -31,19 +38,32 @@ export const GET = handler(async (req, { params }) => {
 /**
  * POST /api/residents/:id/documents
  * Attach a new ID proof document reference for a resident.
+ * Allowed for the resident themselves OR staff/admin/owner.
  */
 export const POST = handler(async (req, { params }) => {
   const user = await getSessionUser(req);
-  requireResidentManager(user);
-  const societyId = resolveSocietyScope(user, null);
   const { id } = await params;
 
-  const residentUser = await prisma.user.findFirst({
-    where: { id, societyId },
+  const isSelf = user.id === id;
+  if (!isSelf && !isStaff(user) && !isSuperAdmin(user)) {
+    requireResidentManager(user);
+  }
+
+  const residentUser = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, societyId: true },
   });
-  if (!residentUser) throw notFound("Resident not found in this PG");
+  if (!residentUser) throw notFound("Resident not found");
+
+  const societyId = residentUser.societyId || user.societyId;
+  if (!societyId) {
+    throw badRequest("No society or property linked to this resident");
+  }
 
   const body = await readJson(req);
+  if (!body.fileUrl) {
+    throw badRequest("fileUrl is required");
+  }
 
   const doc = await prisma.tenantDocument.create({
     data: {
@@ -52,7 +72,7 @@ export const POST = handler(async (req, { params }) => {
       docType: body.docType || "OTHER",
       fileUrl: body.fileUrl,
       cloudinaryPublicId: body.cloudinaryPublicId || null,
-      resourceType: body.resourceType || "image",
+      resourceType: body.resourceType || (body.fileUrl.endsWith(".pdf") ? "raw" : "image"),
       uploadedBy: user.id,
     },
   });
@@ -60,3 +80,31 @@ export const POST = handler(async (req, { params }) => {
   return ok(doc, { status: 201 });
 });
 
+/**
+ * DELETE /api/residents/:id/documents?docId=...
+ * Delete a document reference.
+ */
+export const DELETE = handler(async (req, { params }) => {
+  const user = await getSessionUser(req);
+  const { id } = await params;
+
+  const isSelf = user.id === id;
+  if (!isSelf && !isStaff(user) && !isSuperAdmin(user)) {
+    requireResidentManager(user);
+  }
+
+  const sp = req.nextUrl.searchParams;
+  const docId = sp.get("docId");
+  if (!docId) throw badRequest("docId query parameter is required");
+
+  const existing = await prisma.tenantDocument.findFirst({
+    where: { id: docId, userId: id },
+  });
+  if (!existing) throw notFound("Document not found");
+
+  await prisma.tenantDocument.delete({
+    where: { id: docId },
+  });
+
+  return ok({ success: true, deletedId: docId });
+});
