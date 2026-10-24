@@ -652,10 +652,10 @@ export default function ResidentsClient({
                                   >
                                     Check-out
                                   </Button>
-                                </div>
-                              ) : (
-                                <span className="text-[11px] text-slate-400">Settled</span>
-                              )}
+                                ) : (
+                                  <span className="text-[11px] text-slate-400">Settled</span>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
