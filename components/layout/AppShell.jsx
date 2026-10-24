@@ -165,6 +165,7 @@ const NAV = {
         { href: "/resident/payments", label: "Payment Receipts", icon: Receipt },
         { href: "/resident/complaints", label: "Complaints", icon: AlertTriangle },
         { href: "/resident/notices", label: "Notices", icon: Megaphone },
+        { href: "/resident/vacate", label: "Vacate / Notice Period", icon: DoorOpen },
       ],
     },
     {

@@ -135,6 +135,20 @@ export default async function ResidentDashboardPage() {
       tone: data.kycStatus?.isComplete ? "green" : "amber",
       badge: data.kycStatus?.isComplete ? "Verified" : "Action Needed",
     },
+    ...(isPgResident
+      ? [
+          {
+            href: "/resident/vacate",
+            title: isNotice ? "Notice Active (Vacating)" : "Vacate PG / Notice",
+            caption: isNotice
+              ? `Move-out: ${formatDate(primaryOccupancy.leaveDate)} (${daysLeft}d left)`
+              : "Planning to leave? Serve move-out notice",
+            icon: DoorOpen,
+            tone: isNotice ? "amber" : "slate",
+            badge: isNotice ? "On Notice" : "Vacating",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -155,20 +169,38 @@ export default async function ResidentDashboardPage() {
             : "All caught up"
         }
         actions={
-          due ? (
-            <PayCheckoutButton
-              invoiceId={due.id}
-              invoiceNumber={due.invoiceNumber}
-              amount={due.outstanding}
-              flatLabel={dueLabel}
-              size="lg"
-              label="Pay now"
-            />
-          ) : (
-            <Button as="a" href="/resident/invoices" variant="secondary" size="lg">
-              View invoices
-            </Button>
-          )
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {due ? (
+              <PayCheckoutButton
+                invoiceId={due.id}
+                invoiceNumber={due.invoiceNumber}
+                amount={due.outstanding}
+                flatLabel={dueLabel}
+                size="lg"
+                label="Pay now"
+              />
+            ) : (
+              <Button as="a" href="/resident/invoices" variant="secondary" size="lg">
+                View invoices
+              </Button>
+            )}
+            {isPgResident && (
+              <Button
+                as="a"
+                href="/resident/vacate"
+                variant="secondary"
+                size="lg"
+                className={
+                  isNotice
+                    ? "!border-amber-400 !bg-amber-100 !text-amber-900 font-bold shadow-2xs"
+                    : "!border-slate-300 font-bold hover:!bg-slate-100 shadow-2xs"
+                }
+              >
+                <DoorOpen className="size-4 text-amber-600" />
+                {isNotice ? `On Notice (${daysLeft}d left)` : "Vacate PG / Notice"}
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -256,25 +288,44 @@ export default async function ResidentDashboardPage() {
                     </div>
                   </div>
                   <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      {isNotice ? "On Notice Period" : "Planning to leave?"}
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {isNotice ? "Move-out Scheduled" : "Vacating this PG?"}
                     </span>
-                    <ResidentNoticeModal occupancy={primaryOccupancy} />
+                    <div className="flex items-center gap-1.5">
+                      <Link
+                        href="/resident/vacate"
+                        className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-2xs"
+                      >
+                        <DoorOpen className="size-3.5 text-amber-700" />
+                        {isNotice ? `Manage (${daysLeft}d)` : "Vacate / Notice →"}
+                      </Link>
+                    </div>
                   </div>
                 </Card>
 
-              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex items-center gap-3">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                  <ShieldCheck className="size-5" />
+              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex flex-col justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                    <ShieldCheck className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Security Deposit</p>
+                    <p className="text-base font-bold text-slate-900 mt-0.5">
+                      {data.depositStatus ? formatMoney(data.depositStatus.amount) : "Recorded"}
+                    </p>
+                    <p className="text-xs text-emerald-600 font-medium">
+                      Status: {data.depositStatus?.status || "HELD"} (Refundable)
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Security Deposit</p>
-                  <p className="text-base font-bold text-slate-900 mt-0.5">
-                    {data.depositStatus ? formatMoney(data.depositStatus.amount) : "Recorded"}
-                  </p>
-                  <p className="text-xs text-emerald-600 font-medium">
-                    Status: {data.depositStatus?.status || "HELD"} (Refundable at move-out)
-                  </p>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500 font-medium">Refund Policy</span>
+                  <Link
+                    href="/resident/vacate"
+                    className="text-xs font-bold text-blue-700 hover:text-blue-800"
+                  >
+                    View Settlement →
+                  </Link>
                 </div>
               </Card>
 

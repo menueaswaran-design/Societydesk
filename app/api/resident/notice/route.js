@@ -94,3 +94,4 @@ export const DELETE = handler(async (req) => {
     message: "Notice withdrawn. Your stay remains active.",
   });
 });
+
