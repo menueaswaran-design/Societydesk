@@ -78,9 +78,9 @@ export default function HomePageClient({ user = null }) {
       {user ? (
         <aside
           aria-label="Active session banner"
-          className="bg-slate-950 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold border-b border-slate-800"
+          className="bg-slate-950 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold border-b border-slate-800"
         >
-          <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div className="mx-auto max-w-6xl flex flex-row items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2 min-w-0">
               <span className="size-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               <span className="truncate">
@@ -109,7 +109,7 @@ export default function HomePageClient({ user = null }) {
 
       {/* Modern Clean Header */}
       <header className="border-b border-slate-200/80 bg-white/95 sticky top-0 z-30 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl flex h-14 sm:h-16 items-center justify-between px-3.5 sm:px-6">
+        <div className="mx-auto max-w-6xl flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6 gap-2">
           <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
             <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white text-base font-black tracking-tight shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
               B
@@ -181,11 +181,11 @@ export default function HomePageClient({ user = null }) {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="py-10 sm:py-16 lg:py-20 border-b border-slate-200/70 bg-gradient-to-b from-white via-white to-slate-50/70">
+        <section className="py-8 sm:py-14 lg:py-20 border-b border-slate-200/70 bg-gradient-to-b from-white via-white to-slate-50/70">
           <div className="mx-auto max-w-6xl px-3.5 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
               {/* Left Column: Authentic, punchy messaging */}
-              <div className="lg:col-span-6 space-y-4 sm:space-y-6 text-left">
+              <div className="lg:col-span-6 space-y-3.5 sm:space-y-6 text-left">
                 <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/80 px-3 py-1 text-[11px] sm:text-xs font-bold text-emerald-800">
                   <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>
@@ -195,7 +195,7 @@ export default function HomePageClient({ user = null }) {
                   </span>
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-950 leading-[1.12]">
+                <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-950 leading-[1.18] sm:leading-[1.12]">
                   {isTa ? (
                     <>
                       வாடகை வசூல் தானியங்கி முறையில்.{" "}
@@ -232,7 +232,7 @@ export default function HomePageClient({ user = null }) {
                       type="button"
                       onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
                       disabled={Boolean(loggingIn)}
-                      className="flex items-center justify-between gap-2 rounded-xl bg-slate-950 px-3.5 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
+                      className="flex items-center justify-between gap-2 rounded-xl bg-slate-950 px-3 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
                     >
                       <div className="flex items-center gap-2.5">
                         {loggingIn === "owner@srilakshmipg.local" ? (
@@ -253,7 +253,7 @@ export default function HomePageClient({ user = null }) {
                       type="button"
                       onClick={() => quickLogin("manager@srilakshmipg.local", "/admin/dashboard")}
                       disabled={Boolean(loggingIn)}
-                      className="flex items-center justify-between gap-2 rounded-xl bg-emerald-700 px-3.5 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-800 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
+                      className="flex items-center justify-between gap-2 rounded-xl bg-emerald-700 px-3 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-800 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
                     >
                       <div className="flex items-center gap-2.5">
                         {loggingIn === "manager@srilakshmipg.local" ? (
@@ -274,7 +274,7 @@ export default function HomePageClient({ user = null }) {
                       type="button"
                       onClick={() => quickLogin("resident@srilakshmipg.local", "/resident/dashboard")}
                       disabled={Boolean(loggingIn)}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
                     >
                       <div className="flex items-center gap-2.5">
                         {loggingIn === "resident@srilakshmipg.local" ? (
@@ -295,7 +295,7 @@ export default function HomePageClient({ user = null }) {
                       type="button"
                       onClick={() => quickLogin("admin@greenvalley.local", "/admin/dashboard")}
                       disabled={Boolean(loggingIn)}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 shadow-2xs cursor-pointer min-h-[46px]"
                     >
                       <div className="flex items-center gap-2.5">
                         {loggingIn === "admin@greenvalley.local" ? (
@@ -347,7 +347,7 @@ export default function HomePageClient({ user = null }) {
                   </div>
 
                   {/* 4 Feature Tab Selectors */}
-                  <div className="flex items-center gap-1 bg-slate-100/90 p-1.5 border-b border-slate-200/80 overflow-x-auto no-scrollbar text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 bg-slate-100/90 p-1.5 border-b border-slate-200/80 overflow-x-auto no-scrollbar text-xs font-semibold">
                     <button
                       type="button"
                       onClick={() => setDemoTab("whatsapp")}
