@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import PayCheckoutButton from "@/components/billing/PayCheckoutButton";
 import Welcome from "@/components/dashboard/Welcome";
 import ResidentNoticeModal from "@/components/resident/ResidentNoticeModal";
+import MobilePushPromptBanner from "@/components/notifications/MobilePushPromptBanner";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import {
   Wallet,
@@ -203,6 +204,9 @@ export default async function ResidentDashboardPage() {
           </div>
         }
       />
+
+      {/* Mobile Push Notification Opt-in Prompt */}
+      <MobilePushPromptBanner user={user} />
 
       {/* Verification / KYC Notification Banner */}
       {!data.kycStatus?.isComplete ? (

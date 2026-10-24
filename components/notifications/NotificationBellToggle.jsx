@@ -21,15 +21,18 @@ export default function NotificationBellToggle({ user, compact = false }) {
     setSupported(true);
     setPermission(getNotificationPermission());
 
-    // Check backend subscription status
-    fetch("/api/push/subscribe")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.data?.enabled) {
-          setSubscribed(true);
-        }
-      })
-      .catch(() => null);
+    // Check local device push subscription status directly with ServiceWorker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.pushManager.getSubscription().then((sub) => {
+          if (sub) {
+            setSubscribed(true);
+          } else {
+            setSubscribed(false);
+          }
+        }).catch(() => setSubscribed(false));
+      }).catch(() => null);
+    }
   }, [user]);
 
   if (!supported || !user) return null;
@@ -76,10 +79,10 @@ export default function NotificationBellToggle({ user, compact = false }) {
     return (
       <button
         type="button"
-        onClick={subscribed ? handleSendTest : handleToggle}
+        onClick={handleToggle}
         title={
           subscribed
-            ? "Push notifications active (Click to send test alert)"
+            ? "Push notifications active (Click to disable or manage)"
             : "Click to enable browser push notifications"
         }
         className={`relative inline-flex size-9 items-center justify-center rounded-xl border transition ${
