@@ -160,8 +160,24 @@ export const POST = handler(async (req) => {
       });
     }
 
-    // 5. Store ID proof document if uploaded
-    if (body.docType && body.docUrl) {
+    // 5. Store ID proof documents if uploaded
+    if (Array.isArray(body.documents) && body.documents.length > 0) {
+      for (const doc of body.documents) {
+        if (doc?.fileUrl) {
+          await tx.tenantDocument.create({
+            data: {
+              societyId,
+              userId: residentUser.id,
+              docType: doc.docType || "OTHER",
+              fileUrl: doc.fileUrl,
+              cloudinaryPublicId: doc.cloudinaryPublicId || doc.publicId || null,
+              resourceType: doc.resourceType || "image",
+              uploadedBy: user.id,
+            },
+          });
+        }
+      }
+    } else if (body.docType && body.docUrl) {
       await tx.tenantDocument.create({
         data: {
           societyId,

@@ -21,9 +21,12 @@ import {
   Receipt,
   MessageCircle,
   FileText,
+  FileCheck2,
+  Trash2,
+  Eye,
   X,
 } from "lucide-react";
-import Button from "@/components/ui/Button";
+import Button, { Spinner } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Table, { Tr, Td } from "@/components/ui/Table";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -43,6 +46,17 @@ const PG_CSV_TEMPLATE = `Room,Bed,Name,Phone,Email,JoinDate,MonthlyRent,Deposit
 101,A,Ravi Kumar,9876543210,ravi@email.com,2026-06-01,7500,15000
 101,B,Arun Prasad,9876543211,arun@email.com,2026-07-15,7500,15000
 201,A,Suresh Nair,9876543212,suresh@email.com,2026-08-01,8500,17000`;
+
+const KYC_DOCUMENT_OPTIONS = [
+  { value: "AADHAAR", label: "Aadhaar Card / Govt ID", required: true },
+  { value: "PAN", label: "PAN Card", required: true },
+  { value: "COLLEGE_ID", label: "College / Student ID" },
+  { value: "OFFICE_ID", label: "Company / Work ID" },
+  { value: "DRIVING_LICENSE", label: "Driving License" },
+  { value: "PASSPORT", label: "Passport" },
+  { value: "VOTER_ID", label: "Voter ID" },
+  { value: "OTHER", label: "Other ID Proof" },
+];
 
 const EMPTY_CHECKIN = {
   name: "",
@@ -89,6 +103,10 @@ export default function ResidentsClient({
   // Check-in modal
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkInForm, setCheckInForm] = useState(EMPTY_CHECKIN);
+  const [checkInDocs, setCheckInDocs] = useState([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docUploadError, setDocUploadError] = useState(null);
+  const [docTypeToUpload, setDocTypeToUpload] = useState("AADHAAR");
   const [checkInSaving, setCheckInSaving] = useState(false);
   const [checkInError, setCheckInError] = useState(null);
 
@@ -139,6 +157,58 @@ export default function ResidentsClient({
     });
   }, [occupancies, query, filterStatus, filterRoom]);
 
+  async function handleOnboardingDocUpload(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setUploadingDoc(true);
+    setDocUploadError(null);
+
+    try {
+      const newDocs = [];
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`File ${file.name} is larger than 10 MB`);
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "kyc");
+
+        const res = await fetch("/api/uploads", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data?.error?.message || `Failed to upload ${file.name}`);
+        }
+
+        newDocs.push({
+          docType: docTypeToUpload,
+          fileUrl: data.data.fileUrl,
+          cloudinaryPublicId: data.data.publicId,
+          resourceType: data.data.resourceType,
+          fileName: file.name,
+        });
+      }
+
+      setCheckInDocs((prev) => {
+        const next = [...prev, ...newDocs];
+        if (docTypeToUpload === "AADHAAR" && !next.some((d) => d.docType === "PAN")) {
+          setDocTypeToUpload("PAN");
+        }
+        return next;
+      });
+    } catch (err) {
+      setDocUploadError(err?.message || "Failed to upload document");
+    } finally {
+      setUploadingDoc(false);
+      e.target.value = "";
+    }
+  }
+
   // Check-in submit
   async function handleCheckInSubmit(e) {
     e.preventDefault();
@@ -148,6 +218,7 @@ export default function ResidentsClient({
     try {
       await api.post("/api/occupancies", {
         ...checkInForm,
+        documents: checkInDocs,
         monthlyRent: Number(checkInForm.monthlyRent),
         depositAmount: Number(checkInForm.depositAmount),
         noticePeriodDays: Number(checkInForm.noticePeriodDays),
@@ -155,6 +226,8 @@ export default function ResidentsClient({
 
       setCheckInOpen(false);
       setCheckInForm(EMPTY_CHECKIN);
+      setCheckInDocs([]);
+      setDocUploadError(null);
       router.refresh();
     } catch (err) {
       setCheckInError(err?.message || "Failed to check-in resident");
@@ -739,7 +812,7 @@ export default function ResidentsClient({
                 </p>
               </div>
               <button
-                onClick={() => setCheckInOpen(false)}
+                onClick={() => { setCheckInOpen(false); setCheckInDocs([]); setDocUploadError(null); }}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
                 <X className="size-5" />
@@ -861,27 +934,152 @@ export default function ResidentsClient({
                 />
               </div>
 
-              <div className="pt-1 border-t border-slate-100">
-                <p className="text-xs font-semibold text-slate-700 mb-2">ID Proof / KYC (Optional)</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Select
-                    label="Document Type"
-                    value={checkInForm.docType}
-                    onChange={(e) => setCheckInForm({ ...checkInForm, docType: e.target.value })}
-                  >
-                    <option value="AADHAAR">Aadhaar Card</option>
-                    <option value="PAN">PAN Card</option>
-                    <option value="COLLEGE_ID">College Student ID</option>
-                    <option value="OFFICE_ID">Company Employee ID</option>
-                    <option value="OTHER">Other Proof</option>
-                  </Select>
-                  <Input
-                    label="Document URL"
-                    placeholder="https://..."
-                    value={checkInForm.docUrl}
-                    onChange={(e) => setCheckInForm({ ...checkInForm, docUrl: e.target.value })}
-                  />
+              <div className="pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">
+                      ID Proof & KYC Documents (Optional)
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Choose required document type and upload directly here
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        checkInDocs.some((d) => d.docType === "AADHAAR")
+                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      Aadhaar {checkInDocs.some((d) => d.docType === "AADHAAR") ? "✓" : "Pending"}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        checkInDocs.some((d) => d.docType === "PAN")
+                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      PAN {checkInDocs.some((d) => d.docType === "PAN") ? "✓" : "Pending"}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Document Type Picker & Direct Uploader */}
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                    <div className="sm:col-span-6">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Select Document Needed
+                      </label>
+                      <select
+                        value={docTypeToUpload}
+                        onChange={(e) => setDocTypeToUpload(e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      >
+                        {KYC_DOCUMENT_OPTIONS.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label} {t.required ? "(Recommended)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-6">
+                      <label
+                        className={`flex items-center justify-center gap-2 w-full rounded-lg border border-primary-600 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-100 cursor-pointer ${
+                          uploadingDoc ? "opacity-60 cursor-not-allowed" : ""
+                        }`}
+                      >
+                        {uploadingDoc ? (
+                          <>
+                            <Spinner className="size-3.5 text-primary-600" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="size-3.5" />
+                            <span>
+                              Upload{" "}
+                              {
+                                KYC_DOCUMENT_OPTIONS.find((t) => t.value === docTypeToUpload)
+                                  ?.label?.split(" ")[0]
+                              }{" "}
+                              Doc
+                            </span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          multiple
+                          disabled={uploadingDoc}
+                          className="hidden"
+                          onChange={handleOnboardingDocUpload}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {docUploadError ? (
+                    <p className="mt-2 text-[11px] font-medium text-rose-600">{docUploadError}</p>
+                  ) : null}
+                </div>
+
+                {/* Attached Documents List */}
+                {checkInDocs.length > 0 ? (
+                  <div className="mt-2.5 space-y-1.5">
+                    <p className="text-[11px] font-semibold text-slate-600">
+                      Uploaded Documents ({checkInDocs.length}):
+                    </p>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {checkInDocs.map((doc, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-2xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileCheck2 className="size-4 shrink-0 text-emerald-600" />
+                            <div className="truncate">
+                              <span className="font-semibold text-slate-800">
+                                {
+                                  KYC_DOCUMENT_OPTIONS.find((t) => t.value === doc.docType)?.label ||
+                                  doc.docType
+                                }
+                              </span>
+                              <span className="ml-1.5 text-[11px] text-slate-400 truncate">
+                                ({doc.fileName || "Uploaded file"})
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-primary-600 hover:bg-primary-50 hover:underline"
+                            >
+                              <Eye className="size-3" />
+                              View
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCheckInDocs((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                              title="Remove document"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
