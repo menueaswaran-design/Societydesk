@@ -26,7 +26,27 @@ export default async function AdminPaymentsPage() {
       where,
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
-        invoice: { select: { id: true, invoiceNumber: true, billingPeriod: true } },
+        occupancy: {
+          include: {
+            unit: { select: { unitNumber: true } },
+            bed: { select: { bedLabel: true } },
+            user: { select: { name: true } },
+          },
+        },
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            billingPeriod: true,
+            occupancy: {
+              include: {
+                unit: { select: { unitNumber: true } },
+                bed: { select: { bedLabel: true } },
+                user: { select: { name: true } },
+              },
+            },
+          },
+        },
         receipts: { select: { id: true, receiptNumber: true, pdfUrl: true } },
         recordedBy: { select: { name: true } },
       },
@@ -49,13 +69,17 @@ export default async function AdminPaymentsPage() {
       _sum: { amount: true },
       _count: { _all: true },
     }),
-    // Outstanding online collection links. Kept separate from payments because
-    // none of this money has arrived yet - mixing the two would overstate
-    // collections.
     prisma.paymentOrder.findMany({
       where: { ...where, status: { in: ["CREATED", "EXPIRED"] } },
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
+        occupancy: {
+          include: {
+            unit: { select: { unitNumber: true } },
+            bed: { select: { bedLabel: true } },
+            user: { select: { name: true } },
+          },
+        },
         invoice: { select: { id: true, invoiceNumber: true } },
         initiatedBy: { select: { name: true } },
       },
@@ -64,13 +88,26 @@ export default async function AdminPaymentsPage() {
     }),
   ]);
 
-  // Flatten the receipt relation so the client can render it without nesting.
-  const rows = payments.map(({ receipts, ...p }) => ({
-    ...p,
-    paymentDate: p.paymentDate?.toISOString() ?? null,
-    receiptNumber: receipts[0]?.receiptNumber ?? null,
-    receiptUrl: receipts[0]?.pdfUrl ?? null,
-  }));
+  // Flatten the receipt relation and derive clean Room / Flat labels
+  const rows = payments.map(({ receipts, ...p }) => {
+    const occ = p.occupancy || p.invoice?.occupancy;
+    let unitLabel = "";
+    if (occ?.unit?.unitNumber) {
+      unitLabel = `Room ${occ.unit.unitNumber}${occ.bed?.bedLabel ? ` (${occ.bed.bedLabel})` : ""}`;
+    } else if (p.flat?.flatNumber) {
+      unitLabel = p.flat.block ? `${p.flat.block}-${p.flat.flatNumber}` : `Flat ${p.flat.flatNumber}`;
+    } else {
+      unitLabel = "—";
+    }
+
+    return {
+      ...p,
+      unitLabel,
+      paymentDate: p.paymentDate?.toISOString() ?? null,
+      receiptNumber: receipts[0]?.receiptNumber ?? null,
+      receiptUrl: receipts[0]?.pdfUrl ?? null,
+    };
+  });
 
   const byMethod = Object.fromEntries(
     Object.values(PAYMENT_METHOD).map((m) => {
@@ -82,11 +119,23 @@ export default async function AdminPaymentsPage() {
   return (
     <PaymentsClient
       payments={rows}
-      pendingOrders={pendingOrders.map((o) => ({
-        ...o,
-        createdAt: o.createdAt?.toISOString() ?? null,
-        expiresAt: o.expiresAt?.toISOString() ?? null,
-      }))}
+      pendingOrders={pendingOrders.map((o) => {
+        let unitLabel = "";
+        if (o.occupancy?.unit?.unitNumber) {
+          unitLabel = `Room ${o.occupancy.unit.unitNumber}${o.occupancy.bed?.bedLabel ? ` (${o.occupancy.bed.bedLabel})` : ""}`;
+        } else if (o.flat?.flatNumber) {
+          unitLabel = o.flat.block ? `${o.flat.block}-${o.flat.flatNumber}` : `Flat ${o.flat.flatNumber}`;
+        } else {
+          unitLabel = "—";
+        }
+
+        return {
+          ...o,
+          unitLabel,
+          createdAt: o.createdAt?.toISOString() ?? null,
+          expiresAt: o.expiresAt?.toISOString() ?? null,
+        };
+      })}
       summary={{
         total: totals._sum.amount ?? 0,
         count: totals._count._all,

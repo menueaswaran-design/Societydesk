@@ -26,7 +26,23 @@ export default async function AdminComplaintsPage({ searchParams }) {
       where,
       include: {
         flat: { select: { id: true, flatNumber: true, block: true } },
-        createdBy: { select: { id: true, name: true, phone: true } },
+        unit: { select: { id: true, unitNumber: true, floor: true } },
+        bed: { select: { id: true, bedLabel: true } },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            occupancies: {
+              where: { status: { in: ["ACTIVE", "NOTICE"] } },
+              include: {
+                unit: { select: { unitNumber: true } },
+                bed: { select: { bedLabel: true } },
+              },
+              take: 1,
+            },
+          },
+        },
         assignedTo: { select: { id: true, name: true } },
         _count: { select: { comments: true, attachments: true } },
       },
@@ -45,5 +61,31 @@ export default async function AdminComplaintsPage({ searchParams }) {
     }),
   ]);
 
-  return <ComplaintsClient complaints={complaints} assignees={assignees} flats={flats} filters={{ status }} />;
+  const complaintsWithUnitLabel = complaints.map((c) => {
+    let unitLabel = "";
+    if (c.unit?.unitNumber) {
+      unitLabel = `Room ${c.unit.unitNumber}${c.bed?.bedLabel ? ` (${c.bed.bedLabel})` : ""}`;
+    } else if (c.flat?.flatNumber) {
+      unitLabel = c.flat.block ? `${c.flat.block}-${c.flat.flatNumber}` : `Flat ${c.flat.flatNumber}`;
+    } else if (c.createdBy?.occupancies?.[0]?.unit?.unitNumber) {
+      const occ = c.createdBy.occupancies[0];
+      unitLabel = `Room ${occ.unit.unitNumber}${occ.bed?.bedLabel ? ` (${occ.bed.bedLabel})` : ""}`;
+    } else {
+      unitLabel = "General";
+    }
+
+    return {
+      ...c,
+      unitLabel,
+    };
+  });
+
+  return (
+    <ComplaintsClient
+      complaints={complaintsWithUnitLabel}
+      assignees={assignees}
+      flats={flats}
+      filters={{ status }}
+    />
+  );
 }

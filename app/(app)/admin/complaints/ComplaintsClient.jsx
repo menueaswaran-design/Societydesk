@@ -107,12 +107,15 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
 
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                     <Badge tone="slate" size="xs">{titleCase(c.category)}</Badge>
-                    {c.flat?.flatNumber && (
-                      <>
-                        <span>•</span>
-                        <span>Flat {c.flat?.block ? `${c.flat.block}-` : ""}{c.flat.flatNumber}</span>
-                      </>
-                    )}
+                    {(() => {
+                      const loc = c.unitLabel || (c.unit?.unitNumber ? `Room ${c.unit.unitNumber}${c.bed?.bedLabel ? ` (${c.bed.bedLabel})` : ""}` : (c.flat?.flatNumber ? (c.flat.block ? `${c.flat.block}-${c.flat.flatNumber}` : `Flat ${c.flat.flatNumber}`) : null));
+                      return loc ? (
+                        <>
+                          <span>•</span>
+                          <span className="font-medium text-slate-700">{loc}</span>
+                        </>
+                      ) : null;
+                    })()}
                     <span>•</span>
                     <span>{formatDateTime(c.createdAt)}</span>
                   </div>
@@ -142,7 +145,7 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
                 dense
                 head={[
                   { label: "Complaint" },
-                  { label: "Flat" },
+                  { label: "Room / Flat" },
                   { label: "Category", className: "hidden lg:table-cell" },
                   { label: "Priority" },
                   { label: "Raised by", className: "hidden md:table-cell" },
@@ -165,9 +168,8 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
                         {c._count?.comments ? ` · ${c._count.comments} updates` : ""}
                       </span>
                     </Td>
-                    <Td className="tabular whitespace-nowrap">
-                      {c.flat?.block ? `${c.flat.block}-` : ""}
-                      {c.flat?.flatNumber}
+                    <Td className="tabular whitespace-nowrap font-medium text-slate-800">
+                      {c.unitLabel || (c.unit?.unitNumber ? `Room ${c.unit.unitNumber}${c.bed?.bedLabel ? ` (${c.bed.bedLabel})` : ""}` : (c.flat?.flatNumber ? (c.flat.block ? `${c.flat.block}-${c.flat.flatNumber}` : `Flat ${c.flat.flatNumber}`) : "—"))}
                     </Td>
                     <Td className="hidden lg:table-cell">
                       <Badge>{titleCase(c.category)}</Badge>

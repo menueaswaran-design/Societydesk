@@ -149,7 +149,7 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
               dense
               head={[
                 { label: "Invoice" },
-                { label: "Flat" },
+                { label: "Room / Flat" },
                 { label: "Issued by", className: "hidden md:table-cell" },
                 { label: "Started", className: "hidden lg:table-cell" },
                 { label: "Expires" },
@@ -161,9 +161,8 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
               {visiblePending.map((o) => (
                 <Tr key={o.id} className="bg-amber-50/25 hover:bg-amber-50/50">
                   <Td className="font-mono font-semibold text-slate-900 whitespace-nowrap">{o.invoice?.invoiceNumber ?? "-"}</Td>
-                  <Td className="tabular whitespace-nowrap">
-                    {o.flat?.block ? `${o.flat.block}-` : ""}
-                    {o.flat?.flatNumber}
+                  <Td className="tabular whitespace-nowrap font-medium text-slate-800">
+                    {o.unitLabel || (o.flat?.flatNumber ? (o.flat.block ? `${o.flat.block}-${o.flat.flatNumber}` : `Flat ${o.flat.flatNumber}`) : "—")}
                   </Td>
                   <Td className="hidden md:table-cell">{o.initiatedBy?.name ?? "-"}</Td>
                   <Td className="hidden whitespace-nowrap lg:table-cell">
@@ -269,12 +268,15 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
                         <span>{formatDate(p.paymentDate)}</span>
-                        {p.flat?.flatNumber && (
-                          <>
-                            <span>•</span>
-                            <span>Flat {p.flat?.block ? `${p.flat.block}-` : ""}{p.flat.flatNumber}</span>
-                          </>
-                        )}
+                        {(() => {
+                          const loc = p.unitLabel || (p.flat?.flatNumber ? (p.flat.block ? `${p.flat.block}-${p.flat.flatNumber}` : `Flat ${p.flat.flatNumber}`) : null);
+                          return loc && loc !== "—" ? (
+                            <>
+                              <span>•</span>
+                              <span className="font-medium text-slate-700">{loc}</span>
+                            </>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
@@ -335,7 +337,7 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
                   { label: "Date" },
                   { label: "Receipt" },
                   { label: "Invoice", className: "hidden sm:table-cell" },
-                  { label: "Flat" },
+                  { label: "Room / Flat" },
                   { label: "Period", className: "hidden lg:table-cell" },
                   { label: "Method" },
                   { label: "Reference", className: "hidden xl:table-cell" },
@@ -351,9 +353,8 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
                       {p.receiptNumber ?? <span className="text-slate-400 font-sans">-</span>}
                     </Td>
                     <Td className="font-mono hidden sm:table-cell whitespace-nowrap">{p.invoice?.invoiceNumber}</Td>
-                    <Td className="tabular whitespace-nowrap">
-                      {p.flat?.block ? `${p.flat.block}-` : ""}
-                      {p.flat?.flatNumber}
+                    <Td className="tabular whitespace-nowrap font-medium text-slate-800">
+                      {p.unitLabel || (p.flat?.flatNumber ? (p.flat.block ? `${p.flat.block}-${p.flat.flatNumber}` : `Flat ${p.flat.flatNumber}`) : "—")}
                     </Td>
                     <Td className="hidden lg:table-cell">{formatPeriod(p.invoice?.billingPeriod)}</Td>
                     <Td>
