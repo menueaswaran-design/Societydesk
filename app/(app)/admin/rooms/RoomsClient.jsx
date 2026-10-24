@@ -364,8 +364,9 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             );
           })}
         </div>
+      )}
 
-        {/* Room Detail Modal / Click-to-open UI */}
+      {/* Room Detail Modal / Click-to-open UI */}
         {selectedRoom ? (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 p-2 sm:p-4 backdrop-blur-xs">
             <div className="w-full max-w-xl rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
@@ -542,7 +543,6 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             </div>
           </div>
         ) : null}
-      )}
 
       {/* Modal: Add Room */}
       {isAddOpen ? (
