@@ -10,6 +10,7 @@ import { ProgressRing } from "@/components/ui/Progress";
 import LinkRow from "@/components/ui/LinkRow";
 import Button from "@/components/ui/Button";
 import Welcome from "@/components/dashboard/Welcome";
+import Avatar from "@/components/ui/Avatar";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import {
   CalendarDays,
@@ -27,6 +28,7 @@ import {
   TrendingUp,
   BedSingle,
   DoorOpen,
+  Phone,
   ArrowRight,
 } from "lucide-react";
 
@@ -178,26 +180,107 @@ export default async function AdminDashboardPage() {
 
       {/* Upcoming Move-outs notice for PG */}
       {isPg && data.upcomingMoveOuts?.length > 0 ? (
-        <div className="flex items-center justify-between rounded-xl bg-amber-50 p-4 border border-amber-200/80 text-amber-950">
-          <div className="flex items-center gap-3">
-            <DoorOpen className="size-5 text-amber-600 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold">
-                {data.upcomingMoveOuts.length} Resident(s) Scheduled for Move-out
-              </p>
-              <p className="text-xs text-amber-800/90 mt-0.5">
-                {data.upcomingMoveOuts.map((o) => `${o.user.name} (Room ${o.unit?.unitNumber || "-"})`).join(", ")}
-              </p>
+        <Card className="overflow-hidden border-2 border-amber-200/90 bg-gradient-to-br from-amber-50/60 via-white to-orange-50/40 p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-amber-200/60">
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-xs font-bold">
+                <DoorOpen className="size-5" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900">
+                    Tenants Serving Notice Period
+                  </h3>
+                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 ring-1 ring-amber-600/30">
+                    {data.upcomingMoveOuts.length} Vacating Soon
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Tenants who have requested move-out or are serving notice. Review their deposit settlements and room turnarounds.
+                </p>
+              </div>
             </div>
+
+            <Link
+              href="/admin/residents?status=NOTICE"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 px-3.5 py-2 text-xs font-bold text-white shadow-2xs transition-all shrink-0 self-start sm:self-auto"
+            >
+              Manage All in Residents
+              <ArrowRight className="size-3.5" />
+            </Link>
           </div>
-          <Link
-            href="/admin/residents"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 shrink-0"
-          >
-            Review & Settle Deposit
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {data.upcomingMoveOuts.map((occ) => {
+              const daysLeft = occ.leaveDate
+                ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
+                : null;
+              const depositHeld = occ.deposits?.[0]?.amountReceived || occ.depositAmount || 0;
+
+              return (
+                <Link
+                  key={occ.id}
+                  href="/admin/residents?status=NOTICE"
+                  className={`group relative flex flex-col justify-between rounded-xl border p-4 bg-white shadow-2xs transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                    daysLeft !== null && daysLeft <= 7
+                      ? "border-rose-300 ring-1 ring-rose-500/20 hover:border-rose-400"
+                      : daysLeft !== null && daysLeft <= 15
+                      ? "border-amber-300 ring-1 ring-amber-500/20 hover:border-amber-400"
+                      : "border-yellow-300 ring-1 ring-yellow-500/20 hover:border-yellow-400"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar name={occ.user?.name} size="sm" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-slate-900 group-hover:text-primary-700 transition-colors truncate">
+                          {occ.user?.name}
+                        </p>
+                        <p className="text-xs text-slate-500 font-medium truncate">
+                          Room {occ.unit?.unitNumber || "-"} · Bed {occ.bed?.bedLabel || "-"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold shrink-0 ${
+                        daysLeft !== null && daysLeft <= 7
+                          ? "bg-rose-100 text-rose-800 ring-1 ring-rose-600/30"
+                          : daysLeft !== null && daysLeft <= 15
+                          ? "bg-amber-100 text-amber-800 ring-1 ring-amber-600/30"
+                          : "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/30"
+                      }`}
+                    >
+                      {daysLeft !== null && daysLeft <= 7 ? "🔴" : daysLeft !== null && daysLeft <= 15 ? "🟠" : "🟡"}{" "}
+                      {daysLeft !== null ? `${daysLeft}d left` : "On Notice"}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-[10.5px] text-slate-400 block font-medium">Leave Date</span>
+                      <span className="font-bold text-slate-800 text-xs">
+                        {occ.leaveDate ? formatDate(occ.leaveDate) : "Pending"}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10.5px] text-slate-400 block font-medium">Deposit Held</span>
+                      <span className="font-bold text-emerald-700 text-xs">
+                        {depositHeld > 0 ? formatMoney(depositHeld) : "Recorded"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-amber-700 group-hover:text-amber-800">
+                    <span>Settle & Check-out</span>
+                    <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </Card>
       ) : null}
 
       <Card className="p-5 sm:p-6">

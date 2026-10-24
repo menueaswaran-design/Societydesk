@@ -12,6 +12,7 @@ import {
   Wind,
   Bath,
   DoorOpen,
+  Calendar,
   X,
   Building2,
   Users,
@@ -23,7 +24,7 @@ import {
 import Button from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatDate } from "@/lib/format";
 import { api } from "@/lib/client/api";
 
 const BED_STATUS_THEME = {
@@ -92,6 +93,9 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
     }
     if (filterStatus === "OCCUPIED") {
       return u.beds.every((b) => b.status === "OCCUPIED");
+    }
+    if (filterStatus === "NOTICE") {
+      return u.beds.some((b) => b.occupancies?.some((o) => o.status === "NOTICE"));
     }
     if (filterStatus === "MAINTENANCE") {
       return u.beds.some((b) => b.status === "MAINTENANCE");
@@ -242,6 +246,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             <option value="ALL">All Bed Statuses</option>
             <option value="VACANT">Has Vacant Beds</option>
             <option value="OCCUPIED">Fully Occupied</option>
+            <option value="NOTICE">⚠️ On Notice (Vacating)</option>
             <option value="MAINTENANCE">Has Maintenance</option>
           </select>
 
@@ -273,13 +278,17 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             const vacantCount = unitBeds.filter((b) => b.status === "VACANT").length;
             const occupiedCount = unitBeds.filter((b) => b.status === "OCCUPIED").length;
             const isFull = vacantCount === 0 && unitBeds.length > 0;
+            const noticeBeds = unitBeds.filter((b) => b.occupancies?.some((o) => o.status === "NOTICE"));
+            const hasNotice = noticeBeds.length > 0;
 
             return (
               <div
                 key={unit.id}
                 onClick={() => setSelectedRoom(unit)}
                 className={`group relative flex flex-col justify-between min-h-[175px] rounded-2xl border bg-white p-5 sm:p-6 shadow-2xs transition-all duration-200 hover:-translate-y-1 hover:shadow-lg cursor-pointer select-none ${
-                  isFull
+                  hasNotice
+                    ? "border-amber-300 ring-1 ring-amber-400/20 hover:border-amber-500"
+                    : isFull
                     ? "border-slate-200/90 hover:border-slate-400"
                     : "border-slate-200/90 hover:border-primary-500/60"
                 }`}
@@ -302,17 +311,28 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                     </p>
                   </div>
 
-                  {/* Clean Status Badge */}
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-tight shadow-2xs ${
-                      isFull
-                        ? "bg-slate-100 text-slate-600 ring-1 ring-slate-200/80"
-                        : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/25"
-                    }`}
-                  >
-                    {!isFull && <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                    {isFull ? "Full" : `${vacantCount} Vacant`}
-                  </span>
+                  {/* Clean Status Badges (with Notice indicator) */}
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {hasNotice && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-800 ring-1 ring-amber-600/30"
+                        title={`${noticeBeds.length} bed(s) vacating soon on notice`}
+                      >
+                        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        ⚠️ {noticeBeds.length} Vacating
+                      </span>
+                    )}
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-tight shadow-2xs ${
+                        isFull
+                          ? "bg-slate-100 text-slate-600 ring-1 ring-slate-200/80"
+                          : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/25"
+                      }`}
+                    >
+                      {!isFull && <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                      {isFull ? "Full" : `${vacantCount} Vacant`}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Middle Row: Price & Amenities */}
@@ -458,15 +478,26 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
 
               <div className="space-y-3">
                 {selectedRoom.beds?.map((bed) => {
-                  const isOcc = bed.status === "OCCUPIED";
+                  const activeOccupancy = bed.occupancies?.[0];
+                  const occupant = activeOccupancy?.user;
+                  const isOcc = bed.status === "OCCUPIED" || !!activeOccupancy;
+                  const isNotice = activeOccupancy?.status === "NOTICE";
                   const isMaint = bed.status === "MAINTENANCE";
-                  const occupant = bed.occupancies?.[0]?.user;
+                  const daysLeft = activeOccupancy?.leaveDate
+                    ? Math.max(0, Math.ceil((new Date(activeOccupancy.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
+                    : null;
 
                   return (
                     <div
                       key={bed.id}
                       className={`rounded-2xl border p-4 transition-all ${
-                        isOcc
+                        isNotice
+                          ? daysLeft !== null && daysLeft <= 7
+                            ? "border-rose-300 bg-rose-50/40 ring-1 ring-rose-500/20 shadow-2xs"
+                            : daysLeft !== null && daysLeft <= 15
+                            ? "border-amber-300 bg-amber-50/40 ring-1 ring-amber-500/20 shadow-2xs"
+                            : "border-yellow-300 bg-yellow-50/40 ring-1 ring-yellow-500/20 shadow-2xs"
+                          : isOcc
                           ? "border-slate-200 bg-white shadow-2xs"
                           : isMaint
                           ? "border-amber-200 bg-amber-50/30"
@@ -477,7 +508,11 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                         <div className="flex items-center gap-3.5">
                           <div
                             className={`flex size-11 shrink-0 items-center justify-center rounded-2xl font-black text-base border shadow-2xs ${
-                              isOcc
+                              isNotice
+                                ? daysLeft !== null && daysLeft <= 7
+                                  ? "bg-rose-100 text-rose-900 border-rose-300"
+                                  : "bg-amber-100 text-amber-900 border-amber-300"
+                                : isOcc
                                 ? "bg-slate-100 text-slate-800 border-slate-200"
                                 : isMaint
                                 ? "bg-amber-100 text-amber-900 border-amber-200"
@@ -490,13 +525,27 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                           <div>
                             {isOcc && occupant ? (
                               <div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <h4 className="font-bold text-sm text-slate-900">
                                     {occupant.name}
                                   </h4>
-                                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10.5px] font-bold text-blue-700 ring-1 ring-blue-600/20">
-                                    Active Resident
-                                  </span>
+                                  {isNotice ? (
+                                    <span
+                                      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ${
+                                        daysLeft !== null && daysLeft <= 7
+                                          ? "bg-rose-100 text-rose-800 ring-rose-600/30"
+                                          : daysLeft !== null && daysLeft <= 15
+                                          ? "bg-orange-100 text-orange-800 ring-orange-600/30"
+                                          : "bg-yellow-100 text-yellow-800 ring-yellow-600/30"
+                                      }`}
+                                    >
+                                      ⚠️ On Notice · {daysLeft !== null ? `Vacating in ${daysLeft}d` : "Move-out pending"}
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10.5px] font-bold text-blue-700 ring-1 ring-blue-600/20">
+                                      Active Resident
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                                   {occupant.phone && (
@@ -510,6 +559,12 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                                     /mo
                                   </span>
                                 </div>
+                                {isNotice && activeOccupancy?.leaveDate && (
+                                  <p className="mt-1 text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+                                    <Calendar className="size-3.5 text-amber-600 shrink-0" />
+                                    Scheduled Move-out: {formatDate(activeOccupancy.leaveDate)}
+                                  </p>
+                                )}
                               </div>
                             ) : (
                               <div>
@@ -541,7 +596,16 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
 
                         {/* Bed Action Buttons */}
                         <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                          {isOcc ? (
+                          {isNotice ? (
+                            <Button
+                              as="a"
+                              href="/admin/residents?status=NOTICE"
+                              size="sm"
+                              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-2xs"
+                            >
+                              Review & Settle
+                            </Button>
+                          ) : isOcc ? (
                             <Button
                               as="a"
                               href="/admin/residents"

@@ -81,6 +81,8 @@ export default function ResidentsClient({
   flats = [],
   userRole = "OWNER",
   initialDocuments = [],
+  initialStatus = "ACTIVE",
+  initialRoom = "ALL",
 }) {
   const [documents, setDocuments] = useState(initialDocuments);
   const [kycResident, setKycResident] = useState(null);
@@ -123,10 +125,20 @@ export default function ResidentsClient({
   // Record payment
   const [paymentResident, setPaymentResident] = useState(null);
 
+  // Notice management modal state
+  const [noticeOccupancy, setNoticeOccupancy] = useState(null);
+  const [noticeLeaveDate, setNoticeLeaveDate] = useState("");
+  const [noticeSaving, setNoticeSaving] = useState(false);
+  const [noticeError, setNoticeError] = useState(null);
+
   // Search & Filters
   const [query, setQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ACTIVE");
-  const [filterRoom, setFilterRoom] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState(initialStatus);
+  const [filterRoom, setFilterRoom] = useState(initialRoom);
+
+  const activeCount = useMemo(() => occupancies.filter((o) => o.status === "ACTIVE").length, [occupancies]);
+  const noticeCount = useMemo(() => occupancies.filter((o) => o.status === "NOTICE").length, [occupancies]);
+  const leftCount = useMemo(() => occupancies.filter((o) => o.status === "LEFT").length, [occupancies]);
 
   // CSV Import
   const [csvText, setCsvText] = useState("");
@@ -233,6 +245,42 @@ export default function ResidentsClient({
       setCheckInError(err?.message || "Failed to check-in resident");
     } finally {
       setCheckInSaving(false);
+    }
+  }
+
+  // Set notice by Admin
+  async function handleSetNotice(e) {
+    e.preventDefault();
+    if (!noticeOccupancy) return;
+    setNoticeSaving(true);
+    setNoticeError(null);
+
+    try {
+      await api.patch(`/api/occupancies/${noticeOccupancy.id}`, {
+        status: "NOTICE",
+        leaveDate: noticeLeaveDate,
+      });
+
+      setNoticeOccupancy(null);
+      router.refresh();
+    } catch (err) {
+      setNoticeError(err?.message || "Failed to set notice");
+    } finally {
+      setNoticeSaving(false);
+    }
+  }
+
+  // Withdraw notice by Admin
+  async function handleWithdrawNotice(occId) {
+    if (!confirm("Are you sure you want to cancel the notice period and keep this resident active?")) return;
+    try {
+      await api.patch(`/api/occupancies/${occId}`, {
+        status: "ACTIVE",
+        leaveDate: null,
+      });
+      router.refresh();
+    } catch (err) {
+      alert(err?.message || "Failed to cancel notice");
     }
   }
 
@@ -347,6 +395,63 @@ export default function ResidentsClient({
 
       {tab === "list" && (
         <div className="space-y-4">
+          {/* Quick Filter Status Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <button
+              type="button"
+              onClick={() => setFilterStatus("ALL")}
+              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 ${
+                filterStatus === "ALL"
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80"
+              }`}
+            >
+              All Records ({occupancies.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus("ACTIVE")}
+              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 ${
+                filterStatus === "ACTIVE"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80"
+              }`}
+            >
+              Active Staying ({activeCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus("NOTICE")}
+              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 flex items-center gap-1.5 ${
+                filterStatus === "NOTICE"
+                  ? "bg-amber-500 text-white"
+                  : noticeCount > 0
+                  ? "bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100"
+                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80"
+              }`}
+            >
+              <span>⚠️ On Notice</span>
+              <span
+                className={`rounded-full px-2 py-0.2 text-[10px] font-black ${
+                  filterStatus === "NOTICE" ? "bg-white text-amber-900" : "bg-amber-200 text-amber-900"
+                }`}
+              >
+                {noticeCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus("LEFT")}
+              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 ${
+                filterStatus === "LEFT"
+                  ? "bg-slate-700 text-white"
+                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80"
+              }`}
+            >
+              Checked Out ({leftCount})
+            </button>
+          </div>
+
           {/* Filters Bar */}
           <div className="flex flex-col gap-3 rounded-2xl bg-white p-3.5 sm:p-4 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative flex-1 max-w-sm">
@@ -381,10 +486,10 @@ export default function ResidentsClient({
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
               >
-                <option value="ACTIVE">Active Staying</option>
-                <option value="NOTICE">On Notice</option>
-                <option value="LEFT">Checked Out</option>
-                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active Staying ({activeCount})</option>
+                <option value="NOTICE">⚠️ On Notice ({noticeCount})</option>
+                <option value="LEFT">Checked Out ({leftCount})</option>
+                <option value="ALL">All Statuses ({occupancies.length})</option>
               </select>
             </div>
           </div>
@@ -404,6 +509,9 @@ export default function ResidentsClient({
                   const depositAmount = occ.deposits?.[0]?.amountReceived || occ.depositAmount || 0;
                   const isNotice = occ.status === "NOTICE";
                   const isLeft = occ.status === "LEFT";
+                  const daysLeft = occ.leaveDate
+                    ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
+                    : null;
                   const pendingInv = occ.invoices?.[0];
                   const pendingAmount = pendingInv ? pendingInv.totalAmount - pendingInv.paidAmount : 0;
                   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -425,8 +533,42 @@ export default function ResidentsClient({
                   return (
                     <div
                       key={occ.id}
-                      className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3 transition-colors"
+                      className={`rounded-2xl border p-4 shadow-2xs space-y-3 transition-colors ${
+                        isNotice
+                          ? daysLeft !== null && daysLeft <= 7
+                            ? "border-2 border-rose-300 bg-rose-50/30"
+                            : daysLeft !== null && daysLeft <= 15
+                            ? "border-2 border-amber-300 bg-amber-50/30"
+                            : "border-2 border-yellow-300 bg-yellow-50/30"
+                          : "border-slate-200/90 bg-white"
+                      }`}
                     >
+                      {/* Prominent Notice Banner if on notice */}
+                      {isNotice && (
+                        <div
+                          className={`flex items-center justify-between rounded-xl p-2.5 text-xs font-semibold border ${
+                            daysLeft !== null && daysLeft <= 7
+                              ? "bg-rose-100/90 border-rose-300 text-rose-950"
+                              : daysLeft !== null && daysLeft <= 15
+                              ? "bg-amber-100/90 border-amber-300 text-amber-950"
+                              : "bg-yellow-100/90 border-yellow-300 text-yellow-950"
+                          }`}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <span
+                              className={`size-2 rounded-full ${
+                                daysLeft !== null && daysLeft <= 7 ? "bg-rose-600" : "bg-amber-600"
+                              } animate-pulse`}
+                            />
+                            {daysLeft !== null && daysLeft <= 7
+                              ? `🔴 Vacating in ${daysLeft} days (Urgent)`
+                              : daysLeft !== null && daysLeft <= 15
+                              ? `🟠 Vacating in ${daysLeft} days`
+                              : `🟡 On Notice (${daysLeft !== null ? `${daysLeft}d left` : "Serving"})`}
+                          </span>
+                          {occ.leaveDate && <span>Move-out: {formatDate(occ.leaveDate)}</span>}
+                        </div>
+                      )}
                       {/* Top Header: Occupant name + Room badge + Status */}
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -530,7 +672,7 @@ export default function ResidentsClient({
                           {occ.leaveDate ? ` · Left ${formatDate(occ.leaveDate)}` : ""}
                         </span>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
                             <Button
                               variant="secondary"
                               size="xs"
@@ -538,17 +680,52 @@ export default function ResidentsClient({
                               className="!text-slate-700 hover:!bg-slate-100"
                             >
                               <FileText className="size-3" />
-                              KYC Docs
+                              KYC
                             </Button>
-                            {!isLeft ? (
-                              <Button
-                                variant="secondary"
-                                size="xs"
-                                onClick={() => setCheckoutOccupancy(occ)}
-                            className="!text-rose-600 hover:!bg-rose-50 !border-rose-200"
-                          >
-                            Check-out
-                              </Button>
+                            {isNotice ? (
+                              <>
+                                <Button
+                                  variant="secondary"
+                                  size="xs"
+                                  onClick={() => setCheckoutOccupancy(occ)}
+                                  className="!bg-amber-600 !text-white hover:!bg-amber-700 !border-amber-600 font-bold"
+                                >
+                                  Settle Deposit
+                                </Button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleWithdrawNotice(occ.id)}
+                                  className="text-[11px] text-slate-500 hover:text-slate-700 px-1"
+                                >
+                                  Withdraw
+                                </button>
+                              </>
+                            ) : !isLeft ? (
+                              <>
+                                <Button
+                                  variant="secondary"
+                                  size="xs"
+                                  onClick={() => {
+                                    setNoticeOccupancy(occ);
+                                    const defDate = new Date(Date.now() + (occ.noticePeriodDays || 30) * 24 * 60 * 60 * 1000)
+                                      .toISOString()
+                                      .slice(0, 10);
+                                    setNoticeLeaveDate(defDate);
+                                  }}
+                                  className="!text-amber-700 hover:!bg-amber-50 !border-amber-300"
+                                >
+                                  <DoorOpen className="size-3" />
+                                  Notice
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  size="xs"
+                                  onClick={() => setCheckoutOccupancy(occ)}
+                                  className="!text-rose-600 hover:!bg-rose-50 !border-rose-200"
+                                >
+                                  Check-out
+                                </Button>
+                              </>
                             ) : (
                               <span className="text-slate-400 text-[11px] font-medium">Settled</span>
                             )}
@@ -579,9 +756,23 @@ export default function ResidentsClient({
                         const depositAmount = occ.deposits?.[0]?.amountReceived || occ.depositAmount || 0;
                         const isNotice = occ.status === "NOTICE";
                         const isLeft = occ.status === "LEFT";
+                        const daysLeft = occ.leaveDate
+                          ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
+                          : null;
 
                         return (
-                          <tr key={occ.id} className="transition-colors hover:bg-slate-50/60">
+                          <tr
+                            key={occ.id}
+                            className={`transition-colors ${
+                              isNotice
+                                ? daysLeft !== null && daysLeft <= 7
+                                  ? "bg-rose-50/50 hover:bg-rose-100/40 border-l-4 border-l-rose-500"
+                                  : daysLeft !== null && daysLeft <= 15
+                                  ? "bg-amber-50/50 hover:bg-amber-100/40 border-l-4 border-l-amber-500"
+                                  : "bg-yellow-50/50 hover:bg-yellow-100/40 border-l-4 border-l-yellow-500"
+                                : "hover:bg-slate-50/60"
+                            }`}
+                          >
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
                                 <Avatar name={occ.user?.name} size="sm" />
@@ -692,17 +883,36 @@ export default function ResidentsClient({
                             </td>
 
                             <td className="px-4 py-4">
-                              <span
-                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${
-                                  isNotice
-                                    ? "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20"
-                                    : isLeft
-                                      ? "bg-slate-100 text-slate-600 ring-1 ring-slate-400/20"
-                                      : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
-                                }`}
-                              >
-                                {isNotice ? "On Notice" : isLeft ? "Left" : "Active"}
-                              </span>
+                              {isNotice ? (
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                                      daysLeft !== null && daysLeft <= 7
+                                        ? "bg-rose-100 text-rose-800 ring-1 ring-rose-600/30"
+                                        : daysLeft !== null && daysLeft <= 15
+                                        ? "bg-orange-100 text-orange-800 ring-1 ring-orange-600/30"
+                                        : "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/30"
+                                    }`}
+                                  >
+                                    <span className="size-1.5 rounded-full bg-current animate-pulse" />
+                                    {daysLeft !== null && daysLeft <= 7 ? "🔴 " : daysLeft !== null && daysLeft <= 15 ? "🟠 " : "🟡 "}
+                                    {daysLeft !== null ? `Leaves in ${daysLeft}d` : "On Notice"}
+                                  </span>
+                                  {occ.leaveDate && (
+                                    <span className="text-[10.5px] font-semibold text-slate-600">
+                                      Move-out: {formatDate(occ.leaveDate)}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : isLeft ? (
+                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold bg-slate-100 text-slate-600 ring-1 ring-slate-400/20">
+                                  Left
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
+                                  Active
+                                </span>
+                              )}
                             </td>
 
                             <td className="px-5 py-4 text-right">
@@ -717,15 +927,51 @@ export default function ResidentsClient({
                                   <FileText className="size-3.5" />
                                   KYC Docs
                                 </Button>
-                                {!isLeft ? (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setCheckoutOccupancy(occ)}
-                                    className="text-[11px] text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                                  >
-                                    Check-out
-                                  </Button>
+                                {isNotice ? (
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => setCheckoutOccupancy(occ)}
+                                      className="!bg-amber-600 !text-white hover:!bg-amber-700 font-bold text-xs shadow-2xs"
+                                    >
+                                      Settle & Out
+                                    </Button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleWithdrawNotice(occ.id)}
+                                      className="text-[11px] text-slate-500 hover:text-slate-800 hover:underline px-1 py-0.5"
+                                      title="Cancel notice and keep active"
+                                    >
+                                      Withdraw
+                                    </button>
+                                  </div>
+                                ) : !isLeft ? (
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setNoticeOccupancy(occ);
+                                        const defDate = new Date(Date.now() + (occ.noticePeriodDays || 30) * 24 * 60 * 60 * 1000)
+                                          .toISOString()
+                                          .slice(0, 10);
+                                        setNoticeLeaveDate(defDate);
+                                      }}
+                                      className="text-[11px] text-amber-700 hover:bg-amber-50 font-semibold"
+                                      title="Put on notice period"
+                                    >
+                                      <DoorOpen className="size-3.5" />
+                                      Notice
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setCheckoutOccupancy(occ)}
+                                      className="text-[11px] text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                    >
+                                      Check-out
+                                    </Button>
+                                  </div>
                                 ) : (
                                   <span className="text-[11px] text-slate-400">Settled</span>
                                 )}
@@ -1098,6 +1344,53 @@ export default function ResidentsClient({
           </div>
         </div>
       ) : null}
+
+      {/* Admin Set Notice Modal */}
+      {noticeOccupancy && (
+        <Modal
+          open={!!noticeOccupancy}
+          onClose={() => setNoticeOccupancy(null)}
+          title={`Serve Move-out Notice · ${noticeOccupancy.user?.name}`}
+          description={`Room ${noticeOccupancy.unit?.unitNumber || "-"} · Bed ${noticeOccupancy.bed?.bedLabel || "-"}`}
+          size="sm"
+        >
+          <form onSubmit={handleSetNotice} className="space-y-4">
+            {noticeError && <ErrorBanner message={noticeError} />}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">
+                Scheduled Move-out Date *
+              </label>
+              <Input
+                type="date"
+                required
+                min={new Date().toISOString().slice(0, 10)}
+                value={noticeLeaveDate}
+                onChange={(e) => setNoticeLeaveDate(e.target.value)}
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Notice period policy is {noticeOccupancy.noticePeriodDays || 30} days. Setting this marks tenant as vacating soon on dashboard & rooms.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setNoticeOccupancy(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                loading={noticeSaving}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              >
+                Confirm Notice Status
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {/* Check-out Modal */}
       {checkoutOccupancy ? (

@@ -10,6 +10,7 @@ import { ProgressRing } from "@/components/ui/Progress";
 import Button from "@/components/ui/Button";
 import PayCheckoutButton from "@/components/billing/PayCheckoutButton";
 import Welcome from "@/components/dashboard/Welcome";
+import ResidentNoticeModal from "@/components/resident/ResidentNoticeModal";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import {
   Wallet,
@@ -63,6 +64,10 @@ export default async function ResidentDashboardPage() {
 
   const primaryOccupancy = data.primaryOccupancy;
   const isPgResident = !!primaryOccupancy;
+  const isNotice = primaryOccupancy?.status === "NOTICE";
+  const daysLeft = primaryOccupancy?.leaveDate
+    ? Math.max(0, Math.ceil((new Date(primaryOccupancy.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   let unitLabel = "";
   if (isPgResident) {
@@ -204,21 +209,59 @@ export default async function ResidentDashboardPage() {
         <>
           {/* PG Stay & Deposit Summary Card */}
           {isPgResident && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex items-center gap-3">
-                <div className="p-2.5 bg-brand-50 text-brand-600 rounded-xl">
-                  <BedSingle className="size-5" />
+            <div className="space-y-4">
+              {/* Active Notice Status Banner */}
+              {isNotice ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 p-4 sm:p-5 shadow-xs">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-xs">
+                      <DoorOpen className="size-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900 border border-amber-300">
+                          <span className="size-2 rounded-full bg-amber-600 animate-pulse" />
+                          Notice Period Active
+                        </span>
+                        <span className="text-xs font-bold text-amber-900">
+                          {daysLeft !== null ? `${daysLeft} days remaining` : "Notice served"}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-900 mt-1">
+                        Move-out scheduled for <strong>{formatDate(primaryOccupancy.leaveDate)}</strong>
+                      </p>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        PG owner has been notified. They will inspect the room and initiate security deposit settlement upon vacating.
+                      </p>
+                    </div>
+                  </div>
+                  <ResidentNoticeModal occupancy={primaryOccupancy} />
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Assigned Room</p>
-                  <p className="text-base font-bold text-slate-900 mt-0.5">
-                    Room {primaryOccupancy.unit?.unitNumber} · Bed {primaryOccupancy.bed?.bedLabel}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {primaryOccupancy.unit?.ac ? "AC" : "Non-AC"} · {primaryOccupancy.unit?.unitType || "Sharing"}
-                  </p>
-                </div>
-              </Card>
+              ) : null}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="p-4 bg-white shadow-sm border border-slate-100 flex flex-col justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-brand-50 text-brand-600 rounded-xl">
+                      <BedSingle className="size-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Assigned Room</p>
+                      <p className="text-base font-bold text-slate-900 mt-0.5">
+                        Room {primaryOccupancy.unit?.unitNumber} · Bed {primaryOccupancy.bed?.bedLabel}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {primaryOccupancy.unit?.ac ? "AC" : "Non-AC"} · {primaryOccupancy.unit?.unitType || "Sharing"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {isNotice ? "On Notice Period" : "Planning to leave?"}
+                    </span>
+                    <ResidentNoticeModal occupancy={primaryOccupancy} />
+                  </div>
+                </Card>
 
               <Card className="p-4 bg-white shadow-sm border border-slate-100 flex items-center gap-3">
                 <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
@@ -249,6 +292,7 @@ export default async function ResidentDashboardPage() {
                   </p>
                 </div>
               </Card>
+              </div>
             </div>
           )}
 

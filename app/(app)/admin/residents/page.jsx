@@ -7,7 +7,8 @@ import ResidentsClient from "./ResidentsClient";
 export const metadata = { title: "Residents & Check-in" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminResidentsPage() {
+export default async function AdminResidentsPage({ searchParams }) {
+  const resolvedParams = searchParams ? await searchParams : {};
   const user = await getServerSession();
   requirePageRole(user, ADMIN_ROLES);
 
@@ -94,6 +95,8 @@ export default async function AdminResidentsPage() {
       residents={residents}
       flats={flats}
       totalSocietyFlats={totalSocietyFlats}
+      initialStatus={resolvedParams.status || "ACTIVE"}
+      initialRoom={resolvedParams.room || "ALL"}
       initialDocuments={documents.map((d) => ({
         ...d,
         createdAt: d.createdAt?.toISOString() ?? null,
