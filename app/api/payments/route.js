@@ -102,6 +102,34 @@ const POSTImpl = handler(async (req) => {
     proofUrl: body.proofUrl || null,
   });
 
+  // Send push notification to resident
+  if (result.invoice) {
+    (async () => {
+      let residentUserId = null;
+      if (result.invoice.occupancyId) {
+        const occ = await prisma.occupancy.findUnique({
+          where: { id: result.invoice.occupancyId },
+          select: { userId: true },
+        });
+        residentUserId = occ?.userId;
+      } else if (result.invoice.flatId) {
+        const fr = await prisma.flatResident.findFirst({
+          where: { flatId: result.invoice.flatId, endDate: null },
+          select: { userId: true },
+        });
+        residentUserId = fr?.userId;
+      }
+      if (residentUserId) {
+        notifyPaymentReceived({
+          userId: residentUserId,
+          amount: result.payment.amount,
+          invoiceNumber: result.invoice.invoiceNumber,
+          paymentId: result.payment.id,
+        });
+      }
+    })().catch(() => null);
+  }
+
   return ok(result, { status: 201 });
 });
 

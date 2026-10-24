@@ -4,6 +4,7 @@ import { requireSocietyAdmin, resolveSocietyScope } from "@/lib/auth/permissions
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { noticeCreateSchema, paginationSchema } from "@/lib/validation/schemas";
+import { notifyNoticePublished } from "@/lib/push/webpush";
 export const dynamic = "force-dynamic";
 
 
@@ -86,6 +87,16 @@ const POSTImpl = handler(async (req) => {
     entityId: notice.id,
     newValue: { title: notice.title, status: notice.status },
   });
+
+  if (isPublished) {
+    notifyNoticePublished({
+      societyId,
+      title: notice.title,
+      body: notice.body,
+      noticeId: notice.id,
+      excludeUserId: user.id,
+    });
+  }
 
   return ok(notice, { status: 201 });
 });

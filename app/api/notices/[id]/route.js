@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { notFound, forbidden } from "@/lib/errors";
 import { noticeUpdateSchema } from "@/lib/validation/schemas";
+import { notifyNoticePublished } from "@/lib/push/webpush";
 export const dynamic = "force-dynamic";
 
 
@@ -67,6 +68,16 @@ const PATCHImpl = handler(async (req, { params }) => {
     oldValue: { title: existing.title, status: existing.status },
     newValue: { title: notice.title, status: notice.status },
   });
+
+  if (nowPublished) {
+    notifyNoticePublished({
+      societyId,
+      title: notice.title,
+      body: notice.body,
+      noticeId: notice.id,
+      excludeUserId: user.id,
+    });
+  }
 
   return ok(notice);
 });

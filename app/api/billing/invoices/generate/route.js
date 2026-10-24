@@ -2,6 +2,8 @@ import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { requireSocietyAdmin, resolveSocietyScope } from "@/lib/auth/permissions";
 import { generateInvoices } from "@/lib/billing/invoice";
+import { notifyInvoiceGenerated } from "@/lib/push/webpush";
+import { prisma } from "@/lib/db/prisma";
 import { generateInvoicesSchema } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,38 @@ export const POST = handler(async (req) => {
     electricitySplit: body.electricitySplit,
     skipVacant: body.skipVacant,
   });
+
+  // Send push notifications to residents for generated invoices
+  if (Array.isArray(result.invoices) && result.invoices.length > 0) {
+    (async () => {
+      for (const inv of result.invoices) {
+        let recipientId = null;
+        if (inv.occupancyId) {
+          const occ = await prisma.occupancy.findUnique({
+            where: { id: inv.occupancyId },
+            select: { userId: true },
+          });
+          recipientId = occ?.userId;
+        } else if (inv.flatId) {
+          const fr = await prisma.flatResident.findFirst({
+            where: { flatId: inv.flatId, endDate: null },
+            select: { userId: true },
+          });
+          recipientId = fr?.userId;
+        }
+        if (recipientId) {
+          notifyInvoiceGenerated({
+            userId: recipientId,
+            invoiceNumber: inv.invoiceNumber,
+            amount: inv.totalAmount,
+            billingPeriod: inv.billingPeriod,
+            dueDate: inv.dueDate,
+            invoiceId: inv.id,
+          });
+        }
+      }
+    })().catch(() => null);
+  }
 
   return ok(result, { status: 201 });
 });

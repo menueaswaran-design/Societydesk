@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { badRequest } from "@/lib/errors";
 import { complaintCreateSchema, paginationSchema } from "@/lib/validation/schemas";
+import { notifyComplaintCreated } from "@/lib/push/webpush";
 
 export const dynamic = "force-dynamic";
 
@@ -144,6 +145,16 @@ const POSTImpl = handler(async (req) => {
     entityType: "complaint",
     entityId: complaint.id,
     newValue: { title: complaint.title, category: complaint.category, priority: complaint.priority },
+  });
+
+  notifyComplaintCreated({
+    societyId,
+    complaintId: complaint.id,
+    title: complaint.title,
+    category: complaint.category,
+    priority: complaint.priority,
+    residentName: user.name,
+    residentUserId: user.id,
   });
 
   return ok(complaint, { status: 201 });
