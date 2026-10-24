@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { badRequest, notFound, unauthorized } from "@/lib/errors";
 import { audit, AUDIT } from "@/lib/audit";
+import { sendPushToSociety, sendPushToUser } from "@/lib/push/webpush";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,23 @@ export const POST = handler(async (req) => {
   } catch {
     // Non-blocking audit
   }
+
+  // Send push notification to property admin and user
+  sendPushToSociety(
+    occupancy.societyId,
+    {
+      title: "⚠️ Move-out Notice Served",
+      body: `${user.name} (Room ${occupancy.unit?.unitNumber || "-"}) has served notice to vacate on ${leaveDate.toISOString().slice(0, 10)}.`,
+      url: "/admin/residents?status=NOTICE",
+    },
+    { excludeUserId: user.id }
+  ).catch(() => null);
+
+  sendPushToUser(user.id, {
+    title: "Move-out Notice Confirmed",
+    body: `Your notice for Room ${occupancy.unit?.unitNumber || "-"} has been registered. Scheduled move-out: ${leaveDate.toISOString().slice(0, 10)}.`,
+    url: "/resident/vacate",
+  }).catch(() => null);
 
   return ok({
     occupancy: updated,

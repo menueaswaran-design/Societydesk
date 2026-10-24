@@ -441,3 +441,4 @@ export default function ResidentVacateClient({ occupancy, depositStatus, society
     </div>
   );
 }
+

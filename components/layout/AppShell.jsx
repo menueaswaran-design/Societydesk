@@ -30,6 +30,8 @@ import Avatar from "@/components/ui/Avatar";
 import Badge from "@/components/ui/Badge";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import PushNotificationPrompt from "@/components/notifications/PushNotificationPrompt";
+import NotificationBellToggle from "@/components/notifications/NotificationBellToggle";
 
 const NAV = {
   OWNER: [
@@ -367,6 +369,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
 
             <div className="ml-auto flex items-center gap-2">
               <LanguageSwitcher />
+              <NotificationBellToggle user={user} compact />
               <Badge tone={ROLE_TONE[user.role] ?? "slate"} className="hidden sm:inline-flex text-[11px] py-0.5 px-2">
                 {titleCase(user.role)}
               </Badge>
@@ -405,6 +408,9 @@ export default function AppShell({ user, society, flats, occupancies, children }
           <div className="mx-auto w-full max-w-[90rem]">{children}</div>
         </main>
       </div>
+
+      {/* Push Notification Permission Card for Logged-in Users */}
+      <PushNotificationPrompt user={user} />
     </div>
   );
 }

@@ -88,6 +88,7 @@ model User {
   noticesPosted          Notice[]         @relation("NoticePostedBy")
   noticeReads            NoticeRead[]
   auditLogs              AuditLog[]
+  pushSubscriptions      PushSubscription[]
 
   @@index([societyId])
   @@index([role])
@@ -563,4 +564,25 @@ model AuditLog {
 
   @@index([societyId, createdAt])
   @@index([entityType, entityId])
+}
+
+// ---------------------------------------------------------------------------
+// Web Push Notifications
+// ---------------------------------------------------------------------------
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  societyId String?
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([societyId])
 }

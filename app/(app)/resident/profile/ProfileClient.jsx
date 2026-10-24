@@ -13,6 +13,7 @@ import {
   Globe,
   AlertCircle,
   FileCheck2,
+  Bell,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardHeader, CardNote } from "@/components/ui/Card";
@@ -25,6 +26,7 @@ import { api, fieldErrors } from "@/lib/client/api";
 import { formatDate, titleCase } from "@/lib/format";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import DocumentUploadSection from "@/components/residents/DocumentUploadSection";
+import NotificationBellToggle from "@/components/notifications/NotificationBellToggle";
 
 export default function ProfileClient({ account, flats, initialDocuments = [] }) {
   const router = useRouter();
@@ -257,6 +259,17 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
                 <span className="font-mono text-xs text-slate-400">{account?.id}</span>
               </Row>
             </dl>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Browser Push Notifications"
+              subtitle="Device alerts for rent, payments & notices"
+              icon={Bell}
+            />
+            <div className="p-5">
+              <NotificationBellToggle user={account} />
+            </div>
           </Card>
 
           <Card>
