@@ -28,6 +28,7 @@ export const metadata = {
   ],
   authors: [{ name: "Bedy Technologies" }],
   creator: "Bedy",
+  manifest: "/manifest.json",
   formatDetection: { telephone: false },
   openGraph: {
     type: "website",
