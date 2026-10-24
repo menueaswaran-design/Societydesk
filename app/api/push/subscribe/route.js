@@ -93,3 +93,4 @@ export const DELETE = handler(async (req) => {
 
   return ok({ success: true, message: "Push notifications disabled" });
 });
+

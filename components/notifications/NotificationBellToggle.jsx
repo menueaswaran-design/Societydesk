@@ -149,3 +149,4 @@ export default function NotificationBellToggle({ user, compact = false }) {
     </div>
   );
 }
+

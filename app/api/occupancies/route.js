@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { occupancyCheckInSchema, paginationSchema } from "@/lib/validation/schemas";
 import { badRequest } from "@/lib/errors";
 import { audit, AUDIT } from "@/lib/audit";
+import { createFirebaseUser } from "@/lib/firebase/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -88,10 +89,22 @@ export const POST = handler(async (req) => {
     }
   }
 
+  // Provision Firebase auth identity with default password bedy@123
+  const defaultPassword = "bedy@123";
+  let authUid = null;
+  try {
+    const fb = await createFirebaseUser(body.email.toLowerCase(), defaultPassword);
+    if (fb?.uid) {
+      authUid = fb.uid;
+    }
+  } catch (fbErr) {
+    console.log("[occupancies] Firebase user provisioning skipped:", fbErr?.message);
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     // 1. Find or create User
     let residentUser = await tx.user.findUnique({
-      where: { email: body.email },
+      where: { email: body.email.toLowerCase() },
     });
 
     if (!residentUser) {
@@ -99,8 +112,9 @@ export const POST = handler(async (req) => {
         data: {
           societyId,
           name: body.name,
-          email: body.email,
+          email: body.email.toLowerCase(),
           phone: body.phone || null,
+          authUid,
           role: "RESIDENT",
           status: "ACTIVE",
         },
@@ -113,6 +127,7 @@ export const POST = handler(async (req) => {
           name: body.name || residentUser.name,
           phone: body.phone || residentUser.phone,
           societyId: residentUser.societyId || societyId,
+          authUid: residentUser.authUid || authUid,
         },
       });
     }

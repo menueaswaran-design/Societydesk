@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { unprocessable } from "@/lib/errors";
 import { pgImportSchema } from "@/lib/validation/schemas";
+import { createFirebaseUser } from "@/lib/firebase/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -184,6 +185,15 @@ export const POST = handler(async (req) => {
 
     return imported;
   });
+
+  // Provision default login credentials (bedy@123) for newly imported residents
+  for (const row of rows) {
+    try {
+      await createFirebaseUser(row.email.toLowerCase(), "bedy@123");
+    } catch {
+      // Non-blocking
+    }
+  }
 
   await audit({
     societyId,

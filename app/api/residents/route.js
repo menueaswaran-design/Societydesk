@@ -110,8 +110,8 @@ const POSTImpl = handler(async (req) => {
   ]);
   if (!flat) throw notFound("Flat");
 
-  // Generate temporary password for resident onboarding
-  const tempPassword = `Society@${Math.floor(1000 + Math.random() * 9000)}`;
+  // Default password for resident onboarding
+  const tempPassword = "bedy@123";
 
   // Provision Firebase auth identity if configured
   let authUid = null;

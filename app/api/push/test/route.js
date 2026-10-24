@@ -31,3 +31,4 @@ export const POST = handler(async (req) => {
     message: result.sentCount > 0 ? "Test notification delivered" : "No active subscriptions found for your account",
   });
 });
+

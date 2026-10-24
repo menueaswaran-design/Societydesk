@@ -998,7 +998,7 @@ export default function ResidentsClient({
               </h2>
               <p className="mt-1 text-xs text-slate-500 leading-relaxed">
                 Import dozens of residents, rooms, beds and security deposits in a single transaction.
-                Paste CSV data below matching the format:
+                All imported residents will be created with the default login password: <strong className="text-slate-900">bedy@123</strong>.
               </p>
             </div>
 

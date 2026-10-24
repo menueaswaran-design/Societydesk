@@ -168,3 +168,4 @@ export default function PushNotificationPrompt({ user }) {
     </div>
   );
 }
+
