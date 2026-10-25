@@ -162,7 +162,7 @@ export default async function AdminDashboardPage() {
       <Welcome
         eyebrow={isPg ? "PG & Hostel Management" : "Society administration"}
         title="Dashboard"
-        description={`${today} · ${collection.collectionRate}% of everything billed has been collected.`}
+        description={isPg ? "Overview of live bed occupancy, monthly rent collections, and resident operations." : "Overview of flats, maintenance billing, and society operations."}
         badge={heroBadge}
         actions={
           <div className="flex items-center gap-2">
@@ -315,39 +315,20 @@ export default async function AdminDashboardPage() {
                 </p>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-2xs">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60">
-                  <TrendingUp className="size-4 shrink-0" />
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3.5 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>
+                  {collection.invoiceCount} invoices generated this month ({collection.collectionRate}% collected)
                 </span>
-                <div className="min-w-0">
-                  <p className="text-[13px] font-bold text-slate-900">
-                    {collection.collectionRate}%
-                  </p>
-                  <p className="text-xs text-slate-500">collection rate</p>
-                </div>
               </div>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-2xs sm:col-span-2">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60">
-                  <AlertTriangle className="size-4 shrink-0" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-slate-900">
-                    {formatMoney(cards.overdue)} overdue
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {cards.overdueInvoiceCount} invoices past due
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4">
-              <LinkRow
-                href="/admin/billing/defaulters"
-                title="Review defaulters"
-                caption={isPg ? "See occupants with pending dues" : "See which flats are past due"}
-                icon={ArrowUpRight}
-              />
+              <Link
+                href="/admin/billing/invoices"
+                className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
+              >
+                <span>View all invoices</span>
+                <ArrowRight className="size-3.5" />
+              </Link>
             </div>
           </div>
         </div>
