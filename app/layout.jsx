@@ -29,6 +29,15 @@ export const metadata = {
   authors: [{ name: "Bedy Technologies" }],
   creator: "Bedy",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: "/favicon.ico",
+  },
   formatDetection: { telephone: false },
   openGraph: {
     type: "website",
@@ -38,12 +47,21 @@ export const metadata = {
     title: "Bedy | PG/Hostel/Co-Living Management App",
     description:
       "Now manage your PG/Hostel smartly with Bedy. Automated reports, bulk WhatsApp reminders, instant UPI, and real-time bed occupancy.",
+    images: [
+      {
+        url: "https://bedy.in/logo.png",
+        width: 1024,
+        height: 1024,
+        alt: "Bedy Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Bedy | PG/Hostel/Co-Living Management App",
     description:
       "Now manage your PG/Hostel smartly with Bedy. Automated reports, bulk WhatsApp reminders, instant UPI, and real-time bed occupancy.",
+    images: ["https://bedy.in/logo.png"],
   },
 };
 
@@ -68,7 +86,7 @@ const jsonLd = {
       "@id": "https://bedy.in/#organization",
       "name": "Bedy",
       "url": "https://bedy.in",
-      "logo": "https://bedy.in/icons/icon-192.svg",
+      "logo": "https://bedy.in/logo.png",
       "sameAs": [],
     },
     {
@@ -100,7 +118,7 @@ const jsonLd = {
 };
 
 export const viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#2563eb",
   width: "device-width",
   initialScale: 1,
 };

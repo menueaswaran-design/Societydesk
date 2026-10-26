@@ -15,9 +15,11 @@ export default function PublicLayout({ children }) {
         <div className="mx-auto max-w-7xl flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-base shadow-sm shadow-emerald-600/30 group-hover:scale-105 transition-transform">
-              B
-            </span>
+            <img
+              src="/logo.png"
+              alt="Bedy"
+              className="size-9 object-contain rounded-xl shadow-2xs group-hover:scale-105 transition-transform"
+            />
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="text-lg font-black tracking-tight text-slate-950 leading-tight">
@@ -80,9 +82,7 @@ export default function PublicLayout({ children }) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
             <div className="flex items-center gap-2.5">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white font-black text-xs">
-                B
-              </span>
+              <img src="/logo.png" alt="Bedy" className="size-7 object-contain rounded-lg" />
               <span className="font-bold text-slate-900 text-sm">Bedy</span>
               <span>·</span>
               <span>Smart PG, Hostel & Co-Living Operations</span>

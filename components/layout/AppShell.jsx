@@ -271,9 +271,11 @@ export default function AppShell({ user, society, flats, occupancies, children }
   const identity = (
     <div className="flex items-center gap-3 px-4 py-3.5">
       <span className="relative inline-flex">
-        <span className="relative inline-flex size-8.5 items-center justify-center rounded-lg bg-emerald-500 text-sm font-black tracking-tight text-white shadow-sm">
-          B
-        </span>
+        <img
+          src="/logo.png"
+          alt="Bedy"
+          className="size-8.5 rounded-lg object-contain bg-white p-0.5 shadow-sm"
+        />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-white">
@@ -344,9 +346,11 @@ export default function AppShell({ user, society, flats, occupancies, children }
             </button>
 
             <div className="flex min-w-0 items-center gap-2 lg:hidden">
-              <span className="inline-flex size-7.5 items-center justify-center rounded-md bg-emerald-600 text-[11px] font-black text-white">
-                B
-              </span>
+              <img
+                src="/logo.png"
+                alt="Bedy"
+                className="size-7.5 rounded-md object-contain bg-white p-0.5"
+              />
               <span className="truncate text-xs font-semibold text-slate-800">
                 {society?.name ?? "Bedy"}
               </span>
