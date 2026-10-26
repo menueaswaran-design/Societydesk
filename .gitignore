@@ -18,3 +18,5 @@ yarn-error.log*
 *.pem
 .vercel
 next-env.d.ts
+
+coverage/

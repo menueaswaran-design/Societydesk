@@ -145,3 +145,4 @@ describe("Penalty & Late Fee Rules (lib/billing/penalty.js)", () => {
     });
   });
 });
+

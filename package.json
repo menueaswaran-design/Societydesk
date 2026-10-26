@@ -11,6 +11,7 @@
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:seed": "node --env-file-if-exists=.env prisma/seed.js",
