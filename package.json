@@ -9,6 +9,8 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:seed": "node --env-file-if-exists=.env prisma/seed.js",
@@ -35,6 +37,7 @@
     "@tailwindcss/postcss": "^4.0.0",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.3",
+    "jest": "^30.5.2",
     "prisma": "^6.19.3",
     "tailwindcss": "^4.0.0"
   }

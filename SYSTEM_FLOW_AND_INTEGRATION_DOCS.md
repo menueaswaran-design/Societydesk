@@ -343,3 +343,4 @@ Societydesk/
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (KYC & image storage)
 3. **Google Search Console**: Submit `sitemap.xml` under Sitemaps for instant Google indexing.
 4. **Meta WhatsApp Webhook (Optional)**: Configure callback URL to receive real-time message read receipts and delivery statuses.
+
