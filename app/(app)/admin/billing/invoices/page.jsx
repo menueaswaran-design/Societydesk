@@ -19,7 +19,7 @@ export default async function AdminInvoicesPage({ searchParams }) {
   if (status) where.status = status;
   if (period) where.billingPeriod = period;
 
-  const [invoices, summary, units, occupancies] = await Promise.all([
+  const [invoices, summary, rawUnits, occupancies, meterLogs] = await Promise.all([
     prisma.invoice.findMany({
       where,
       include: {
@@ -56,7 +56,7 @@ export default async function AdminInvoicesPage({ searchParams }) {
     }),
     prisma.unit.findMany({
       where: { societyId: user.societyId },
-      select: { id: true, unitNumber: true, floor: true },
+      select: { id: true, unitNumber: true, floor: true, rentAmount: true },
       orderBy: { unitNumber: "asc" },
     }),
     prisma.occupancy.findMany({
@@ -68,7 +68,51 @@ export default async function AdminInvoicesPage({ searchParams }) {
       },
       orderBy: [{ unit: { unitNumber: "asc" } }, { bed: { bedLabel: "asc" } }],
     }),
+    prisma.auditLog.findMany({
+      where: { societyId: user.societyId, entityType: "UNIT_METER" },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
   ]);
+
+  // Map each room's latest stored meter reading from previous month
+  const latestMeterByRoom = {};
+  for (const log of meterLogs) {
+    const key = log.entityId;
+    if (key && !latestMeterByRoom[key]) {
+      try {
+        const parsed = typeof log.newValue === "string" ? JSON.parse(log.newValue) : log.newValue;
+        const reading =
+          typeof parsed === "object"
+            ? parsed?.reading ?? parsed?.meterEnd ?? parsed?.unitsUsed
+            : Number(parsed);
+        if (reading != null && !isNaN(Number(reading))) {
+          latestMeterByRoom[key] = {
+            lastReading: Number(reading),
+            ratePerUnit: parsed?.ratePerUnit ?? 10,
+            lastPeriod: parsed?.billingPeriod ?? null,
+          };
+        }
+      } catch {
+        if (!isNaN(Number(log.newValue))) {
+          latestMeterByRoom[key] = {
+            lastReading: Number(log.newValue),
+            ratePerUnit: 10,
+          };
+        }
+      }
+    }
+  }
+
+  const unitsWithMeters = rawUnits.map((u) => {
+    const meta = latestMeterByRoom[u.id] || latestMeterByRoom[u.unitNumber] || {};
+    return {
+      ...u,
+      lastReading: meta.lastReading ?? 0,
+      defaultRate: meta.ratePerUnit ?? 10,
+      lastPeriod: meta.lastPeriod ?? null,
+    };
+  });
 
   const billed = summary._sum.totalAmount ?? 0;
   const collected = summary._sum.paidAmount ?? 0;
@@ -109,7 +153,7 @@ export default async function AdminInvoicesPage({ searchParams }) {
   return (
     <InvoicesClient
       invoices={withOutstanding}
-      units={units}
+      units={unitsWithMeters}
       occupancies={occupancies}
       filters={{ status, period }}
       summary={{

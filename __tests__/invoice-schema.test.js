@@ -89,3 +89,4 @@ describe("Generate Invoices Schema (lib/validation/schemas.js)", () => {
     ).toThrow();
   });
 });
+
