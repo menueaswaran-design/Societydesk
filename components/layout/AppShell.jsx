@@ -163,8 +163,7 @@ const NAV = {
     {
       label: "Rent & Dues",
       items: [
-        { href: "/resident/invoices", label: "My Invoices & Dues", icon: CreditCard },
-        { href: "/resident/payments", label: "Payment Receipts", icon: Receipt },
+        { href: "/resident/invoices", label: "My Invoices & Receipts", icon: CreditCard },
         { href: "/resident/complaints", label: "Complaints", icon: AlertTriangle },
         { href: "/resident/notices", label: "Notices", icon: Megaphone },
         { href: "/resident/vacate", label: "Vacate / Notice Period", icon: DoorOpen },

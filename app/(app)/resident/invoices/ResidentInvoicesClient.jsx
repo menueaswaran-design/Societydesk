@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   ChevronRight,
@@ -36,7 +37,27 @@ const DUE_FILTERS = [
 export default function ResidentInvoicesClient({ invoices }) {
   const [expanded, setExpanded] = useState(null);
   const [query, setQuery] = useState("");
-  const [dueFilter, setDueFilter] = useState("ALL");
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const searchParams = useSearchParams();
+  const initialFilter = searchParams.get("filter")?.toUpperCase();
+  const [dueFilter, setDueFilter] = useState(
+    initialFilter && ["ALL", "DUE", "OVERDUE", "PAID"].includes(initialFilter)
+      ? initialFilter
+      : "ALL"
+  );
+
+  async function handleDownloadReceipt(url, invoiceId) {
+    if (!url) return;
+    setDownloadingId(invoiceId);
+    try {
+      await openDocument(url);
+    } catch (err) {
+      alert(err.message || "Failed to open receipt");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,27 +87,9 @@ export default function ResidentInvoicesClient({ invoices }) {
 
   return (
     <div className="stack">
-      {/* Route Clarity Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-        <Link
-          href="/resident/invoices"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-800 px-3.5 py-1.5 text-xs font-semibold text-white shadow-soft"
-        >
-          <CreditCard className="size-3.5" />
-          Pay Monthly Bills
-        </Link>
-        <Link
-          href="/resident/payments"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-        >
-          <Receipt className="size-3.5" />
-          Payment Receipts & History
-        </Link>
-      </div>
-
       <PageHeader
-        title="Monthly Rent & Bills"
-        description="View bills for each month and pay securely online via Razorpay (UPI, Cards, Net Banking)."
+        title="Invoices & Payment Receipts"
+        description="View your bills, pay pending rent securely online, and download official payment receipts."
         meta={
           <span className="text-[11px] font-semibold text-slate-500">
             {invoices.length} {invoices.length === 1 ? "bill" : "bills"}
@@ -98,20 +101,25 @@ export default function ResidentInvoicesClient({ invoices }) {
       {dueInvoices.length > 0 ? (
         <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-4 sm:p-5 shadow-soft">
           <div className="flex items-center justify-between gap-3 border-b border-amber-200/60 pb-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                Action Required · Due Bills
-              </p>
-              <p className="text-xs text-amber-700">
-                You have {dueInvoices.length} bill{dueInvoices.length === 1 ? "" : "s"} ready for payment
-              </p>
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500 text-white shadow-2xs font-bold">
+                ₹
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-amber-950">
+                  {dueInvoices.length === 1 ? "Pending Monthly Bill" : `${dueInvoices.length} Pending Monthly Bills`}
+                </h3>
+                <p className="text-xs text-amber-800">
+                  Pay securely with Razorpay via UPI (GPay, PhonePe, Paytm), Debit/Credit Cards, or Net Banking.
+                </p>
+              </div>
             </div>
-            <span className="tabular text-lg font-bold text-amber-900">
-              Total Due: {formatMoney(outstanding)}
+            <span className="tabular text-lg sm:text-xl font-bold text-amber-950">
+              {formatMoney(outstanding)}
             </span>
           </div>
 
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {dueInvoices.map((inv) => {
               const flatLabel =
                 inv.flatLabel ||
@@ -122,11 +130,11 @@ export default function ResidentInvoicesClient({ invoices }) {
               return (
                 <div
                   key={inv.id}
-                  className="flex flex-col justify-between rounded-lg bg-white p-3.5 ring-1 ring-amber-200 shadow-xs"
+                  className="flex flex-col justify-between rounded-lg border border-amber-200/80 bg-white/90 p-3.5 shadow-2xs"
                 >
                   <div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-900">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-xs text-slate-900">
                         {formatPeriod(inv.billingPeriod)} Bill
                       </span>
                       <StatusBadge status={inv.status} />
@@ -148,7 +156,7 @@ export default function ResidentInvoicesClient({ invoices }) {
                       invoiceNumber={inv.invoiceNumber}
                       amount={inv.outstanding}
                       flatLabel={flatLabel}
-                      label="Pay via Razorpay"
+                      label="Pay now"
                       className="w-full"
                     />
                   </div>
@@ -178,24 +186,24 @@ export default function ResidentInvoicesClient({ invoices }) {
 
       <div className="surface overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 p-4">
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder="Search invoice number, flat, room or period"
-            className="w-full sm:max-w-xs"
-          />
+          <div className="w-full sm:max-w-xs">
+            <SearchInput
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search invoice number, flat, room or period..."
+            />
+          </div>
           <FilterChips
-            className="ml-auto"
             options={DUE_FILTERS}
             value={dueFilter}
             onChange={setDueFilter}
+            className="sm:ml-auto"
           />
         </div>
 
         {visible.length === 0 ? (
           <EmptyState
-            icon={FileText}
-            title={invoices.length === 0 ? "No invoices yet" : "Nothing matches"}
+            title="No invoices found"
             description={
               invoices.length === 0
                 ? "Your owner or manager has not billed your account yet."
@@ -244,16 +252,16 @@ export default function ResidentInvoicesClient({ invoices }) {
 
                     <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-50/80 p-3 text-xs border border-slate-100">
                       <div>
-                        <span className="text-[11px] font-medium text-slate-500 block">Total Billed</span>
+                        <span className="text-[11px] font-medium text-slate-500 block">Amount</span>
                         <span className="tabular font-semibold text-slate-900">{formatMoney(inv.totalAmount)}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[11px] font-medium text-slate-500 block">
-                          {inv.outstanding > 0 ? "Amount Due" : "Payment Status"}
+                          Status
                         </span>
                         {inv.outstanding > 0 ? (
                           <span className="tabular font-bold text-amber-600">
-                            {formatMoney(inv.outstanding)}
+                            {formatMoney(inv.outstanding)} Due
                           </span>
                         ) : (
                           <span className="tabular font-semibold text-emerald-600">Paid in full</span>
@@ -279,7 +287,21 @@ export default function ResidentInvoicesClient({ invoices }) {
                           flatLabel={flatLabel}
                           size="xs"
                         />
-                      ) : null}
+                      ) : inv.receiptUrl ? (
+                        <Button
+                          size="xs"
+                          variant="secondary"
+                          disabled={downloadingId === inv.id}
+                          onClick={() => handleDownloadReceipt(inv.receiptUrl, inv.id)}
+                          className="!border-slate-300 font-semibold text-slate-700 hover:!bg-slate-100 shadow-2xs gap-1.5"
+                          title="Download payment receipt"
+                        >
+                          <Download className="size-3.5 text-slate-500" />
+                          Receipt
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-emerald-600 font-semibold">Paid</span>
+                      )}
                     </div>
 
                     {isOpen ? (
@@ -301,11 +323,9 @@ export default function ResidentInvoicesClient({ invoices }) {
                   { label: "Unit / Room", className: "hidden sm:table-cell" },
                   { label: "Period" },
                   { label: "Due", className: "hidden lg:table-cell" },
-                  { label: "Total", align: "right" },
-                  { label: "Paid", align: "right", className: "hidden md:table-cell" },
-                  { label: "Outstanding", align: "right" },
+                  { label: "Amount", align: "right" },
                   { label: "Status" },
-                  { label: "", align: "right" },
+                  { label: "Action", align: "right" },
                 ]}
               >
                 {visible.map((inv) => {
@@ -330,18 +350,8 @@ export default function ResidentInvoicesClient({ invoices }) {
                         <Td dense className="hidden whitespace-nowrap lg:table-cell">
                           {formatDate(inv.dueDate)}
                         </Td>
-                        <Td dense align="right" className="tabular">
+                        <Td dense align="right" className="tabular font-semibold text-slate-900">
                           {formatMoney(inv.totalAmount)}
-                        </Td>
-                        <Td dense align="right" className="tabular hidden text-emerald-600 md:table-cell">
-                          {formatMoney(inv.paidAmount)}
-                        </Td>
-                        <Td dense align="right" className="tabular font-semibold">
-                          {inv.outstanding > 0 ? (
-                            <span className="text-amber-600">{formatMoney(inv.outstanding)}</span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
                         </Td>
                         <Td dense>
                           <StatusBadge status={inv.status} />
@@ -354,8 +364,23 @@ export default function ResidentInvoicesClient({ invoices }) {
                                 invoiceNumber={inv.invoiceNumber}
                                 amount={inv.outstanding}
                                 flatLabel={flatLabel}
+                                size="sm"
                               />
-                            ) : null}
+                            ) : inv.receiptUrl ? (
+                              <Button
+                                size="xs"
+                                variant="secondary"
+                                disabled={downloadingId === inv.id}
+                                onClick={() => handleDownloadReceipt(inv.receiptUrl, inv.id)}
+                                className="!border-slate-300 font-semibold text-slate-700 hover:!bg-slate-100 shadow-2xs gap-1.5"
+                                title="Download payment receipt PDF"
+                              >
+                                <Download className="size-3.5 text-slate-500" />
+                                Receipt
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-slate-400 font-medium">Paid</span>
+                            )}
                             <IconButton
                               size="xs"
                               label={isOpen ? "Hide breakdown" : "Show breakdown"}
@@ -370,7 +395,7 @@ export default function ResidentInvoicesClient({ invoices }) {
 
                       {isOpen ? (
                         <Tr className="hover:bg-transparent">
-                          <Td colSpan={9} dense className="bg-slate-50/80">
+                          <Td colSpan={7} dense className="bg-slate-50/80">
                             <Breakdown invoice={inv} />
                           </Td>
                         </Tr>
@@ -384,37 +409,6 @@ export default function ResidentInvoicesClient({ invoices }) {
         )}
       </div>
     </div>
-  );
-}
-
-/** Opens a receipt document in a new tab for printing / saving as PDF. */
-function ReceiptDownload({ url, label }) {
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  async function open() {
-    setError(null);
-    setBusy(true);
-    try {
-      await openDocument(url);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <IconButton
-      size="xs"
-      onClick={open}
-      disabled={busy}
-      variant="brand"
-      title={error ?? `Download receipt ${label ?? ""}`.trim()}
-      label={`Download receipt ${label ?? ""}`.trim()}
-    >
-      <Download />
-    </IconButton>
   );
 }
 
@@ -483,14 +477,38 @@ function Breakdown({ invoice }) {
             ))}
           </ul>
         )}
-        <Link
-          href="/resident/payments"
-          className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 transition-colors hover:text-brand-800"
-        >
-          See all payments
-          <ChevronRight className="size-3.5" />
-        </Link>
       </div>
     </div>
+  );
+}
+
+/** Opens a receipt document in a new tab for printing / saving as PDF. */
+function ReceiptDownload({ url, label }) {
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function open() {
+    setError(null);
+    setBusy(true);
+    try {
+      await openDocument(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <IconButton
+      size="xs"
+      onClick={open}
+      disabled={busy}
+      variant="brand"
+      title={error ?? `Download receipt ${label ?? ""}`.trim()}
+      label={`Download receipt ${label ?? ""}`.trim()}
+    >
+      <Download />
+    </IconButton>
   );
 }

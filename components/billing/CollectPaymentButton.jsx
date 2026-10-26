@@ -133,6 +133,6 @@ export default function CollectPaymentButton({
 
 /** Deep link a resident can open to pay this specific order. */
 function paymentLink(orderId) {
-  if (typeof window === "undefined") return `/resident/payments?order=${orderId}`;
-  return `${window.location.origin}/resident/payments?order=${orderId}`;
+  if (typeof window === "undefined") return `/resident/invoices?order=${orderId}`;
+  return `${window.location.origin}/resident/invoices?order=${orderId}`;
 }

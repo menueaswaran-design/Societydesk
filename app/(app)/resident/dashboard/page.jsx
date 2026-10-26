@@ -122,7 +122,7 @@ export default async function ResidentDashboardPage() {
       badge: data.unreadNoticeCount > 0 ? `${data.unreadNoticeCount} new` : undefined,
     },
     {
-      href: "/resident/payments",
+      href: "/resident/invoices?filter=PAID",
       title: "Payment receipts",
       caption: "View and download receipts",
       icon: Receipt,
@@ -445,7 +445,7 @@ export default async function ResidentDashboardPage() {
                 title="Recent payments"
                 subtitle="Your last 6 receipts"
                 icon={CreditCard}
-                action={<ViewAll href="/resident/payments" />}
+                action={<ViewAll href="/resident/invoices?filter=PAID" />}
               />
               {data.recentPayments.length === 0 ? (
                 <EmptyState icon={Receipt} title="No payments recorded yet" compact />
