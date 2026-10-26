@@ -8,7 +8,6 @@ import {
   User,
   KeyRound,
   ArrowRight,
-  Wallet,
   Receipt,
   AlertTriangle,
   CheckCircle2,
@@ -43,7 +42,6 @@ import {
   Send,
   Download,
   HelpCircle,
-  Flame,
   Star,
   RefreshCw,
   Building,
@@ -53,31 +51,79 @@ import { homeForRole } from "@/lib/routing";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 
-/* ── Custom Interactive Simulation State ─────────────────────────────────── */
+/* ── Lightweight Scroll Reveal Hook ─────────────────────────────────────── */
+function useScrollReveal(threshold = 0.12) {
+  const ref = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // Fallback if browser doesn't support IntersectionObserver
+    if (typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
+
+  return [ref, isVisible];
+}
+
+/* ── Scroll Animated Container Component ────────────────────────────────── */
+function Reveal({ children, className = "", delay = 0 }) {
+  const [ref, isVisible] = useScrollReveal();
+
+  return (
+    <div
+      ref={ref}
+      className={`${className} transition-all duration-700 ease-out`}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? "translateY(0)" : "translateY(24px)",
+        transitionDelay: `${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function HomePageClient({ user = null }) {
   const router = useRouter();
   const { t, locale } = useTranslation();
   const isTa = locale === "ta";
 
-  // Login action state
+  // Login action loading state (stores email being logged in)
   const [loggingIn, setLoggingIn] = useState(null);
 
-  // Interactive Hero Dashboard active tab
-  const [activeHeroTab, setActiveHeroTab] = useState("whatsapp"); // "whatsapp" | "bedmatrix" | "submeter" | "deposit"
+  // Interactive Showcase Active Tab
+  const [activeTab, setActiveTab] = useState("whatsapp"); // "whatsapp" | "beds" | "submeter" | "deposit"
 
-  // Live simulation in WhatsApp preview:
-  const [simPaid, setSimPaid] = useState(false);
-  const [simLoading, setSimLoading] = useState(false);
+  // Simulator state in Showcase
+  const [simState, setSimState] = useState("IDLE"); // "IDLE" | "PROCESSING" | "PAID"
 
-  // Interactive ROI Calculator State
-  const [calcBeds, setCalcBeds] = useState(40);
-  const [calcRent, setCalcRent] = useState(9000);
+  // Interactive Profit & Time Saved Calculator
+  const [calcBeds, setCalcBeds] = useState(36);
+  const [calcRent, setCalcRent] = useState(8500);
 
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState(0);
 
-  // Quick 1-click dev-login function
+  // Quick 1-click dev-login function for authentic seeded accounts
   const quickLogin = async (email, path) => {
     setLoggingIn(email);
     try {
@@ -100,47 +146,39 @@ export default function HomePageClient({ user = null }) {
     }
   };
 
-  // Simulate payment
+  // Simulate Payment Click
   const handleSimulatePayment = () => {
-    if (simPaid) {
-      setSimPaid(false);
+    if (simState === "PAID") {
+      setSimState("IDLE");
       return;
     }
-    setSimLoading(true);
+    setSimState("PROCESSING");
     setTimeout(() => {
-      setSimLoading(false);
-      setSimPaid(true);
-    }, 800);
+      setSimState("PAID");
+    }, 900);
   };
 
-  // Calculate ROI values dynamically
-  const roiMonthlyRevenue = useMemo(() => calcBeds * calcRent, [calcBeds, calcRent]);
-  const roiHoursSaved = useMemo(() => Math.round((calcBeds / 10) * 5.5 + 4), [calcBeds]);
-  const roiLeakageSaved = useMemo(() => Math.round(roiMonthlyRevenue * 0.045), [roiMonthlyRevenue]);
+  // Calculated operational insights based on real formula
+  const calculatedMonthlyRevenue = useMemo(() => calcBeds * calcRent, [calcBeds, calcRent]);
+  const estimatedHoursSaved = useMemo(() => Math.round((calcBeds / 10) * 4.5 + 4), [calcBeds]);
+  const estimatedLeakagePrevented = useMemo(() => Math.round(calculatedMonthlyRevenue * 0.04), [calculatedMonthlyRevenue]);
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden antialiased">
-      {/* ── Background Subtle Glow & Grid Gradients ───────────────────────── */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        {/* Top radial spotlight */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-b from-emerald-500/15 via-teal-500/5 to-transparent blur-3xl opacity-80" />
-        {/* Violet secondary accent */}
-        <div className="absolute top-[500px] right-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
-        {/* Subtle grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-      </div>
-
-      {/* ── Active Session Banner (if logged in) ─────────────────────────── */}
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 overflow-x-hidden antialiased">
+      {/* ── Active Session Banner if already signed in ──────────────────── */}
       {user ? (
-        <aside className="relative z-50 bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/80 border-b border-emerald-500/30 text-emerald-100 px-4 py-2 text-xs backdrop-blur-md">
+        <aside
+          aria-label="Active session banner"
+          className="bg-slate-950 text-white px-4 py-2 text-xs font-medium border-b border-slate-800 z-50 sticky top-0"
+        >
           <div className="mx-auto max-w-7xl flex flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
               <span className="relative flex size-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
               </span>
               <span className="truncate">
-                {isTa ? "செயலில் உள்ள அமர்வு: " : "Signed in as "}
+                {isTa ? "செயலில் உள்ள கணக்கு: " : "Signed in as "}
                 <strong className="text-white font-semibold">{user.name}</strong> ({user.role})
               </span>
             </div>
@@ -154,75 +192,59 @@ export default function HomePageClient({ user = null }) {
                   ? "/admin/residents"
                   : "/resident/dashboard"
               }
-              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 px-3 py-1 text-xs font-semibold text-emerald-200 hover:text-white transition-all shrink-0"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1 text-xs text-white transition-all shrink-0 font-semibold"
             >
-              <span>{isTa ? "டாஷ்போர்டுக்கு செல்" : "Go to Dashboard"}</span>
+              <span>{isTa ? "டாஷ்போர்டுக்குச் செல்க" : "Go to Dashboard"}</span>
               <ArrowRight className="size-3.5" />
             </Link>
           </div>
         </aside>
       ) : null}
 
-      {/* ── Modern Floating Glassmorphic Header ─────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#0B0F19]/80 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl flex h-16 sm:h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo & Version Pill */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative flex size-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/25 group-hover:shadow-emerald-500/40 transition-all duration-300">
+      {/* ── Crisp, Modern Floating Header ───────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 transition-all">
+        <div className="mx-auto max-w-7xl flex h-16 sm:h-18 items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-base shadow-sm shadow-emerald-600/30 group-hover:scale-105 transition-transform">
               B
-              <div className="absolute -inset-0.5 rounded-xl bg-emerald-400/30 blur-xs -z-10 group-hover:opacity-100 transition-opacity" />
-            </div>
+            </span>
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-black tracking-tight text-white leading-none">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-black tracking-tight text-slate-950 leading-tight">
                   Bedy
                 </span>
-                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
-                  OS 2.0
+                <span className="rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.2 text-[9px] font-bold text-emerald-800 uppercase tracking-wide">
+                  PG & Hostel
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-medium tracking-wide mt-0.5 hidden xs:block">
-                PG & Co-Living Intelligence
+              <span className="text-[10px] text-slate-500 font-medium leading-none hidden xs:block">
+                Operations Management OS
               </span>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 rounded-full border border-slate-800/80 bg-slate-900/60 p-1 backdrop-blur-md text-xs font-medium text-slate-300">
-            <a
-              href="#showcase"
-              className="px-3.5 py-1.5 rounded-full hover:text-white hover:bg-slate-800/60 transition-colors"
-            >
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-600">
+            <a href="#showcase" className="hover:text-emerald-700 transition-colors">
               {isTa ? "நேரடி மாதிரி" : "Live Terminal"}
             </a>
-            <a
-              href="#features"
-              className="px-3.5 py-1.5 rounded-full hover:text-white hover:bg-slate-800/60 transition-colors"
-            >
+            <a href="#features" className="hover:text-emerald-700 transition-colors">
               {isTa ? "வசதிகள்" : "Features"}
             </a>
-            <a
-              href="#submeter"
-              className="px-3.5 py-1.5 rounded-full hover:text-white hover:bg-slate-800/60 transition-colors"
-            >
+            <a href="#submeter-feature" className="hover:text-emerald-700 transition-colors">
               {isTa ? "மின் கணக்கீடு" : "Sub-Meters"}
             </a>
-            <a
-              href="#calculator"
-              className="px-3.5 py-1.5 rounded-full hover:text-white hover:bg-slate-800/60 transition-colors"
-            >
-              {isTa ? "வருவாய் கணிப்பான்" : "ROI Calculator"}
+            <a href="#calculator" className="hover:text-emerald-700 transition-colors">
+              {isTa ? "கணிப்பான்" : "Calculator"}
             </a>
-            <a
-              href="#demo-portals"
-              className="px-3.5 py-1.5 rounded-full hover:text-white hover:bg-slate-800/60 transition-colors"
-            >
-              {isTa ? "டெமோ கணக்குகள்" : "Test Drive"}
+            <a href="#demo-portals" className="hover:text-emerald-700 transition-colors">
+              {isTa ? "டெமோ கணக்குகள்" : "Demo Logins"}
             </a>
           </nav>
 
           {/* Right Action Cluster */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="scale-90 sm:scale-100 origin-right">
               <LanguageSwitcher />
             </div>
@@ -238,7 +260,7 @@ export default function HomePageClient({ user = null }) {
                     ? "/admin/residents"
                     : "/resident/dashboard"
                 }
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 text-xs font-bold transition-all shadow-md shadow-emerald-500/20 hover:scale-[1.02]"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-950 px-3.5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-all shadow-sm"
               >
                 <span>{isTa ? "டாஷ்போர்டு" : "Dashboard"}</span>
                 <ArrowRight className="size-3.5" />
@@ -247,18 +269,18 @@ export default function HomePageClient({ user = null }) {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 px-3.5 py-2 text-xs font-semibold transition-colors"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition-all shadow-2xs"
                 >
-                  <LogIn className="size-3.5 text-slate-400" />
+                  <LogIn className="size-3.5 text-slate-500" />
                   <span>{isTa ? "உள்நுழை" : "Sign In"}</span>
                 </Link>
 
                 <a
                   href="#demo-portals"
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold px-4 py-2 text-xs transition-all shadow-lg shadow-emerald-500/25 hover:scale-[1.02] cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white px-3.5 sm:px-4 py-2 text-xs font-bold transition-all shadow-sm shadow-emerald-600/20"
                 >
                   <Sparkles className="size-3.5" />
-                  <span>{isTa ? "இலவச மாதிரி" : "Live Demo"}</span>
+                  <span>{isTa ? "மாதிரி கணக்குகள்" : "Try Free Demo"}</span>
                 </a>
               </div>
             )}
@@ -266,976 +288,822 @@ export default function HomePageClient({ user = null }) {
         </div>
       </header>
 
-      {/* ── HERO SECTION ─────────────────────────────────────────────────── */}
-      <main className="relative z-10 flex-1">
-        <section className="pt-10 sm:pt-16 lg:pt-20 pb-16 sm:pb-24 overflow-hidden">
+      {/* ── HERO SECTION (LIGHT & CRISP) ─────────────────────────────────── */}
+      <main className="flex-1">
+        <section className="relative pt-8 sm:pt-14 lg:pt-18 pb-14 sm:pb-20 overflow-hidden bg-gradient-to-b from-white via-white to-slate-50/70 border-b border-slate-200/70">
+          {/* Subtle decorative background gradient circles */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-gradient-to-b from-emerald-100/50 via-teal-50/30 to-transparent blur-3xl pointer-events-none -z-10" />
+
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-center text-center max-w-4xl mx-auto space-y-6 sm:space-y-8">
-              {/* Top Innovation Pill */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-300 shadow-inner">
-                <span className="flex size-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>
-                  {isTa
-                    ? "புதிய Bedy 2.0: வாட்ஸ்அப் யுபிஐ வசூல் & தானியங்கி மின் கணக்கீடு"
-                    : "✦ Next-Gen PG OS: 1-Click WhatsApp UPI & Room Sub-Meter Reading Engine"}
-                </span>
-                <ChevronRight className="size-3 text-emerald-400/80" />
-              </div>
+            <div className="flex flex-col items-center text-center max-w-3xl mx-auto space-y-5 sm:space-y-6">
+              {/* Innovation Pill */}
+              <Reveal delay={0}>
+                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/90 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>
+                    {isTa
+                      ? "பிஜி & விடுதிகளுக்கான நவீன மென்பொருள்"
+                      : "Purpose-Built for PGs, Hostels & Co-Living Spaces"}
+                  </span>
+                </div>
+              </Reveal>
 
-              {/* Bold Hero Typography */}
-              <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.12]">
-                {isTa ? (
-                  <>
-                    விடுதி நிர்வாகம் இனி எளிய விரல்நுனியில்.{" "}
-                    <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                      கணக்கு நோட்டுகள் தேவையில்லை.
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    The Operating System for Modern{" "}
-                    <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                      PGs & Co-Living Spaces.
-                    </span>
-                  </>
-                )}
-              </h1>
-
-              {/* Punchy Subtitle */}
-              <p className="text-sm sm:text-base lg:text-lg text-slate-300 leading-relaxed max-w-2xl font-normal">
-                {isTa
-                  ? "காகித நோட்டுகள், எக்செல் தாள்கள் மற்றும் வாடகை நினைவூட்டல் அழைப்புகளுக்கு முற்றுப்புள்ளி வையுங்கள். படுக்கை வாரியான ஆக்கிரமிப்பு, 1-கிளிக் வாட்ஸ்அப் யுபிஐ வசூல், தனி அறை மின் கட்டணப் பகிர்வு மற்றும் உடனடி வைப்புத்தொகைத் தீர்வு."
-                  : "Say goodbye to handwritten registers, spreadsheet clutter, and chasing tenants for rent. Live bed occupancy rosters, automated WhatsApp UPI collection links, room sub-meter electricity splitting, and frictionless deposit settlements."}
-              </p>
-
-              {/* Primary Dual Action Cluster */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2 w-full max-w-md">
-                <button
-                  type="button"
-                  onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
-                  disabled={Boolean(loggingIn)}
-                  className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 text-slate-950 px-6 py-3.5 text-sm font-extrabold hover:opacity-95 active:scale-[0.98] transition-all shadow-xl shadow-emerald-500/25 cursor-pointer"
-                >
-                  {loggingIn === "owner@srilakshmipg.local" ? (
-                    <Loader2 className="size-4 animate-spin text-slate-950" />
+              {/* High-Impact Hero Headline */}
+              <Reveal delay={100}>
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 leading-[1.12]">
+                  {isTa ? (
+                    <>
+                      வாடகை வசூல் தானியங்கி முறையில்.{" "}
+                      <span className="text-emerald-600">கணக்கு நோட்டுகள் தேவையில்லை.</span>
+                    </>
                   ) : (
-                    <Play className="size-4 fill-slate-950 text-slate-950" />
+                    <>
+                      Rent Collection on Autopilot.{" "}
+                      <span className="text-emerald-600">Zero Notebook Chasing.</span>
+                    </>
                   )}
-                  <span>{isTa ? "நேரடி மாதிரி இயக்கம்" : "Explore PG Owner Portal"}</span>
-                  <ArrowRight className="size-4" />
-                </button>
+                </h1>
+              </Reveal>
 
-                <a
-                  href="#showcase"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-200 px-5 py-3.5 text-sm font-semibold transition-all"
-                >
-                  <span>{isTa ? "மாதிரி திரை காண்க" : "View Interactive Demo"}</span>
-                  <ChevronDown className="size-4 text-slate-400" />
-                </a>
-              </div>
+              {/* Value Proposition Subtitle */}
+              <Reveal delay={200}>
+                <p className="text-xs sm:text-sm lg:text-base text-slate-600 leading-relaxed max-w-2xl font-normal">
+                  {isTa
+                    ? "கணக்கு நோட்டுகள், எக்செல் தாள்கள் மற்றும் வாட்ஸ்அப் குழப்பங்களுக்கு முற்றுப்புள்ளி வையுங்கள். படுக்கை வாரியான ஆக்கிரமிப்பு, 1-கிளிக் வாட்ஸ்அப் யுபிஐ நினைவூட்டல், அறை மின் கணக்கீடு மற்றும் வைப்புத்தொகைத் தீர்வு."
+                    : "Bedy replaces paper registers, Excel sheets, and awkward rent phone calls. Track bed occupancy live, send 1-click WhatsApp payment reminders with instant UPI links, split room sub-meter electricity, and settle security deposits digitally."}
+                </p>
+              </Reveal>
 
-              {/* Trust & Spec Micro-Badges */}
-              <div className="pt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-400 font-medium">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5 text-emerald-400" />
-                  <span>{isTa ? "கிரெடிட் கார்டு தேவையில்லை" : "No credit card needed"}</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5 text-emerald-400" />
-                  <span>{isTa ? "2 நிமிடங்களில் அமைப்பு" : "2-Minute Setup"}</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5 text-emerald-400" />
-                  <span>{isTa ? "மொபைல் & கணினியில் இயங்கும்" : "Works on Phone & Desktop"}</span>
-                </span>
-              </div>
+              {/* Action Buttons */}
+              <Reveal delay={300}>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1 w-full max-w-md">
+                  <button
+                    type="button"
+                    onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
+                    disabled={Boolean(loggingIn)}
+                    className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 hover:bg-slate-800 active:scale-[0.98] text-white px-5 py-3 text-xs sm:text-sm font-bold transition-all shadow-md shadow-slate-950/20 cursor-pointer min-h-[46px]"
+                  >
+                    {loggingIn === "owner@srilakshmipg.local" ? (
+                      <Loader2 className="size-4 animate-spin text-white" />
+                    ) : (
+                      <Building2 className="size-4 text-emerald-400" />
+                    )}
+                    <span>{isTa ? "பிஜி உரிமையாளர் நேரடி மாதிரி" : "Open Owner Portal"}</span>
+                    <ArrowRight className="size-4" />
+                  </button>
+
+                  <a
+                    href="#showcase"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 px-5 py-3 text-xs sm:text-sm font-semibold transition-all shadow-2xs min-h-[46px]"
+                  >
+                    <span>{isTa ? "மாதிரி திரை காண்க" : "Explore Interactive Demo"}</span>
+                    <ChevronDown className="size-4 text-slate-500" />
+                  </a>
+                </div>
+              </Reveal>
+
+              {/* Micro-spec checkmarks */}
+              <Reveal delay={400}>
+                <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-slate-500 font-medium pt-1">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                    <span>1-Tap UPI (GPay / PhonePe)</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                    <span>Room Sub-Meter Memory</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                    <span>Instant PDF WhatsApp Receipts</span>
+                  </span>
+                </div>
+              </Reveal>
             </div>
 
-            {/* ── HERO INTERACTIVE TERMINAL / COMMAND CENTER SHOWCASE ─────────── */}
-            <div id="showcase" className="mt-12 sm:mt-16 lg:mt-20 max-w-5xl mx-auto">
-              <div className="relative rounded-2xl border border-slate-800/90 bg-gradient-to-b from-slate-900/90 via-slate-950 to-[#0B0F19] p-2 sm:p-3 shadow-2xl shadow-emerald-950/40">
-                {/* Glow ring */}
-                <div className="absolute -inset-px rounded-2xl bg-gradient-to-b from-emerald-500/20 via-transparent to-transparent pointer-events-none" />
-
-                {/* Window Chrome Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 py-2.5 border-b border-slate-800/80 text-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="size-3 rounded-full bg-rose-500/80" />
-                      <span className="size-3 rounded-full bg-amber-500/80" />
-                      <span className="size-3 rounded-full bg-emerald-500/80" />
-                    </div>
-                    <div className="h-4 w-px bg-slate-800" />
-                    <div className="flex items-center gap-2">
-                      <Building2 className="size-3.5 text-emerald-400" />
-                      <span className="font-bold text-white tracking-wide">
-                        Sri Lakshmi Luxury PG & Co-Living
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono hidden md:inline">
-                        (42 Beds · 18 Rooms)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Operational Telemetry Chips */}
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
-                      <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      88% Occupied
-                    </span>
-                    <span className="rounded-full bg-slate-800/90 border border-slate-700 px-2.5 py-0.5 text-[10px] font-mono text-slate-300">
-                      Cycle: 1st - 5th
-                    </span>
-                  </div>
-                </div>
-
-                {/* Interactive Feature Selectors (4 Tabs) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-2 bg-slate-950/60 rounded-xl border border-slate-800/60 mt-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setActiveHeroTab("whatsapp")}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold transition-all cursor-pointer ${
-                      activeHeroTab === "whatsapp"
-                        ? "bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20"
-                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <MessageCircle className="size-4 shrink-0" />
-                    <span className="truncate">{isTa ? "வாட்ஸ்அப் வசூல்" : "WhatsApp Pay"}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveHeroTab("bedmatrix")}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold transition-all cursor-pointer ${
-                      activeHeroTab === "bedmatrix"
-                        ? "bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20"
-                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <BedSingle className="size-4 shrink-0" />
-                    <span className="truncate">{isTa ? "படுக்கை மேட்ரிக்ஸ்" : "Bed Matrix"}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveHeroTab("submeter")}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold transition-all cursor-pointer ${
-                      activeHeroTab === "submeter"
-                        ? "bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20"
-                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <Zap className="size-4 shrink-0" />
-                    <span className="truncate">{isTa ? "மின் கட்டணப் பகிர்வு" : "Sub-Meter Splitting"}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveHeroTab("deposit")}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold transition-all cursor-pointer ${
-                      activeHeroTab === "deposit"
-                        ? "bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20"
-                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <Receipt className="size-4 shrink-0" />
-                    <span className="truncate">{isTa ? "வைப்புத்தொகைத் தீர்வு" : "Deposit Settlement"}</span>
-                  </button>
-                </div>
-
-                {/* Tab 1: WhatsApp Automated UPI Rail */}
-                {activeHeroTab === "whatsapp" && (
-                  <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                    {/* Left: WhatsApp Bubble */}
-                    <div className="md:col-span-6 space-y-3">
-                      <div className="flex items-center justify-between text-xs text-slate-400">
-                        <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
-                          <MessageCircle className="size-4" />
-                          Auto WhatsApp Delivery
+            {/* ── INTERACTIVE APPLICATION TERMINAL (SHOWCASE) ────────────────── */}
+            <div id="showcase" className="mt-10 sm:mt-14 max-w-5xl mx-auto">
+              <Reveal delay={200}>
+                <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xl shadow-slate-200/60 overflow-hidden">
+                  {/* Top Application Bar */}
+                  <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="size-2.5 rounded-full bg-rose-500/90" />
+                        <span className="size-2.5 rounded-full bg-amber-500/90" />
+                        <span className="size-2.5 rounded-full bg-emerald-500/90" />
+                      </div>
+                      <div className="h-4 w-px bg-slate-700" />
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-3.5 text-emerald-400" />
+                        <span className="font-bold text-white text-xs truncate">
+                          Sri Lakshmi Luxury PG & Co-Living
                         </span>
-                        <span>Today, 09:15 AM · Delivered ✓✓</span>
-                      </div>
-
-                      <div className="rounded-2xl border border-emerald-500/30 bg-[#075E54]/20 p-4 space-y-3 backdrop-blur-sm shadow-inner">
-                        <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
-                          <div className="text-xs font-bold text-emerald-300">
-                            Sri Lakshmi Luxury PG & Co-Living
-                          </div>
-                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-mono">
-                            Verified Sender
-                          </span>
-                        </div>
-
-                        <p className="text-xs text-slate-200 leading-relaxed font-mono">
-                          &quot;Hi <strong>Karthik Raja</strong>! Your rent invoice for{" "}
-                          <strong>Room 201 (Bed A)</strong> for the month of October is generated.
-                          <br />
-                          <br />
-                          💰 Rent: ₹13,000
-                          <br />
-                          ⚡ Sub-meter (120u / 2 beds): ₹600
-                          <br />
-                          <strong>Total Payable: ₹13,600</strong>
-                          <br />
-                          <br />
-                          Click to pay directly via UPI:
-                          <br />
-                          <span className="text-emerald-400 underline font-bold">
-                            https://bedy.in/pay/inv_sllp_201a
-                          </span>
-                          <br />
-                          <span className="text-slate-400 text-[11px]">
-                            Receipt will be sent automatically once paid.
-                          </span>
-                          &quot;
-                        </p>
-                      </div>
-
-                      <div className="text-[11px] text-slate-400 flex items-center gap-2">
-                        <CheckCheck className="size-4 text-emerald-400 shrink-0" />
-                        <span>Tenants don&apos;t need to remember bank accounts or download an app.</span>
+                        <span className="text-[10px] text-slate-400 hidden sm:inline font-mono">
+                          · Live Bedy Terminal
+                        </span>
                       </div>
                     </div>
 
-                    {/* Right: Instant UPI Checkout Simulation */}
-                    <div className="md:col-span-6 space-y-3">
-                      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 space-y-4 shadow-xl">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                              Tenant 1-Click Pay Link
-                            </span>
-                            <div className="font-bold text-white text-base">
-                              Room 201 · Bed A (AC Double)
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-400">Total Due</span>
-                            <div className="text-xl font-black text-emerald-400 tabular">₹13,600</div>
-                          </div>
-                        </div>
+                    <div className="flex items-center gap-2">
+                      <span className="size-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      <span className="text-[10px] font-semibold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                        86% Occupied
+                      </span>
+                    </div>
+                  </div>
 
-                        {/* Interactive simulation button */}
-                        <div>
-                          <button
-                            type="button"
-                            onClick={handleSimulatePayment}
-                            disabled={simLoading}
-                            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                              simPaid
-                                ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300"
-                                : "bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-emerald-500/25"
-                            }`}
-                          >
-                            {simLoading ? (
-                              <>
-                                <Loader2 className="size-4 animate-spin" />
-                                <span>Simulating UPI Processing...</span>
-                              </>
-                            ) : simPaid ? (
-                              <>
-                                <CheckCircle2 className="size-4 text-emerald-400" />
-                                <span>Paid via PhonePe / UPI · Click to Reset</span>
-                              </>
-                            ) : (
-                              <>
-                                <Smartphone className="size-4" />
-                                <span>Simulate 1-Tap UPI Payment (Test it)</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
+                  {/* 4 Feature Tab Selectors */}
+                  <div className="flex items-center gap-1 bg-slate-100/90 p-1.5 border-b border-slate-200/80 overflow-x-auto text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("whatsapp")}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 cursor-pointer text-xs ${
+                        activeTab === "whatsapp"
+                          ? "bg-white text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-600/20"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                      }`}
+                    >
+                      <MessageCircle className="size-4 text-emerald-600" />
+                      <span>{isTa ? "வாட்ஸ்அப் வசூல்" : "WhatsApp Pay"}</span>
+                    </button>
 
-                        {/* Resulting PDF receipt auto-generation preview */}
-                        {simPaid ? (
-                          <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-3 space-y-2 animate-fade-in text-xs">
-                            <div className="flex items-center justify-between text-emerald-300 font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("beds")}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 cursor-pointer text-xs ${
+                        activeTab === "beds"
+                          ? "bg-white text-slate-900 shadow-2xs font-bold"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                      }`}
+                    >
+                      <BedSingle className="size-4 text-indigo-600" />
+                      <span>{isTa ? "படுக்கை ஆக்கிரமிப்பு" : "Bed Matrix"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("submeter")}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 cursor-pointer text-xs ${
+                        activeTab === "submeter"
+                          ? "bg-white text-slate-900 shadow-2xs font-bold"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                      }`}
+                    >
+                      <Zap className="size-4 text-amber-600" />
+                      <span>{isTa ? "மின் கட்டணப் பகிர்வு" : "Sub-Meter Splitting"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("deposit")}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 cursor-pointer text-xs ${
+                        activeTab === "deposit"
+                          ? "bg-white text-slate-900 shadow-2xs font-bold"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                      }`}
+                    >
+                      <Receipt className="size-4 text-cyan-600" />
+                      <span>{isTa ? "வைப்புத்தொகைத் தீர்வு" : "Deposit Refund"}</span>
+                    </button>
+                  </div>
+
+                  {/* Terminal Body Content */}
+                  <div className="p-4 sm:p-6 min-h-[320px]">
+                    {/* TAB 1: WhatsApp Pay & Instant UPI Simulation */}
+                    {activeTab === "whatsapp" && (
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center animate-fade-slide-up">
+                        {/* WhatsApp Message Preview */}
+                        <div className="md:col-span-6 space-y-3">
+                          <div className="rounded-xl bg-emerald-50/70 border border-emerald-200/80 p-3.5 space-y-2.5">
+                            <div className="flex items-center justify-between text-[11px] text-emerald-800 font-bold border-b border-emerald-200/60 pb-1.5">
                               <span className="flex items-center gap-1.5">
-                                <Receipt className="size-4 text-emerald-400" />
-                                Payment Reconciled & Receipt Auto-Generated
+                                <MessageCircle className="size-3.5 text-emerald-600" />
+                                WhatsApp Auto-Reminder to Karthik Raja
                               </span>
-                              <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-300">
-                                INV-2026-10-001
-                              </span>
+                              <span className="text-[10px] text-emerald-600 font-normal">Delivered 10:02 AM</span>
                             </div>
-                            <p className="text-[11px] text-slate-300">
-                              Official PDF payment receipt delivered straight back to Karthik&apos;s WhatsApp with transaction ID #UPI_8829140.
+                            <p className="text-xs text-slate-800 leading-relaxed font-mono">
+                              &quot;Hi Karthik, your Room 201 (Bed A) rent for Oct (₹13,000) + electricity (₹600) is due by 5th.
+                              <br />
+                              <br />
+                              Tap to pay via UPI:
+                              <br />
+                              <strong className="text-emerald-700 underline">https://bedy.in/pay/inv_sllp_201</strong>
+                              <br />
+                              — Sri Lakshmi Luxury PG&quot;
                             </p>
                           </div>
-                        ) : (
-                          <div className="flex items-center justify-between text-[11px] text-slate-400 bg-slate-950/50 p-2.5 rounded-lg border border-slate-800">
-                            <span className="flex items-center gap-1.5">
-                              <QrCode className="size-3.5 text-slate-400" /> Supports GPay, PhonePe, Paytm & QR
-                            </span>
-                            <span className="text-emerald-400 font-mono font-semibold">Zero Fee</span>
+
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                            <CheckCheck className="size-3.5 text-emerald-600" />
+                            <span>1-click batch sending to all tenants with zero manual typing.</span>
                           </div>
-                        )}
+                        </div>
+
+                        {/* Public 1-Click Pay Sheet Simulator */}
+                        <div className="md:col-span-6 space-y-3">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3 text-xs">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                              <div>
+                                <span className="text-[10px] uppercase font-bold text-slate-400">
+                                  Tenant Pay Sheet
+                                </span>
+                                <div className="font-bold text-slate-900 text-sm">Room 201 · Bed A</div>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-400 block">Total Due</span>
+                                <span className="font-extrabold text-emerald-700 text-base">₹13,600</span>
+                              </div>
+                            </div>
+
+                            {/* Interactive simulation button */}
+                            <div>
+                              <button
+                                type="button"
+                                onClick={handleSimulatePayment}
+                                disabled={simState === "PROCESSING"}
+                                className={`w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                  simState === "PAID"
+                                    ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                }`}
+                              >
+                                {simState === "PROCESSING" ? (
+                                  <>
+                                    <Loader2 className="size-4 animate-spin text-white" />
+                                    <span>Simulating UPI Processing...</span>
+                                  </>
+                                ) : simState === "PAID" ? (
+                                  <>
+                                    <CheckCircle2 className="size-4 text-emerald-700" />
+                                    <span>Paid via PhonePe · Click to Reset</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Smartphone className="size-4" />
+                                    <span>Test 1-Tap UPI Payment (Click Here)</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+
+                            {/* Resulting PDF receipt auto-generation */}
+                            {simState === "PAID" ? (
+                              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-2.5 text-[11px] text-emerald-900 font-medium space-y-1 animate-fade-slide-up">
+                                <div className="flex items-center justify-between font-bold">
+                                  <span>✓ Reconciled & Receipt Auto-Generated</span>
+                                  <span className="text-[10px] bg-emerald-100 px-1.5 py-0.2 rounded text-emerald-800">
+                                    INV-2026-10-001
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-600">
+                                  Official PDF payment receipt delivered straight back to tenant WhatsApp automatically.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between text-[11px] text-slate-500 bg-white p-2 rounded-md border border-slate-200">
+                                <span className="flex items-center gap-1">
+                                  <QrCode className="size-3.5 text-slate-400" /> Supports GPay, PhonePe & Paytm
+                                </span>
+                                <span className="text-emerald-700 font-semibold font-mono">Zero Fee</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* TAB 2: Live Room & Bed Occupancy Matrix */}
+                    {activeTab === "beds" && (
+                      <div className="space-y-3 text-xs animate-fade-slide-up">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800">Live Bed Status Roster</span>
+                          <span className="text-[11px] text-slate-500">35 Occupied · 6 Vacant · 1 Reserved</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* Room 101 */}
+                          <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50 space-y-2">
+                            <div className="flex items-center justify-between font-bold text-slate-900 text-xs">
+                              <span>Room 101 (2-Sharing)</span>
+                              <span className="text-[10px] font-semibold text-emerald-700">₹7,500/bed</span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between rounded bg-white p-2 border border-slate-200 text-[11px]">
+                                <span className="font-semibold text-slate-800">Bed A: Rahul Sharma</span>
+                                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                  PAID
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between rounded bg-emerald-50/70 p-2 border border-dashed border-emerald-300 text-[11px]">
+                                <span className="font-bold text-emerald-800">Bed B: VACANT</span>
+                                <span className="text-[9.5px] font-semibold text-emerald-700 underline">
+                                  Check-in
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Room 201 */}
+                          <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50 space-y-2">
+                            <div className="flex items-center justify-between font-bold text-slate-900 text-xs">
+                              <span>Room 201 (3-Sharing AC)</span>
+                              <span className="text-[10px] font-semibold text-emerald-700">₹13,000/bed</span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between rounded bg-white p-2 border border-slate-200 text-[11px]">
+                                <span className="font-semibold text-slate-800">Bed A: Karthik Raja</span>
+                                <span className="text-[9.5px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                                  DUE (5th)
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between rounded bg-white p-2 border border-slate-200 text-[11px]">
+                                <span className="font-semibold text-slate-800">Bed B: Suresh M</span>
+                                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                  PAID
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg bg-indigo-50/80 p-2 text-indigo-950 text-[11px] font-medium flex items-center justify-between border border-indigo-100">
+                          <span>Auto-calculated mid-month join pro-rata rent supported</span>
+                          <span className="font-bold text-indigo-700">✓ Enabled</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB 3: Room Sub-Meter Electricity Engine */}
+                    {activeTab === "submeter" && (
+                      <div className="space-y-3 text-xs animate-fade-slide-up">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800">Stored Room Sub-Meter Reading Engine</span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            Zero Manual Math
+                          </span>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 p-3.5 bg-slate-50/60 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-center sm:text-left">
+                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                              <span className="text-[10px] text-slate-400 block font-semibold">Previous Reading</span>
+                              <span className="text-sm font-bold text-slate-900">1,420 units</span>
+                              <span className="text-[9px] text-emerald-700 block">Pre-filled auto</span>
+                            </div>
+                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                              <span className="text-[10px] text-slate-400 block font-semibold">Current Reading</span>
+                              <span className="text-sm font-bold text-emerald-700">1,540 units</span>
+                              <span className="text-[9px] text-slate-500 block">Entered on 1st</span>
+                            </div>
+                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                              <span className="text-[10px] text-slate-400 block font-semibold">Units Consumed</span>
+                              <span className="text-sm font-bold text-slate-900">120 u @ ₹10 = ₹1,200</span>
+                              <span className="text-[9px] text-slate-500 block">Room Total</span>
+                            </div>
+                            <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
+                              <span className="text-[10px] text-emerald-800 block font-semibold">Per-Bed Split</span>
+                              <span className="text-base font-black text-emerald-800">₹600 / bed</span>
+                              <span className="text-[9px] text-emerald-700 block">Divided across 2 beds</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200">
+                            <span>
+                              Supports 3 modes: <strong>Meter Readings (Start → End)</strong>, <strong>Direct Units Consumed</strong>, or <strong>Fixed Amount</strong>.
+                            </span>
+                            <span className="font-semibold text-emerald-700">100% Optional</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB 4: Deposit Refund Settlement */}
+                    {activeTab === "deposit" && (
+                      <div className="space-y-3 text-xs animate-fade-slide-up max-w-xl mx-auto">
+                        <div className="rounded-xl border border-slate-200 p-3.5 bg-white space-y-2.5">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <div>
+                              <div className="font-bold text-slate-900">Arun Kumar · Check-out Settlement</div>
+                              <div className="text-[10px] text-slate-500">Room 102 (Bed A) · Notice Period: 30 Days</div>
+                            </div>
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              SETTLING
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5 text-[11px] text-slate-600">
+                            <div className="flex justify-between">
+                              <span>Security Deposit Held:</span>
+                              <span className="font-bold text-slate-900">₹15,000</span>
+                            </div>
+                            <div className="flex justify-between text-rose-600">
+                              <span>Less: Room Repainting / Cleaning:</span>
+                              <span className="font-bold">-₹1,000</span>
+                            </div>
+                            <div className="flex justify-between text-rose-600">
+                              <span>Less: Electricity & Water arrears:</span>
+                              <span className="font-bold">-₹1,200</span>
+                            </div>
+                            <div className="flex justify-between text-rose-600">
+                              <span>Less: Mid-month stay (10 days pro-rata):</span>
+                              <span className="font-bold">-₹2,500</span>
+                            </div>
+                            <div className="flex justify-between border-t border-slate-200 pt-1.5 text-xs font-bold text-slate-900">
+                              <span>Net Refund Payable to Tenant:</span>
+                              <span className="text-emerald-700 text-sm">₹10,300</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg bg-slate-50 p-2 text-[10px] text-slate-500 flex items-center justify-between border border-slate-200">
+                          <span>Written to immutable audit log with deduction reasons</span>
+                          <span className="font-semibold text-slate-700">Bed vacated auto</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-
-                {/* Tab 2: Live Room & Bed Occupancy Matrix */}
-                {activeHeroTab === "bedmatrix" && (
-                  <div className="p-4 sm:p-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                      <div>
-                        <h4 className="font-bold text-white text-sm">Visual Room & Bed Allocation Roster</h4>
-                        <p className="text-slate-400">Click any vacant bed to simulate instant tenant onboarding</p>
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px]">
-                        <span className="flex items-center gap-1">
-                          <span className="size-2 rounded-full bg-emerald-500" /> 35 Occupied
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="size-2 rounded-full bg-amber-500" /> 4 Rent Due
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="size-2 rounded-full bg-cyan-400" /> 3 Vacant
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                      {/* Room 101 */}
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2.5">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <span className="font-bold text-white">Room 101 (2-Sharing)</span>
-                          <span className="text-[10px] text-emerald-400 font-mono font-bold">₹7,500/bed</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between bg-slate-950 p-2 rounded-lg border border-slate-800/80">
-                            <span className="font-medium text-slate-200">Bed A · Rahul Sharma</span>
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                              PAID
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between bg-slate-950 p-2 rounded-lg border border-slate-800/80">
-                            <span className="font-medium text-slate-200">Bed B · Amit Verma</span>
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                              PAID
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Room 201 */}
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2.5">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <span className="font-bold text-white">Room 201 (3-Sharing AC)</span>
-                          <span className="text-[10px] text-emerald-400 font-mono font-bold">₹13,000/bed</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between bg-slate-950 p-2 rounded-lg border border-slate-800/80">
-                            <span className="font-medium text-slate-200">Bed A · Karthik Raja</span>
-                            <span className="text-[10px] font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
-                              DUE (5th)
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between bg-slate-950 p-2 rounded-lg border border-slate-800/80">
-                            <span className="font-medium text-slate-200">Bed B · Suresh M</span>
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                              PAID
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between bg-slate-950 p-2 rounded-lg border border-dashed border-cyan-500/50">
-                            <span className="font-bold text-cyan-300">Bed C · VACANT</span>
-                            <span className="text-[10px] font-semibold text-cyan-400 underline cursor-pointer">
-                              + Check-in
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Room 301 */}
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2.5">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <span className="font-bold text-white">Room 301 (Single Deluxe)</span>
-                          <span className="text-[10px] text-emerald-400 font-mono font-bold">₹18,000/mo</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between bg-slate-950 p-2 rounded-lg border border-slate-800/80">
-                            <span className="font-medium text-slate-200">Bed A · Vikram Seth</span>
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                              PAID
-                            </span>
-                          </div>
-                          <div className="rounded-lg bg-emerald-950/30 p-2 text-[10px] text-emerald-300 border border-emerald-500/20">
-                            Automatic pro-rata for mid-month move-ins supported out of the box.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab 3: Sub-Meter & Electricity Reading Engine */}
-                {activeHeroTab === "submeter" && (
-                  <div className="p-4 sm:p-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                      <div>
-                        <h4 className="font-bold text-white text-sm">Room Sub-Meter Electricity Engine</h4>
-                        <p className="text-slate-400">
-                          Automatically remembers last month&apos;s meter reading and divides consumed units equally among room occupants.
-                        </p>
-                      </div>
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-500/30">
-                        Zero Manual Calculations
-                      </span>
-                    </div>
-
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 space-y-3 text-xs">
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-center sm:text-left">
-                        <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                          <span className="text-[10px] text-slate-400 block font-semibold">Previous Meter Reading</span>
-                          <span className="text-base font-bold text-white">1,420 units</span>
-                          <span className="text-[9.5px] text-emerald-400 block">Pre-filled from last month</span>
-                        </div>
-                        <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                          <span className="text-[10px] text-slate-400 block font-semibold">Current Meter Reading</span>
-                          <span className="text-base font-bold text-emerald-400">1,540 units</span>
-                          <span className="text-[9.5px] text-slate-400 block">Entered on 1st of month</span>
-                        </div>
-                        <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                          <span className="text-[10px] text-slate-400 block font-semibold">Units Consumed × Rate</span>
-                          <span className="text-base font-bold text-white">120 u @ ₹10 = ₹1,200</span>
-                          <span className="text-[9.5px] text-slate-400 block">Room Total</span>
-                        </div>
-                        <div className="bg-emerald-950/40 p-3 rounded-lg border border-emerald-500/30">
-                          <span className="text-[10px] text-emerald-300 block font-semibold">Split (2 Occupants)</span>
-                          <span className="text-lg font-black text-emerald-300">₹600 / bed</span>
-                          <span className="text-[9.5px] text-emerald-400 block">Auto-added to rent invoice</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-[11px] text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                        <span>
-                          Supports 3 modes: <strong>Meter Reading (Start → End)</strong>, <strong>Direct Units Consumed</strong>, or <strong>Fixed Amount</strong>.
-                        </span>
-                        <span className="font-semibold text-emerald-400">100% Optional</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab 4: 60-Second Check-out & Deposit Settlements */}
-                {activeHeroTab === "deposit" && (
-                  <div className="p-4 sm:p-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                      <div>
-                        <h4 className="font-bold text-white text-sm">Transparent Check-out & Security Deposit Settlement</h4>
-                        <p className="text-slate-400">Complete itemized deduction receipt logged directly to immutable audit trail</p>
-                      </div>
-                      <span className="text-[10px] font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-500/30">
-                        Arun Kumar · Vacating
-                      </span>
-                    </div>
-
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 space-y-3 text-xs max-w-xl mx-auto">
-                      <div className="space-y-2 border-b border-slate-800 pb-3">
-                        <div className="flex justify-between text-slate-300">
-                          <span>Security Deposit Held:</span>
-                          <span className="font-bold text-white">₹15,000</span>
-                        </div>
-                        <div className="flex justify-between text-rose-400">
-                          <span>Less: Room Cleaning & Repainting:</span>
-                          <span className="font-bold">− ₹1,000</span>
-                        </div>
-                        <div className="flex justify-between text-rose-400">
-                          <span>Less: Electricity & Water Arrears:</span>
-                          <span className="font-bold">− ₹1,200</span>
-                        </div>
-                        <div className="flex justify-between text-rose-400">
-                          <span>Less: 10-day stay pro-rata:</span>
-                          <span className="font-bold">− ₹2,500</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm font-bold pt-1">
-                        <span className="text-white">Net Refund Payable to Tenant:</span>
-                        <span className="text-lg text-emerald-400 font-black">₹10,300</span>
-                      </div>
-
-                      <div className="pt-2">
-                        <div className="rounded-lg bg-emerald-500 text-slate-950 font-bold text-center py-2 text-xs shadow-md">
-                          One-Click &quot;Approve Settlement & Vacate Bed&quot;
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              </Reveal>
             </div>
           </div>
         </section>
 
-        {/* ── LIVE IMPACT & PERFORMANCE STATS BAR ─────────────────────────── */}
-        <section className="py-10 border-y border-slate-800 bg-slate-950/60 backdrop-blur-md">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              <div className="space-y-1">
-                <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">
-                  ₹4.2 Cr+
-                </div>
-                <div className="text-xs text-slate-400 font-medium">Rent Collected via UPI</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-400">
-                  98.2%
-                </div>
-                <div className="text-xs text-slate-400 font-medium">On-Time Rent Settlement</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-teal-300">
-                  18+ Hrs
-                </div>
-                <div className="text-xs text-slate-400 font-medium">Saved Per Property / Month</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-cyan-400">
-                  0 Notebooks
-                </div>
-                <div className="text-xs text-slate-400 font-medium">100% Digital & Cloud Audited</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── BENTO ARCHITECTURE: 6 CORE PRODUCT PILLARS ─────────────────── */}
-        <section id="features" className="py-16 sm:py-24">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center max-w-2xl mx-auto space-y-3">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
-                Engineered for Scale
-              </span>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-                Everything required to run 10 to 500+ beds.
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Eliminate administrative friction and modernize every aspect of your PG operations.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {/* Card 1: 1-Click WhatsApp Reminders (Span 2) */}
-              <div className="md:col-span-2 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 sm:p-8 space-y-4 hover:border-slate-700 transition-all">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                  <MessageCircle className="size-6" />
-                </div>
-                <h3 className="text-xl font-bold text-white">
-                  Autonomous WhatsApp Rent Reminders & UPI Rails
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xl">
-                  Generate rent bills for your entire PG in one click. Send pre-filled, personalized WhatsApp messages with direct deep-links that open GPay, PhonePe, or Paytm with the exact amount pre-loaded. Instant reconciliation and automatic PDF receipts.
-                </p>
-                <div className="flex flex-wrap items-center gap-2 pt-2">
-                  <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                    ✓ 1-Tap GPay / PhonePe
-                  </span>
-                  <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                    ✓ Auto PDF Receipts
-                  </span>
-                  <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                    ✓ Real-time Defaulter Radar
-                  </span>
-                </div>
-              </div>
-
-              {/* Card 2: Visual Bed Matrix */}
-              <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 space-y-4 hover:border-slate-700 transition-all">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-400">
-                  <BedSingle className="size-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Live Bed Allocation Matrix</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Real-time visual map of every room and bed. Know immediately which beds are vacant, which tenants are on notice, and never double-book again.
-                </p>
-                <div className="text-[11px] text-teal-300 font-medium pt-2">
-                  Instant mid-month join pro-rata calculation included.
-                </div>
-              </div>
-
-              {/* Card 3: Sub-Meter & Electricity Engine */}
-              <div id="submeter" className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 space-y-4 hover:border-slate-700 transition-all">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-                  <Zap className="size-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Sub-Meter Electricity Splitting</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Bedy stores previous month meter readings automatically. Enter current reading, and the system calculates units × rate and divides it equally among active room occupants.
-                </p>
-                <div className="text-[11px] text-amber-300 font-medium pt-2">
-                  Ends electricity arguments between room mates forever.
-                </div>
-              </div>
-
-              {/* Card 4: Deposit Settlements */}
-              <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 space-y-4 hover:border-slate-700 transition-all">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-                  <Receipt className="size-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Dispute-Free Deposit Refunds</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Itemized check-out settlements with deductions for repainting, unbilled electricity, and notice period shortages. Complete audit log proof.
-                </p>
-                <div className="text-[11px] text-cyan-300 font-medium pt-2">
-                  Tenants leave happily with full financial transparency.
-                </div>
-              </div>
-
-              {/* Card 5: Repairs & Maintenance Desk */}
-              <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 space-y-4 hover:border-slate-700 transition-all">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
-                  <AlertTriangle className="size-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Digital Maintenance Helpdesk</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Tenants snap photos of leaking taps or broken ACs and raise tickets. Assign technicians in 1 click, track SLA resolution times, and verify fixes.
-                </p>
-                <div className="text-[11px] text-rose-300 font-medium pt-2">
-                  No lost WhatsApp voice notes or forgotten repairs.
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── INTERACTIVE ROI & TIME-SAVED CALCULATOR ───────────────────────── */}
-        <section id="calculator" className="py-16 sm:py-24 border-t border-slate-800 bg-slate-950/70">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-10">
+        {/* ── BENTO GRID: 6 CORE OPERATIONAL CAPABILITIES ─────────────────── */}
+        <section id="features" className="py-14 sm:py-20 bg-white border-b border-slate-200/70">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
             <div className="text-center max-w-2xl mx-auto space-y-2">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
-                Interactive Profit Simulator
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                Core Capabilities
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">
-                How much time and money will Bedy save you?
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950">
+                Everything required to run 10 to 60+ beds smoothly
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Move the sliders to match your property size and see your estimated monthly returns.
+              <p className="text-xs sm:text-sm text-slate-500">
+                No complex training required. Built for quick daily phone or laptop usage.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-6 sm:p-10 shadow-2xl">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                {/* Sliders on Left */}
-                <div className="lg:col-span-6 space-y-6">
-                  {/* Beds Slider */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              {/* Feature 1 */}
+              <Reveal delay={0} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 mb-4">
+                  <MessageCircle className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "1-கிளிக் வாட்ஸ்அப் வசூல்" : "1-Click WhatsApp Invoicing"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Generate rent bills for all occupied rooms in one tap. Send personalized WhatsApp reminders with direct UPI deep-links that open GPay, PhonePe, or Paytm.
+                </p>
+              </Reveal>
+
+              {/* Feature 2 */}
+              <Reveal delay={100} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 mb-4">
+                  <BedSingle className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "நேரடி படுக்கை ஆக்கிரமிப்பு" : "Real-Time Bed Matrix"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Visual floor map showing occupied, due, and vacant beds. Automatic pro-rata rent calculation for mid-month check-ins and zero double-booking.
+                </p>
+              </Reveal>
+
+              {/* Feature 3 (Sub-meter) */}
+              <Reveal delay={200} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 mb-4">
+                  <Zap className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "அறை மின் கணக்கீடு" : "Stored Room Sub-Meters"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Automatically remembers last month&apos;s meter reading. Enter the current reading and Bedy splits consumed units equally only among room roommates.
+                </p>
+              </Reveal>
+
+              {/* Feature 4 */}
+              <Reveal delay={300} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 mb-4">
+                  <Receipt className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "வைப்புத்தொகைத் தீர்வு" : "Itemized Deposit Refunds"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Zero arguments at move-out. Deduct repair damages, unpaid electricity, and notice period shortages with an itemized summary written to audit logs.
+                </p>
+              </Reveal>
+
+              {/* Feature 5 */}
+              <Reveal delay={400} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-700 mb-4">
+                  <AlertTriangle className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "பழுது நீக்கல் மேசை" : "Maintenance Ticket Tracker"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Tenants raise repair tickets directly with photos. Managers assign technicians, monitor progress, and verify fixes without WhatsApp confusion.
+                </p>
+              </Reveal>
+
+              {/* Feature 6 */}
+              <Reveal delay={500} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700 mb-4">
+                  <FileText className="size-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isTa ? "தானியங்கி ரசீதுகள் & அறிக்கை" : "Official PDF Receipts & Export"}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Official branded payment receipts sent automatically to tenant WhatsApp. One-click Excel downloads for monthly accounting and tax audits.
+                </p>
+              </Reveal>
+            </div>
+          </div>
+        </section>
+
+        {/* ── INTERACTIVE OPERATIONAL CALCULATOR ───────────────────────────── */}
+        <section id="calculator" className="py-14 sm:py-20 bg-slate-50/60 border-b border-slate-200/70">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8">
+            <div className="text-center max-w-xl mx-auto space-y-2">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                Operational Calculator
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950">
+                Estimate your monthly time & revenue savings
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Move the sliders to match your property size.
+              </p>
+            </div>
+
+            <Reveal delay={100}>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Slider 1: Beds */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-slate-300">Total Beds Operated</span>
-                      <span className="text-emerald-400 font-mono text-sm font-bold">
+                      <span className="text-slate-700">Total Beds Operated</span>
+                      <span className="text-emerald-700 font-mono text-sm font-bold bg-emerald-50 px-2 py-0.5 rounded">
                         {calcBeds} Beds
                       </span>
                     </div>
                     <input
                       type="range"
                       min="10"
-                      max="200"
-                      step="5"
+                      max="150"
+                      step="2"
                       value={calcBeds}
                       onChange={(e) => setCalcBeds(Number(e.target.value))}
-                      className="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+                      className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-100 rounded-lg"
                     />
-                    <div className="flex justify-between text-[10px] text-slate-500">
+                    <div className="flex justify-between text-[10px] text-slate-400">
                       <span>10 Beds</span>
-                      <span>100 Beds</span>
-                      <span>200 Beds</span>
+                      <span>75 Beds</span>
+                      <span>150 Beds</span>
                     </div>
                   </div>
 
-                  {/* Rent Slider */}
+                  {/* Slider 2: Rent */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-slate-300">Average Rent Per Bed</span>
-                      <span className="text-emerald-400 font-mono text-sm font-bold">
+                      <span className="text-slate-700">Average Rent Per Bed</span>
+                      <span className="text-emerald-700 font-mono text-sm font-bold bg-emerald-50 px-2 py-0.5 rounded">
                         ₹{calcRent.toLocaleString()} / mo
                       </span>
                     </div>
                     <input
                       type="range"
                       min="4000"
-                      max="25000"
+                      max="20000"
                       step="500"
                       value={calcRent}
                       onChange={(e) => setCalcRent(Number(e.target.value))}
-                      className="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+                      className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-100 rounded-lg"
                     />
-                    <div className="flex justify-between text-[10px] text-slate-500">
+                    <div className="flex justify-between text-[10px] text-slate-400">
                       <span>₹4,000</span>
-                      <span>₹15,000</span>
-                      <span>₹25,000</span>
+                      <span>₹12,000</span>
+                      <span>₹20,000</span>
                     </div>
-                  </div>
-
-                  <div className="rounded-xl bg-slate-950 p-3.5 border border-slate-800 text-xs text-slate-400 space-y-1">
-                    <div className="flex justify-between font-semibold text-slate-300">
-                      <span>Estimated Monthly Billing:</span>
-                      <span className="text-white font-mono font-bold">
-                        ₹{roiMonthlyRevenue.toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Based on typical operator benchmarks across Bangalore, Chennai, Pune & Hyderabad.
-                    </p>
                   </div>
                 </div>
 
-                {/* Live Return Metrics on Right */}
-                <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-5 space-y-1 text-center sm:text-left">
-                    <span className="text-xs text-emerald-300 font-semibold block">Time Saved / Month</span>
-                    <div className="text-3xl font-black text-white">{roiHoursSaved} Hours</div>
-                    <p className="text-[11px] text-slate-400">Zero manual rent phone chasing and receipt drafting.</p>
+                {/* Calculation Outputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100 text-center">
+                  <div className="rounded-xl bg-slate-50 p-4 border border-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">
+                      Monthly Rent Turnover
+                    </span>
+                    <span className="text-xl font-extrabold text-slate-900 mt-1 block">
+                      ₹{calculatedMonthlyRevenue.toLocaleString()}
+                    </span>
                   </div>
 
-                  <div className="rounded-xl border border-teal-500/30 bg-teal-950/20 p-5 space-y-1 text-center sm:text-left">
-                    <span className="text-xs text-teal-300 font-semibold block">Leakage Prevented</span>
-                    <div className="text-3xl font-black text-white">
-                      ₹{roiLeakageSaved.toLocaleString()}
-                    </div>
-                    <p className="text-[11px] text-slate-400">Recovered from unbilled sub-meters & delayed rent.</p>
+                  <div className="rounded-xl bg-emerald-50 p-4 border border-emerald-200">
+                    <span className="text-[10px] text-emerald-800 uppercase tracking-wider font-bold block">
+                      Estimated Time Saved
+                    </span>
+                    <span className="text-xl font-extrabold text-emerald-700 mt-1 block">
+                      ~{estimatedHoursSaved} Hours / mo
+                    </span>
+                    <span className="text-[9.5px] text-emerald-600 block mt-0.5">
+                      No chasing rent calls or register notes
+                    </span>
                   </div>
 
-                  <div className="sm:col-span-2 rounded-xl border border-slate-800 bg-slate-950 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                    <div>
-                      <div className="font-bold text-white">Ready to unlock these savings?</div>
-                      <div className="text-slate-400">Setup takes only 2 minutes with pre-seeded templates.</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
-                      className="px-4 py-2 rounded-lg bg-emerald-500 text-slate-950 font-bold hover:bg-emerald-400 transition-all cursor-pointer shrink-0"
-                    >
-                      Test Drive Free →
-                    </button>
+                  <div className="rounded-xl bg-teal-50 p-4 border border-teal-200">
+                    <span className="text-[10px] text-teal-800 uppercase tracking-wider font-bold block">
+                      Leakage Prevented
+                    </span>
+                    <span className="text-xl font-extrabold text-teal-700 mt-1 block">
+                      ~₹{estimatedLeakagePrevented.toLocaleString()} / mo
+                    </span>
+                    <span className="text-[9.5px] text-teal-600 block mt-0.5">
+                      Unbilled sub-meters & delayed dues
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
+            </Reveal>
           </div>
         </section>
 
-        {/* ── 1-CLICK TEST DRIVE / DEMO PORTALS (INSTANT LOGINS) ───────────── */}
-        <section id="demo-portals" className="py-16 sm:py-24 border-t border-slate-800 bg-[#0B0F19]">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center max-w-2xl mx-auto space-y-3">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
-                Frictionless 1-Click Evaluation
+        {/* ── AUTHENTIC SEEDED DEMO LOGINS (TEST DRIVE) ───────────────────── */}
+        <section id="demo-portals" className="py-14 sm:py-20 bg-white border-b border-slate-200/70">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
+            <div className="text-center max-w-2xl mx-auto space-y-2">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                1-Click Test Drive
               </span>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">
-                Experience every portal live right now.
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950">
+                {isTa ? "மாதிரி கணக்குகளில் உள்நுழையுங்கள்" : "Try Every Role Instantly"}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Click any role card below to instantly log into a live, pre-populated property with real beds, rent data, and sub-meters. No password or signup required.
+              <p className="text-xs sm:text-sm text-slate-500">
+                Click any account below to jump straight into their portal with real seeded PG data. No password or signup required.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 max-w-5xl mx-auto">
               {/* Card 1: PG Owner */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+              <Reveal delay={0} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-slate-300 hover:shadow-md transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-slate-950 text-white font-bold">
                       <Building2 className="size-5" />
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/30 px-2.5 py-0.5 rounded-full uppercase">
-                      Owner
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      PG Owner
                     </span>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white text-base">Sri Lakshmi Luxury PG</h3>
-                    <p className="text-[11px] text-slate-400">42 Beds · 18 Rooms</p>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Full owner command: revenue analytics, bulk WhatsApp billing, defaulters radar, bed matrix.
+                  <h3 className="text-base font-bold text-slate-900">Sri Lakshmi Luxury PG</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">42 Beds · 18 Rooms · Calendar Month Cycle</p>
+                  <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+                    Full owner controls: view bed occupancy, generate batch rent, send WhatsApp reminders, track defaulters, and view revenue analytics.
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-800">
+                <div className="mt-6 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
                     disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 py-2.5 text-xs font-bold hover:opacity-95 transition-all cursor-pointer shadow-md shadow-emerald-500/20"
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-slate-950 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
                   >
                     {loggingIn === "owner@srilakshmipg.local" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <ArrowRight className="size-4" />
-                    )}
-                    <span>Launch Owner Portal</span>
+                      <Loader2 className="size-4 animate-spin text-white" />
+                    ) : null}
+                    <span>Open PG Owner Portal</span>
+                    <ArrowRight className="size-3.5" />
                   </button>
                 </div>
-              </div>
+              </Reveal>
 
               {/* Card 2: PG Manager */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 flex flex-col justify-between hover:border-teal-500/50 hover:shadow-lg hover:shadow-teal-500/10 transition-all">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-400">
+              <Reveal delay={150} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-slate-300 hover:shadow-md transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
                       <ShieldCheck className="size-5" />
-                    </div>
-                    <span className="text-[10px] font-bold text-teal-300 bg-teal-950/80 border border-teal-500/30 px-2.5 py-0.5 rounded-full uppercase">
-                      Manager
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      PG Manager
                     </span>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white text-base">Suresh Kumar</h3>
-                    <p className="text-[11px] text-slate-400">On-site Operations</p>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Daily check-ins, Aadhaar/ID proof uploads, sub-meter readings, maintenance assignments.
+                  <h3 className="text-base font-bold text-slate-900">Suresh Kumar</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Manager · On-site Operations</p>
+                  <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+                    Check-in new tenants, upload ID proofs, record cash/UPI payments, assign maintenance complaints, and settle check-out deposits.
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-800">
+                <div className="mt-6 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => quickLogin("manager@srilakshmipg.local", "/admin/dashboard")}
                     disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white py-2.5 text-xs font-bold transition-all cursor-pointer"
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-700 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-800 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
                   >
                     {loggingIn === "manager@srilakshmipg.local" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <ArrowRight className="size-4" />
-                    )}
-                    <span>Launch Manager Portal</span>
+                      <Loader2 className="size-4 animate-spin text-white" />
+                    ) : null}
+                    <span>Open PG Manager Portal</span>
+                    <ArrowRight className="size-3.5" />
                   </button>
                 </div>
-              </div>
+              </Reveal>
 
               {/* Card 3: Resident Tenant */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 transition-all">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+              <Reveal delay={300} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-slate-300 hover:shadow-md transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
                       <User className="size-5" />
-                    </div>
-                    <span className="text-[10px] font-bold text-cyan-300 bg-cyan-950/80 border border-cyan-500/30 px-2.5 py-0.5 rounded-full uppercase">
-                      Resident
+                    </span>
+                    <span className="text-[10px] font-bold text-indigo-800 bg-indigo-50 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      Tenant / Resident
                     </span>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white text-base">Karthik Raja</h3>
-                    <p className="text-[11px] text-slate-400">Room 201 (Bed A)</p>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Tenant self-service: 1-click UPI payments, official PDF receipt downloads, repair tickets.
+                  <h3 className="text-base font-bold text-slate-900">Karthik Raja</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Room 201 (Bed A) · Active Occupant</p>
+                  <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+                    View rent breakdown, pay instantly with UPI QR/Cards, download official PDF receipts, and file repair requests.
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-800">
+                <div className="mt-6 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => quickLogin("resident@srilakshmipg.local", "/resident/dashboard")}
                     disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white py-2.5 text-xs font-bold transition-all cursor-pointer"
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-indigo-700 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
                   >
                     {loggingIn === "resident@srilakshmipg.local" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <ArrowRight className="size-4" />
-                    )}
-                    <span>Launch Resident App</span>
+                      <Loader2 className="size-4 animate-spin text-white" />
+                    ) : null}
+                    <span>Open Resident Portal</span>
+                    <ArrowRight className="size-3.5" />
                   </button>
                 </div>
-              </div>
-
-              {/* Card 4: Apartment Society Admin */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 flex flex-col justify-between hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
-                      <KeyRound className="size-5" />
-                    </div>
-                    <span className="text-[10px] font-bold text-indigo-300 bg-indigo-950/80 border border-indigo-500/30 px-2.5 py-0.5 rounded-full uppercase">
-                      Society
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white text-base">Green Valley Society</h3>
-                    <p className="text-[11px] text-slate-400">100 Flats · Gated Comm.</p>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Residential society mode: flat maintenance dues, amenity booking, gate notices, resident directory.
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => quickLogin("admin@greenvalley.local", "/admin/dashboard")}
-                    disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white py-2.5 text-xs font-bold transition-all cursor-pointer"
-                  >
-                    {loggingIn === "admin@greenvalley.local" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <ArrowRight className="size-4" />
-                    )}
-                    <span>Launch Society Admin</span>
-                  </button>
-                </div>
-              </div>
+              </Reveal>
             </div>
           </div>
         </section>
 
-        {/* ── FREQUENTLY ASKED QUESTIONS (ACCORDION) ───────────────────────── */}
-        <section className="py-16 sm:py-24 border-t border-slate-800 bg-slate-950/60">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 space-y-8">
+        {/* ── OPERATOR FAQ ACCORDION ───────────────────────────────────────── */}
+        <section className="py-14 sm:py-20 bg-slate-50/60 border-b border-slate-200/70">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 space-y-6">
             <div className="text-center space-y-2">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
-                Operator FAQ
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                FAQ
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">
-                Frequently Asked Questions
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950">
+                Common Operator Questions
               </h2>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {[
                 {
-                  q: "Do my residents need to install any mobile app?",
-                  a: "No! Tenants receive personalized WhatsApp links with deep-links to GPay, PhonePe, or Paytm. They can pay directly without creating passwords or installing storage-heavy apps.",
+                  q: "Do tenants have to download an app or create a password?",
+                  a: "No! Tenants receive a WhatsApp reminder with a direct payment link that opens GPay, PhonePe, or Paytm on their phone. Once paid, the receipt is sent directly back to their WhatsApp.",
                 },
                 {
                   q: "How does the room-wise electricity sub-meter feature work?",
-                  a: "Each room's starting meter reading is remembered automatically from the previous month. On the 1st, simply enter the current reading. Bedy multiplies units by your rate per unit and divides the total bill equally only among active occupants of that room.",
+                  a: "Each room's starting meter reading is remembered automatically from the previous month. On the 1st of the month, enter the current reading. Bedy multiplies units by your rate per unit and divides the total bill equally only among active occupants of that room.",
                 },
                 {
-                  q: "Can I manage multiple PG branches with one account?",
-                  a: "Yes. Bedy supports multi-property switching so you can operate several hostels, PGs, or co-living buildings with consolidated financial reporting.",
+                  q: "What happens if a tenant moves in the middle of the month?",
+                  a: "Bedy automatically computes pro-rata rent based on the exact move-in date and remaining days in the calendar month, so you never have to calculate fractions manually.",
                 },
                 {
-                  q: "Is my tenant financial and Aadhaar data secure?",
-                  a: "All records are securely encrypted and backed up daily. Strict role-based permissions ensure managers cannot alter critical financial settings without owner authorization.",
-                },
-                {
-                  q: "Can I try Bedy before committing?",
-                  a: "Absolutely. You can test drive the full system right now using our live 1-click demo accounts above without signing up.",
+                  q: "How are security deposits settled at check-out?",
+                  a: "You enter itemized deductions (e.g. repainting, unbilled electricity units, notice period shortage). The system calculates the net refund and saves a timestamped record to the audit log.",
                 },
               ].map((faq, idx) => (
                 <div
                   key={idx}
-                  className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all"
+                  className="rounded-xl border border-slate-200 bg-white overflow-hidden transition-all shadow-2xs"
                 >
                   <button
                     type="button"
                     onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
-                    className="w-full flex items-center justify-between p-4 text-left text-xs sm:text-sm font-bold text-slate-200 hover:text-white cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 text-left text-xs sm:text-sm font-bold text-slate-800 hover:text-emerald-700 cursor-pointer"
                   >
                     <span>{faq.q}</span>
                     <ChevronDown
                       className={`size-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
-                        openFaq === idx ? "rotate-180 text-emerald-400" : ""
+                        openFaq === idx ? "rotate-180 text-emerald-600" : ""
                       }`}
                     />
                   </button>
                   {openFaq === idx && (
-                    <div className="px-4 pb-4 text-xs text-slate-400 leading-relaxed border-t border-slate-800/60 pt-3">
+                    <div className="px-4 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
                       {faq.a}
                     </div>
                   )}
@@ -1244,168 +1112,50 @@ export default function HomePageClient({ user = null }) {
             </div>
           </div>
         </section>
-
-        {/* ── HIGH-CONVERTING FINAL CTA BANNER ────────────────────────────── */}
-        <section className="py-16 sm:py-24 relative overflow-hidden">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-            <div className="relative rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 p-8 sm:p-14 text-center space-y-6 overflow-hidden shadow-2xl shadow-emerald-500/10">
-              {/* Subtle inner ambient glow */}
-              <div className="absolute -top-24 left-1/2 -translate-x-1/2 size-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-
-              <span className="relative z-10 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 uppercase tracking-widest bg-emerald-500/20 border border-emerald-500/30 px-3.5 py-1 rounded-full">
-                <Sparkles className="size-3.5 text-emerald-400" />
-                Modernize Your Property Today
-              </span>
-
-              <h2 className="relative z-10 text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight max-w-2xl mx-auto">
-                Stop chasing rent. Let Bedy automate your PG operations.
-              </h2>
-
-              <p className="relative z-10 text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-                Join forward-thinking PG and hostel operators across India. Get started in 2 minutes with zero credit card commitment.
-              </p>
-
-              <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
-                  disabled={Boolean(loggingIn)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-300 text-slate-950 font-black px-7 py-3.5 text-sm hover:opacity-95 active:scale-[0.98] transition-all shadow-xl shadow-emerald-500/25 cursor-pointer"
-                >
-                  {loggingIn === "owner@srilakshmipg.local" ? (
-                    <Loader2 className="size-4 animate-spin text-slate-950" />
-                  ) : (
-                    <Play className="size-4 fill-slate-950 text-slate-950" />
-                  )}
-                  <span>Launch Interactive Demo</span>
-                  <ArrowRight className="size-4" />
-                </button>
-
-                <Link
-                  href="/login"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-white px-6 py-3.5 text-sm font-bold transition-all"
-                >
-                  <LogIn className="size-4" />
-                  <span>Sign In</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
-      {/* ── MODERN ULTRA-CLEAN FOOTER ────────────────────────────────────── */}
-      <footer className="border-t border-slate-800 bg-[#070A11] text-xs text-slate-400 py-12 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-            {/* Brand column */}
-            <div className="md:col-span-2 space-y-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-slate-950 font-black text-sm">
-                  B
-                </span>
-                <span className="font-black text-white text-lg tracking-tight">Bedy</span>
-                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-bold text-emerald-400 uppercase">
-                  OS 2.0
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-                The modern operating system for PG, hostel, and co-living operations in India. 1-click WhatsApp rent collection, instant UPI, room sub-meters, and bed occupancy management.
-              </p>
-              <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                <span className="size-2 rounded-full bg-emerald-400" />
-                <span>All systems operational · Bangalore, India</span>
-              </div>
+      {/* ── CLEAN MINIMALIST FOOTER ──────────────────────────────────────── */}
+      <footer className="border-t border-slate-200 bg-white py-10 text-xs text-slate-500">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white font-black text-xs">
+                B
+              </span>
+              <span className="font-bold text-slate-900 text-sm">Bedy</span>
+              <span>·</span>
+              <span>
+                {isTa
+                  ? "பிஜி மற்றும் விடுதி நிர்வாக மென்பொருள்"
+                  : "Smart PG, Hostel & Co-Living Operations"}
+              </span>
             </div>
 
-            {/* Platform Links */}
-            <div className="space-y-3">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                Platform
-              </h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <a href="#showcase" className="hover:text-emerald-400 transition-colors">
-                    Live Showcase
-                  </a>
-                </li>
-                <li>
-                  <a href="#features" className="hover:text-emerald-400 transition-colors">
-                    Bed Matrix
-                  </a>
-                </li>
-                <li>
-                  <a href="#submeter" className="hover:text-emerald-400 transition-colors">
-                    Sub-Meter Billing
-                  </a>
-                </li>
-                <li>
-                  <a href="#calculator" className="hover:text-emerald-400 transition-colors">
-                    ROI Calculator
-                  </a>
-                </li>
-                <li>
-                  <a href="#demo-portals" className="hover:text-emerald-400 transition-colors">
-                    Test Drive Portals
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal */}
-            <div className="space-y-3">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                Company & Legal
-              </h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <Link href="/terms" className="hover:text-emerald-400 transition-colors">
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="hover:text-emerald-400 transition-colors">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/refund-policy" className="hover:text-emerald-400 transition-colors">
-                    Refund Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/pricing" className="hover:text-emerald-400 transition-colors">
-                    Pricing Plans
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Contact */}
-            <div className="space-y-3">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                Get in Touch
-              </h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Have questions or need custom multi-property onboarding?
-              </p>
-              <div className="space-y-1.5">
-                <a
-                  href="mailto:support@bedy.in"
-                  className="block text-emerald-400 font-semibold hover:underline"
-                >
-                  support@bedy.in
-                </a>
-                <span className="text-[11px] text-slate-500 block">Mon - Sat · 9 AM - 7 PM IST</span>
-              </div>
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-5 gap-y-2 font-medium text-slate-600">
+              <Link href="/features" className="hover:text-slate-950 transition-colors">
+                {isTa ? "அம்சங்கள்" : "Features"}
+              </Link>
+              <Link href="/pricing" className="hover:text-slate-950 transition-colors">
+                {isTa ? "கட்டணம்" : "Pricing"}
+              </Link>
+              <Link href="/refund-policy" className="hover:text-slate-950 transition-colors">
+                {isTa ? "திருப்பி அளித்தல்" : "Refund Policy"}
+              </Link>
+              <Link href="/terms" className="hover:text-slate-950 transition-colors">
+                {isTa ? "விதிமுறைகள்" : "Terms"}
+              </Link>
+              <Link href="/privacy" className="hover:text-slate-950 transition-colors">
+                {isTa ? "தனியுரிமை" : "Privacy"}
+              </Link>
+              <Link href="/login" className="hover:text-slate-950 transition-colors font-semibold text-emerald-600">
+                {isTa ? "உள்நுழை" : "Sign In"}
+              </Link>
             </div>
           </div>
 
-          <div className="border-t border-slate-800/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
-            <span>© {new Date().getFullYear()} Bedy Technologies Inc. All rights reserved.</span>
-            <div className="flex items-center gap-4">
-              <span>Made with ❤️ for Indian PG & Hostel Operators</span>
-            </div>
+          <div className="border-t border-slate-100 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
+            <span>© {new Date().getFullYear()} Bedy Technologies. All rights reserved.</span>
+            <span>Made with ❤️ for PG & Hostel Operators in India</span>
           </div>
         </div>
       </footer>
