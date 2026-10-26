@@ -128,28 +128,6 @@ export default async function ResidentDashboardPage() {
       icon: Receipt,
       tone: "sky",
     },
-    {
-      href: "/resident/profile#documents",
-      title: "KYC Verification",
-      caption: data.kycStatus?.isComplete ? "Identity verified" : "Aadhaar & PAN required",
-      icon: ShieldCheck,
-      tone: data.kycStatus?.isComplete ? "green" : "amber",
-      badge: data.kycStatus?.isComplete ? "Verified" : "Action Needed",
-    },
-    ...(isPgResident
-      ? [
-          {
-            href: "/resident/vacate",
-            title: isNotice ? "Notice Active (Vacating)" : "Vacate PG / Notice",
-            caption: isNotice
-              ? `Move-out: ${formatDate(primaryOccupancy.leaveDate)} (${daysLeft}d left)`
-              : "Planning to leave? Serve move-out notice",
-            icon: DoorOpen,
-            tone: isNotice ? "amber" : "slate",
-            badge: isNotice ? "On Notice" : "Vacating",
-          },
-        ]
-      : []),
   ];
 
   return (
