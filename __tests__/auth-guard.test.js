@@ -15,7 +15,7 @@ describe("Authentication & Role Guards (lib/auth/guard.js)", () => {
     test("includes OWNER, MANAGER, and SOCIETY_ADMIN", () => {
       expect(ADMIN_ROLES).toContain("OWNER");
       expect(ADMIN_ROLES).toContain("MANAGER");
-      expect(ADMIN_ROLES).toContain("SOCIETY_ADMIN");
+      expect(ADMIN_ROLES).toContain("SOCIETY_ADMI");
     });
   });
 
