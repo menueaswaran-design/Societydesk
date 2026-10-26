@@ -1,146 +1,124 @@
-import { CheckCircle2, ShieldCheck, Sparkles, BedSingle } from "lucide-react";
+import Link from "next/link";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
 /**
- * Clean & modern split layout for public authentication:
- * - Left: Simple, attractive brand showcase with focused live preview card for PG & Housing societies.
- * - Right: Fast, secure authentication form.
+ * Clean, full-page modern layout for public pages (Features, Pricing, Terms, Privacy, Refund, Contact, Login):
+ * - No dark mood or split-screen side panels
+ * - Full-width, airy, crisp light aesthetic
+ * - Clean top navigation and footer
  */
 export default function PublicLayout({ children }) {
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr] bg-slate-950 text-slate-100">
-      {/* ------------------------------------------------------- Left Brand Panel */}
-      <section className="relative hidden overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-10 py-12 lg:flex lg:flex-col justify-between xl:px-14 border-r border-slate-800/70">
-        {/* Soft atmospheric gradient glow */}
-        <div className="pointer-events-none absolute -top-32 -left-32 size-96 rounded-full bg-primary-600/15 blur-[100px]" />
-        <div className="pointer-events-none absolute -bottom-32 -right-32 size-96 rounded-full bg-indigo-500/15 blur-[100px]" />
-
-        {/* Brand Header */}
-        <div className="relative z-10 flex items-center gap-3">
-          <span className="inline-flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-base font-black tracking-tight text-slate-950 shadow-md">
-            B
-          </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-white tracking-tight">Bedy</span>
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 border border-emerald-500/25">
-                PG & Co-Living
-              </span>
-            </div>
-            <p className="text-[11px] font-medium text-slate-400">Hostel & Property Management OS</p>
-          </div>
-        </div>
-
-        {/* Hero & Single Clean Preview Card */}
-        <div className="relative z-10 my-auto py-8 max-w-lg">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1 text-xs font-medium text-slate-300 border border-white/10 mb-5">
-            <Sparkles className="size-3 text-amber-400" />
-            <span>Modern operating system for PGs, Hostels & Societies</span>
-          </div>
-
-          <h1 className="text-4xl font-extrabold tracking-tight text-white xl:text-[44px] leading-[1.15]">
-            Run your PG & hostels{" "}
-            <span className="bg-gradient-to-r from-primary-300 via-indigo-200 to-emerald-300 bg-clip-text text-transparent">
-              with clarity & ease.
-            </span>
-          </h1>
-
-          <p className="mt-4 text-[15px] leading-relaxed text-slate-300/90">
-            Per-bed rent tracking, security deposit refunds with itemized deductions, instant UPI rent reminders, and tracked maintenance tickets.
-          </p>
-
-          {/* Simple, Attractive Live Preview Card */}
-          <div className="mt-8 rounded-2xl border border-white/15 bg-white/[0.04] p-5 backdrop-blur-xl shadow-xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
-              <div>
-                <p className="text-sm font-bold text-white">Sri Lakshmi Luxury PG & Coliving</p>
-                <p className="text-xs text-slate-400 mt-0.5">24 Beds · 10 Rooms · November Cycle</p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30">
-                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                92% Occupancy
-              </span>
-            </div>
-
-            <div className="mt-4">
-              <div className="flex items-baseline justify-between">
-                <div>
-                  <span className="text-2xl font-black text-white tracking-tight">₹1,85,000</span>
-                  <span className="text-xs text-slate-400 ml-1.5">collected this month</span>
-                </div>
-                <span className="text-xs font-semibold text-emerald-400">22 / 24 Beds Occupied</span>
-              </div>
-
-              {/* Smooth progress bar */}
-              <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
-                  style={{ width: "92%" }}
-                />
-              </div>
-            </div>
-
-            {/* 3 Clean Highlight Pills */}
-            <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3 border-t border-white/10 text-xs">
-              <div className="flex items-center gap-2 text-slate-300">
-                <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
-                <span>Bed-Level Records</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
-                <span>Deposit Ledger</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
-                <span>Auto Rent Reminders</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Minimal Footer Trust Note */}
-        <div className="relative z-10 flex items-center gap-2 text-xs text-slate-400 font-medium border-t border-white/10 pt-5">
-          <ShieldCheck className="size-4 text-emerald-400" />
-          <span>Bank-grade 256-bit encryption · Designed for PG Owners, Hostels & Residential Societies</span>
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------- Right Form Column */}
-      <section className="flex flex-col bg-slate-50 min-h-screen">
-        {/* Top Navbar */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 sm:px-8 py-3.5">
-          {/* Mobile Logo */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <span className="inline-flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black text-white">
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-950 antialiased">
+      {/* ── Top Navigation Bar ─────────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+        <div className="mx-auto max-w-7xl flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Brand Logo */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-base shadow-sm shadow-emerald-600/30 group-hover:scale-105 transition-transform">
               B
             </span>
-            <p className="text-sm font-bold text-slate-900">Bedy</p>
-          </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-black tracking-tight text-slate-950 leading-tight">
+                  Bedy
+                </span>
+                <span className="rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.2 text-[9px] font-bold text-emerald-800 uppercase tracking-wide">
+                  PG & Hostel
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium leading-none hidden xs:block">
+                Operations Management OS
+              </span>
+            </div>
+          </Link>
 
-          {/* Desktop status pill */}
-          <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-slate-500">
-            <span className="size-2 rounded-full bg-emerald-500" />
-            <span>Secure Sign-In Portal</span>
-          </div>
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-600">
+            <Link href="/" className="hover:text-emerald-700 transition-colors">
+              Home
+            </Link>
+            <Link href="/features" className="hover:text-emerald-700 transition-colors">
+              Features
+            </Link>
+            <Link href="/pricing" className="hover:text-emerald-700 transition-colors">
+              Pricing Plans
+            </Link>
+            <Link href="/contact" className="hover:text-emerald-700 transition-colors">
+              Contact
+            </Link>
+          </nav>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageSwitcher />
-            <a
-              href="/"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900"
+          {/* Right Action Cluster */}
+          <div className="flex items-center gap-3">
+            <div className="scale-90 sm:scale-100 origin-right">
+              <LanguageSwitcher />
+            </div>
+
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 transition-all shadow-2xs"
             >
-              <span>←</span>
-              <span className="hidden sm:inline">Back to website</span>
-              <span className="sm:hidden">Home</span>
-            </a>
+              <span>Sign In</span>
+            </Link>
+
+            <Link
+              href="/"
+              className="hidden sm:inline-flex items-center gap-1 rounded-xl bg-slate-950 hover:bg-slate-800 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-sm"
+            >
+              <span>← Back to Home</span>
+            </Link>
           </div>
         </div>
+      </header>
 
-        {/* Main form area */}
-        <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-8 sm:py-12">
-          <div className="w-full max-w-[420px]">{children}</div>
+      {/* ── Full Page Content ─────────────────────────────────────────── */}
+      <main className="flex-1 w-full bg-white">{children}</main>
+
+      {/* ── Clean Light Footer ────────────────────────────────────────── */}
+      <footer className="border-t border-slate-200 bg-slate-50/70 py-10 text-xs text-slate-500">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white font-black text-xs">
+                B
+              </span>
+              <span className="font-bold text-slate-900 text-sm">Bedy</span>
+              <span>·</span>
+              <span>Smart PG, Hostel & Co-Living Operations</span>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-5 gap-y-2 font-medium text-slate-600">
+              <Link href="/features" className="hover:text-slate-900 transition-colors">
+                Features
+              </Link>
+              <Link href="/pricing" className="hover:text-slate-900 transition-colors">
+                Pricing
+              </Link>
+              <Link href="/contact" className="hover:text-slate-900 transition-colors">
+                Contact
+              </Link>
+              <Link href="/refund-policy" className="hover:text-slate-900 transition-colors">
+                Refund Policy
+              </Link>
+              <Link href="/terms" className="hover:text-slate-900 transition-colors">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-slate-900 transition-colors">
+                Privacy
+              </Link>
+              <Link href="/login" className="hover:text-slate-900 transition-colors font-semibold text-emerald-700">
+                Sign In
+              </Link>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-200/60 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
+            <span>© {new Date().getFullYear()} Bedy Technologies. All rights reserved.</span>
+            <span>Made with ❤️ for PG & Hostel Operators in India</span>
+          </div>
         </div>
-      </section>
+      </footer>
     </div>
   );
 }

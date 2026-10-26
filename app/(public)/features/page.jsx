@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BedSingle, MessageSquare, Receipt, Wrench, Shield, Smartphone, ArrowRight } from "lucide-react";
+import { BedSingle, MessageSquare, Receipt, Wrench, Shield, Smartphone, ArrowRight, Zap, CheckCircle2 } from "lucide-react";
 
 export const metadata = {
   title: "Features — Complete PG & Hostel Management Software",
@@ -24,6 +24,11 @@ const featureList = [
     description: "Cycle-based rent generation on the 1st or custom dates, with automated late-fee calculation and GST invoice support.",
   },
   {
+    icon: Zap,
+    title: "Stored Room Sub-Meters",
+    description: "Pre-fills previous month meter readings, calculates consumed units at your custom rate, and divides it among room occupants.",
+  },
+  {
     icon: Shield,
     title: "Security Deposit Settlements",
     description: "Itemized damage deductions, unpaid rent adjustment, and 1-click refund vouchers when a resident vacates.",
@@ -42,43 +47,57 @@ const featureList = [
 
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto">
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl text-white">
+    <div className="w-full py-12 sm:py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="mx-auto max-w-6xl space-y-12">
+        <div className="text-center max-w-3xl mx-auto space-y-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+            Platform Capabilities
+          </span>
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-950">
             Everything your PG needs to run on autopilot
           </h1>
-          <p className="mt-4 text-base sm:text-lg text-slate-400">
+          <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
             Say goodbye to paper registers, confusing Excel spreadsheets, and endless WhatsApp follow-ups.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {featureList.map((item) => (
             <div
               key={item.title}
-              className="rounded-3xl border border-slate-800 bg-slate-800/40 p-7 hover:border-emerald-500/50 hover:bg-slate-800/80 transition-all"
+              className="rounded-2xl border border-slate-200 bg-slate-50/40 p-6 hover:border-slate-300 hover:shadow-md transition-all"
             >
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <item.icon className="size-6" />
+              <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 mb-4">
+                <item.icon className="size-5" />
               </div>
-              <h2 className="mt-5 text-lg font-bold text-white">{item.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">{item.description}</p>
+              <h2 className="text-base font-bold text-slate-900">{item.title}</h2>
+              <p className="mt-2 text-xs sm:text-sm leading-relaxed text-slate-600">{item.description}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-16 text-center">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-6 py-3.5 text-sm font-bold text-slate-950 hover:bg-emerald-400 transition"
-          >
-            <span>Explore Live Demo</span>
-            <ArrowRight className="size-4" />
-          </Link>
+        <div className="rounded-2xl border border-slate-200 bg-emerald-50/50 p-8 text-center space-y-4 max-w-3xl mx-auto">
+          <h3 className="text-xl font-bold text-slate-950">Ready to streamline your property operations?</h3>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto">
+            Test drive Bedy with our pre-seeded live demo accounts right now. No sign-up or credit card required.
+          </p>
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-white px-5 py-3 text-xs font-bold transition shadow-sm"
+            >
+              <span>Explore Live Showcase</span>
+              <ArrowRight className="size-4" />
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-5 py-3 text-xs font-semibold transition"
+            >
+              <span>View Pricing Plans</span>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
