@@ -68,7 +68,7 @@ function currentPeriod() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export default function InvoicesClient({ invoices, summary, filters }) {
+export default function InvoicesClient({ invoices, summary, filters, units = [], occupancies = [] }) {
   const router = useRouter();
   const [generateOpen, setGenerateOpen] = useState(false);
   const [payFor, setPayFor] = useState(null);
@@ -338,7 +338,7 @@ export default function InvoicesClient({ invoices, summary, filters }) {
         )}
       </div>
 
-      <GenerateModal open={generateOpen} onClose={() => setGenerateOpen(false)} />
+      <GenerateModal open={generateOpen} onClose={() => setGenerateOpen(false)} units={units} occupancies={occupancies} />
       <PaymentModal invoice={payFor} onClose={() => setPayFor(null)} />
     </div>
   );
@@ -455,7 +455,7 @@ function InvoiceBreakdown({ invoice }) {
 
 // ---------------------------------------------------------------------------
 
-function GenerateModal({ open, onClose }) {
+function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
   const router = useRouter();
   const [form, setForm] = useState({
     billingPeriod: currentPeriod(),
@@ -464,10 +464,51 @@ function GenerateModal({ open, onClose }) {
     penaltyPercent: 2,
     skipVacant: true,
   });
+
+  // Expandable sections toggles
+  const [showElectricity, setShowElectricity] = useState(false);
+  const [showExtraCharges, setShowExtraCharges] = useState(false);
+
+  // Electricity state
+  const [electricityMode, setElectricityMode] = useState("NONE"); // "NONE" | "COMMON" | "ROOM_WISE" | "INDIVIDUAL"
+  const [commonType, setCommonType] = useState("TOTAL"); // "TOTAL" | "PER_PERSON"
+  const [commonAmount, setCommonAmount] = useState("");
+
+  // Room-wise electricity state: { [unitId]: { amount: "", meterStart: "", meterEnd: "", ratePerUnit: 10 } }
+  const [roomElectricity, setRoomElectricity] = useState({});
+
+  // Individual electricity state: { [occupancyId]: amount }
+  const [individualElectricity, setIndividualElectricity] = useState({});
+
+  // Extra charges list: array of { id, name, type, amount, targetType, targetId }
+  const [extraChargesList, setExtraChargesList] = useState([]);
+
   const [error, setError] = useState(null);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null);
+
+  // All distinct rooms from units prop or derived from occupancies
+  const allRooms = useMemo(() => {
+    if (units.length > 0) return units;
+    const roomMap = new Map();
+    for (const occ of occupancies) {
+      if (occ.unit) {
+        roomMap.set(occ.unit.id || occ.unit.unitNumber, occ.unit);
+      }
+    }
+    return Array.from(roomMap.values());
+  }, [units, occupancies]);
+
+  // Occupants count per room
+  const roomOccupantCount = useMemo(() => {
+    const map = {};
+    for (const occ of occupancies) {
+      const rKey = occ.unit?.id || occ.unit?.unitNumber;
+      if (rKey) map[rKey] = (map[rKey] || 0) + 1;
+    }
+    return map;
+  }, [occupancies]);
 
   function set(key) {
     return (e) => {
@@ -481,11 +522,58 @@ function GenerateModal({ open, onClose }) {
     setError(null);
     setErrors({});
     try {
+      let electricityConfig = undefined;
+      if (showElectricity && electricityMode !== "NONE") {
+        if (electricityMode === "COMMON") {
+          electricityConfig = {
+            mode: "COMMON",
+            commonTotal: commonType === "TOTAL" && Number(commonAmount) > 0 ? Number(commonAmount) : undefined,
+            commonPerPerson: commonType === "PER_PERSON" && Number(commonAmount) > 0 ? Number(commonAmount) : undefined,
+          };
+        } else if (electricityMode === "ROOM_WISE") {
+          const rooms = Object.entries(roomElectricity)
+            .filter(([_, data]) => Number(data.amount) > 0 || (data.meterEnd && Number(data.meterEnd) >= Number(data.meterStart)))
+            .map(([unitId, data]) => ({
+              unitId,
+              unitNumber: data.unitNumber,
+              amount: Number(data.amount) || undefined,
+              meterStart: data.meterStart !== "" && data.meterStart != null ? Number(data.meterStart) : undefined,
+              meterEnd: data.meterEnd !== "" && data.meterEnd != null ? Number(data.meterEnd) : undefined,
+              ratePerUnit: data.ratePerUnit !== "" && data.ratePerUnit != null ? Number(data.ratePerUnit) : undefined,
+            }));
+          electricityConfig = { mode: "ROOM_WISE", rooms };
+        } else if (electricityMode === "INDIVIDUAL") {
+          const individuals = Object.entries(individualElectricity)
+            .filter(([_, amt]) => Number(amt) > 0)
+            .map(([occupancyId, amt]) => ({
+              occupancyId,
+              amount: Number(amt),
+            }));
+          electricityConfig = { mode: "INDIVIDUAL", individuals };
+        }
+      }
+
+      const extraCharges =
+        showExtraCharges && extraChargesList.length > 0
+          ? extraChargesList
+              .filter((c) => c.name?.trim() && Number(c.amount) > 0)
+              .map((c) => ({
+                name: c.name.trim(),
+                type: c.type || "OTHER",
+                amount: Number(c.amount),
+                targetType: c.targetType || "ALL",
+                targetId: c.targetId || undefined,
+              }))
+          : undefined;
+
       const data = await api.post("/api/billing/invoices/generate", {
         ...form,
         penaltyPercent: Number(form.penaltyPercent) || 0,
         dueDate: form.dueDate || undefined,
+        electricityConfig,
+        extraCharges,
       });
+
       setResult(data);
       router.refresh();
     } catch (err) {
@@ -507,7 +595,7 @@ function GenerateModal({ open, onClose }) {
       open={open}
       onClose={close}
       title="Generate invoices"
-      description="One invoice per occupied flat for the selected period."
+      description="One invoice per occupied room/flat for the selected period."
       footer={
         result ? (
           <Button onClick={close}>Done</Button>
@@ -530,7 +618,7 @@ function GenerateModal({ open, onClose }) {
         >
           Total billed {formatMoney(result.totalAmount)} for {formatPeriod(result.billingPeriod)}.
           {result.skippedCount > 0
-            ? ` ${result.skippedCount} flat${result.skippedCount === 1 ? "" : "s"} skipped — already invoiced for this period.`
+            ? ` ${result.skippedCount} resident${result.skippedCount === 1 ? "" : "s"} skipped — already invoiced for this period.`
             : ""}
         </SuccessBanner>
       ) : (
@@ -583,13 +671,405 @@ function GenerateModal({ open, onClose }) {
               id="skipVacant"
               checked={form.skipVacant}
               onChange={set("skipVacant")}
-              label="Skip vacant flats"
+              label="Skip vacant flats / beds"
             />
           </div>
 
+          {/* Electricity Charges Collapsible Section */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowElectricity(!showElectricity)}
+              className="flex items-center justify-between w-full p-3.5 bg-slate-50/70 hover:bg-slate-100/70 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-white font-bold text-xs shadow-2xs">
+                  ⚡
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">Add Electricity Charges</span>
+                    <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      Optional
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {electricityMode === "NONE"
+                      ? "None (rent only)"
+                      : electricityMode === "COMMON"
+                      ? "Split commonly across all residents"
+                      : electricityMode === "ROOM_WISE"
+                      ? "Room-wise (sub-meters / per room)"
+                      : "Individual per resident"}
+                  </p>
+                </div>
+              </div>
+              <span className="text-slate-400">
+                {showElectricity ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+              </span>
+            </button>
+
+            {showElectricity && (
+              <div className="p-3.5 border-t border-slate-200 space-y-3.5 bg-white">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                    Select Electricity Billing Method:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+                    {[
+                      { id: "NONE", label: "None / Rent Only" },
+                      { id: "COMMON", label: "Split Commonly" },
+                      { id: "ROOM_WISE", label: "Room-wise Sub-meter" },
+                      { id: "INDIVIDUAL", label: "Per Resident" },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setElectricityMode(m.id)}
+                        className={`py-1.5 px-2 rounded-lg font-semibold border transition-all text-center ${
+                          electricityMode === m.id
+                            ? "bg-amber-500 text-white border-amber-600 shadow-2xs"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {electricityMode === "COMMON" && (
+                  <div className="rounded-lg bg-amber-50/60 border border-amber-200/80 p-3 space-y-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="commonType"
+                          checked={commonType === "TOTAL"}
+                          onChange={() => setCommonType("TOTAL")}
+                          className="accent-amber-600"
+                        />
+                        <span className="font-semibold text-slate-800">Split Total Electricity Bill</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="commonType"
+                          checked={commonType === "PER_PERSON"}
+                          onChange={() => setCommonType("PER_PERSON")}
+                          className="accent-amber-600"
+                        />
+                        <span className="font-semibold text-slate-800">Fixed Per Resident</span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <Input
+                        id="commonAmount"
+                        label={
+                          commonType === "TOTAL"
+                            ? "Total Property Electricity Bill (₹)"
+                            : "Electricity Charge Per Person (₹)"
+                        }
+                        type="number"
+                        min="0"
+                        value={commonAmount}
+                        onChange={(e) => setCommonAmount(e.target.value)}
+                        placeholder="e.g. 5000"
+                        hint={
+                          commonType === "TOTAL" && Number(commonAmount) > 0 && occupancies.length > 0
+                            ? `₹${commonAmount} will be split equally among ${occupancies.length} active residents (approx ₹${Math.round(
+                                Number(commonAmount) / occupancies.length
+                              )}/person).`
+                            : undefined
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {electricityMode === "ROOM_WISE" && (
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-2.5 text-xs">
+                    <p className="font-semibold text-slate-800">
+                      Enter electricity charges for each room (split equally among that room's occupants):
+                    </p>
+                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-200/60">
+                      {allRooms.map((room) => {
+                        const rKey = room.id || room.unitNumber;
+                        const data = roomElectricity[rKey] || {
+                          amount: "",
+                          meterStart: "",
+                          meterEnd: "",
+                          ratePerUnit: 10,
+                          mode: "AMOUNT",
+                        };
+                        const occupantsInRoom = roomOccupantCount[rKey] || 0;
+                        return (
+                          <div key={rKey} className="pt-2 first:pt-0 flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-900">Room {room.unitNumber}</span>
+                              <span className="text-[11px] text-slate-500">
+                                {occupantsInRoom} {occupantsInRoom === 1 ? "resident" : "residents"}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="Fixed Room Bill (₹)"
+                                  value={data.amount || ""}
+                                  onChange={(e) => {
+                                    setRoomElectricity({
+                                      ...roomElectricity,
+                                      [rKey]: { ...data, unitNumber: room.unitNumber, amount: e.target.value },
+                                    });
+                                  }}
+                                  className="w-full text-xs rounded-lg border border-slate-300 p-1.5 bg-white"
+                                />
+                              </div>
+                              <div className="flex items-center text-[11px] text-slate-600">
+                                {Number(data.amount) > 0 && occupantsInRoom > 0 ? (
+                                  <span className="text-emerald-700 font-medium">
+                                    ₹{Math.round(Number(data.amount) / occupantsInRoom)}/person
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400">₹0 extra</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {electricityMode === "INDIVIDUAL" && (
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-2 text-xs">
+                    <p className="font-semibold text-slate-800">
+                      Enter individual electricity bill per resident:
+                    </p>
+                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-200/60">
+                      {occupancies.map((occ) => {
+                        const val = individualElectricity[occ.id] || "";
+                        return (
+                          <div key={occ.id} className="pt-2 first:pt-0 flex items-center justify-between gap-2">
+                            <div>
+                              <div className="font-bold text-slate-900">{occ.user?.name || "Resident"}</div>
+                              <div className="text-[11px] text-slate-500">
+                                Room {occ.unit?.unitNumber || "-"}{occ.bed ? ` · Bed ${occ.bed.bedLabel}` : ""}
+                              </div>
+                            </div>
+                            <div className="w-28">
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="₹ Amount"
+                                value={val}
+                                onChange={(e) => {
+                                  setIndividualElectricity({
+                                    ...individualElectricity,
+                                    [occ.id]: e.target.value,
+                                  });
+                                }}
+                                className="w-full text-xs rounded-lg border border-slate-300 p-1.5 bg-white"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Extra Charges Collapsible Section */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowExtraCharges(!showExtraCharges)}
+              className="flex items-center justify-between w-full p-3.5 bg-slate-50/70 hover:bg-slate-100/70 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-indigo-500 text-white font-bold text-xs shadow-2xs">
+                  ➕
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">Add Extra Charges</span>
+                    <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      Optional
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {extraChargesList.length === 0
+                      ? "None (Mess/Food, AC, Laundry, Maintenance, Custom)"
+                      : `${extraChargesList.length} extra charge${extraChargesList.length === 1 ? "" : "s"} added`}
+                  </p>
+                </div>
+              </div>
+              <span className="text-slate-400">
+                {showExtraCharges ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+              </span>
+            </button>
+
+            {showExtraCharges && (
+              <div className="p-3.5 border-t border-slate-200 space-y-3 bg-white">
+                {/* 1-Click Preset Buttons */}
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-500 block mb-1">Quick Add Presets:</span>
+                  <div className="flex flex-wrap gap-1.5 text-xs">
+                    {[
+                      { name: "Mess / Food Charges", type: "FOOD", amount: 2500 },
+                      { name: "AC Maintenance Fee", type: "MAINTENANCE", amount: 500 },
+                      { name: "Laundry Service", type: "LAUNDRY", amount: 400 },
+                      { name: "Custom Charge", type: "OTHER", amount: "" },
+                    ].map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => {
+                          setExtraChargesList([
+                            ...extraChargesList,
+                            {
+                              id: String(Date.now() + Math.random()),
+                              name: preset.name,
+                              type: preset.type,
+                              amount: preset.amount,
+                              targetType: "ALL",
+                              targetId: "",
+                            },
+                          ]);
+                        }}
+                        className="py-1 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold border border-indigo-200 text-xs transition-colors"
+                      >
+                        + {preset.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {extraChargesList.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-2 text-center">
+                    No extra charges added yet. Click a preset above or add a custom fee.
+                  </p>
+                ) : (
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    {extraChargesList.map((charge, idx) => (
+                      <div
+                        key={charge.id || idx}
+                        className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex flex-col gap-2 text-xs"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Charge Name (e.g. Mess Food)"
+                            value={charge.name}
+                            onChange={(e) => {
+                              const updated = [...extraChargesList];
+                              updated[idx].name = e.target.value;
+                              setExtraChargesList(updated);
+                            }}
+                            className="rounded-lg border border-slate-300 p-1.5 bg-white text-xs"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Amount (₹)"
+                            value={charge.amount}
+                            onChange={(e) => {
+                              const updated = [...extraChargesList];
+                              updated[idx].amount = e.target.value;
+                              setExtraChargesList(updated);
+                            }}
+                            className="rounded-lg border border-slate-300 p-1.5 bg-white text-xs font-semibold"
+                          />
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              value={charge.targetType}
+                              onChange={(e) => {
+                                const updated = [...extraChargesList];
+                                updated[idx].targetType = e.target.value;
+                                updated[idx].targetId = "";
+                                setExtraChargesList(updated);
+                              }}
+                              className="w-full rounded-lg border border-slate-300 p-1.5 bg-white text-xs"
+                            >
+                              <option value="ALL">All Residents</option>
+                              <option value="ROOM">Specific Room</option>
+                              <option value="INDIVIDUAL">Specific Resident</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExtraChargesList(extraChargesList.filter((_, i) => i !== idx));
+                              }}
+                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg shrink-0"
+                              title="Remove charge"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* If Specific Room selected */}
+                        {charge.targetType === "ROOM" && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-slate-500 shrink-0">Select Room:</span>
+                            <select
+                              value={charge.targetId}
+                              onChange={(e) => {
+                                const updated = [...extraChargesList];
+                                updated[idx].targetId = e.target.value;
+                                setExtraChargesList(updated);
+                              }}
+                              className="w-full rounded-lg border border-slate-300 p-1 bg-white text-xs"
+                            >
+                              <option value="">-- Choose Room --</option>
+                              {allRooms.map((r) => (
+                                <option key={r.id || r.unitNumber} value={r.id || r.unitNumber}>
+                                  Room {r.unitNumber}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* If Specific Resident selected */}
+                        {charge.targetType === "INDIVIDUAL" && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-slate-500 shrink-0">Select Resident:</span>
+                            <select
+                              value={charge.targetId}
+                              onChange={(e) => {
+                                const updated = [...extraChargesList];
+                                updated[idx].targetId = e.target.value;
+                                setExtraChargesList(updated);
+                              }}
+                              className="w-full rounded-lg border border-slate-300 p-1 bg-white text-xs"
+                            >
+                              <option value="">-- Choose Resident --</option>
+                              {occupancies.map((o) => (
+                                <option key={o.id} value={o.id}>
+                                  {o.user?.name} (Room {o.unit?.unitNumber || "-"}{o.bed ? ` · Bed ${o.bed.bedLabel}` : ""})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <CardNote tone="brand" icon={Sparkles}>
-            Flats already invoiced for this period are skipped, so it is safe to run this more than
-            once.
+            Flats and rooms already invoiced for this period are skipped, so it is safe to run this more than once.
           </CardNote>
         </div>
       )}

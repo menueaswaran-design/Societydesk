@@ -19,7 +19,7 @@ export default async function AdminInvoicesPage({ searchParams }) {
   if (status) where.status = status;
   if (period) where.billingPeriod = period;
 
-  const [invoices, summary] = await Promise.all([
+  const [invoices, summary, units, occupancies] = await Promise.all([
     prisma.invoice.findMany({
       where,
       include: {
@@ -39,8 +39,8 @@ export default async function AdminInvoicesPage({ searchParams }) {
         },
         occupancy: {
           include: {
-            unit: { select: { unitNumber: true } },
-            bed: { select: { bedLabel: true } },
+            unit: { select: { id: true, unitNumber: true } },
+            bed: { select: { id: true, bedLabel: true } },
             user: { select: { id: true, name: true, phone: true } },
           },
         },
@@ -53,6 +53,20 @@ export default async function AdminInvoicesPage({ searchParams }) {
     prisma.invoice.aggregate({
       where: { societyId: user.societyId, status: { not: "CANCELLED" } },
       _sum: { totalAmount: true, paidAmount: true, penalty: true, previousDue: true },
+    }),
+    prisma.unit.findMany({
+      where: { societyId: user.societyId },
+      select: { id: true, unitNumber: true, floor: true },
+      orderBy: { unitNumber: "asc" },
+    }),
+    prisma.occupancy.findMany({
+      where: { societyId: user.societyId, status: { in: ["ACTIVE", "NOTICE"] } },
+      include: {
+        user: { select: { id: true, name: true, phone: true } },
+        unit: { select: { id: true, unitNumber: true } },
+        bed: { select: { id: true, bedLabel: true } },
+      },
+      orderBy: [{ unit: { unitNumber: "asc" } }, { bed: { bedLabel: "asc" } }],
     }),
   ]);
 
@@ -95,6 +109,8 @@ export default async function AdminInvoicesPage({ searchParams }) {
   return (
     <InvoicesClient
       invoices={withOutstanding}
+      units={units}
+      occupancies={occupancies}
       filters={{ status, period }}
       summary={{
         billed,

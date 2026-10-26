@@ -35,6 +35,8 @@ export const POST = handler(async (req) => {
     applyToFlatIds: body.applyToFlatIds,
     applyToOccupancyIds: body.applyToOccupancyIds,
     electricitySplit: body.electricitySplit,
+    electricityConfig: body.electricityConfig,
+    extraCharges: body.extraCharges,
     skipVacant: body.skipVacant,
   });
 
