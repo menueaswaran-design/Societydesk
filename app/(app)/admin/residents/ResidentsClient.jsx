@@ -7,15 +7,11 @@ import {
   Plus,
   Upload,
   Search,
-  LogOut,
   Users,
   CheckCircle2,
-  FileSpreadsheet,
   ShieldCheck,
   ArrowRight,
-  Wallet,
   Phone,
-  BedSingle,
   DoorOpen,
   Calendar,
   Receipt,
@@ -25,16 +21,19 @@ import {
   Trash2,
   Eye,
   X,
+  AlertCircle,
+  RotateCcw,
+  Sparkles,
+  CreditCard,
+  Building2,
+  BadgeAlert,
+  ChevronRight,
 } from "lucide-react";
 import Button, { Spinner } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
-import Table, { Tr, Td } from "@/components/ui/Table";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { Input, Select } from "@/components/ui/Input";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
-import { Card } from "@/components/ui/Card";
-import PageHeader from "@/components/ui/PageHeader";
-import Tabs from "@/components/ui/Tabs";
 import Avatar from "@/components/ui/Avatar";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { api } from "@/lib/client/api";
@@ -84,9 +83,48 @@ export default function ResidentsClient({
   initialStatus = "ACTIVE",
   initialRoom = "ALL",
 }) {
+  const router = useRouter();
   const [documents, setDocuments] = useState(initialDocuments);
   const [kycResident, setKycResident] = useState(null);
 
+  // Check-in modal
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkInForm, setCheckInForm] = useState(EMPTY_CHECKIN);
+  const [checkInDocs, setCheckInDocs] = useState([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docUploadError, setDocUploadError] = useState(null);
+  const [docTypeToUpload, setDocTypeToUpload] = useState("AADHAAR");
+  const [checkInSaving, setCheckInSaving] = useState(false);
+  const [checkInError, setCheckInError] = useState(null);
+
+  // CSV Import Modal
+  const [importOpen, setImportOpen] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState(null);
+  const [importSuccess, setImportSuccess] = useState(null);
+
+  // Check-out modal
+  const [checkoutOccupancy, setCheckoutOccupancy] = useState(null);
+  const [checkoutDate, setCheckoutDate] = useState(new Date().toISOString().slice(0, 10));
+  const [deductions, setDeductions] = useState([
+    { reason: "Room Cleaning", amount: 1000 },
+  ]);
+  const [checkoutNotes, setCheckoutNotes] = useState("");
+  const [checkoutSaving, setCheckoutSaving] = useState(false);
+  const [checkoutError, setCheckoutError] = useState(null);
+
+  // Record payment modal
+  const [paymentOccupancy, setPaymentOccupancy] = useState(null);
+
+  // Search & Filters Toolbar State
+  const [query, setQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState(initialStatus); // "ALL" | "ACTIVE" | "NOTICE" | "LEFT"
+  const [filterRoom, setFilterRoom] = useState(initialRoom); // "ALL" | roomNumber
+  const [filterKyc, setFilterKyc] = useState("ALL"); // "ALL" | "VERIFIED" | "MISSING"
+  const [filterDues, setFilterDues] = useState("ALL"); // "ALL" | "DUE" | "PAID"
+
+  // Helper: check resident KYC status
   function getResidentKyc(userId) {
     const docs = (documents || []).filter((d) => d.userId === userId);
     const hasAadhaar = docs.some((d) => d.docType === "AADHAAR");
@@ -99,76 +137,120 @@ export default function ResidentsClient({
       docs,
     };
   }
-  const router = useRouter();
-  const [tab, setTab] = useState("list");
 
-  // Check-in modal
-  const [checkInOpen, setCheckInOpen] = useState(false);
-  const [checkInForm, setCheckInForm] = useState(EMPTY_CHECKIN);
-  const [checkInDocs, setCheckInDocs] = useState([]);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [docUploadError, setDocUploadError] = useState(null);
-  const [docTypeToUpload, setDocTypeToUpload] = useState("AADHAAR");
-  const [checkInSaving, setCheckInSaving] = useState(false);
-  const [checkInError, setCheckInError] = useState(null);
+  // Pre-calculate per-occupant financials
+  const occupancyDataMap = useMemo(() => {
+    const map = new Map();
+    for (const occ of occupancies) {
+      // Unpaid invoices
+      const unpaidInvoices = (occ.invoices || []).filter(
+        (inv) => inv.status === "PENDING" || inv.status === "OVERDUE" || inv.status === "PARTIALLY_PAID"
+      );
+      const outstandingBalance = unpaidInvoices.reduce(
+        (sum, inv) => sum + Math.max(0, inv.totalAmount - inv.paidAmount),
+        0
+      );
+      const isOverdue = unpaidInvoices.some(
+        (inv) => inv.dueDate && new Date(inv.dueDate) < new Date()
+      );
 
-  // Check-out modal
-  const [checkoutOccupancy, setCheckoutOccupancy] = useState(null);
-  const [checkoutDate, setCheckoutDate] = useState(new Date().toISOString().slice(0, 10));
-  const [deductions, setDeductions] = useState([
-    { reason: "Room Cleaning", amount: 1000 },
-  ]);
-  const [checkoutNotes, setCheckoutNotes] = useState("");
-  const [checkoutSaving, setCheckoutSaving] = useState(false);
-  const [checkoutError, setCheckoutError] = useState(null);
+      // Security deposit
+      const heldDeposit = (occ.deposits || []).find((d) => d.status === "HELD");
+      const depositHeld = heldDeposit
+        ? heldDeposit.amountReceived
+        : occ.status !== "LEFT"
+        ? occ.depositAmount || 0
+        : 0;
 
-  // Record payment
-  const [paymentResident, setPaymentResident] = useState(null);
+      // KYC
+      const kyc = getResidentKyc(occ.user?.id);
 
-  // Notice management modal state
-  const [noticeOccupancy, setNoticeOccupancy] = useState(null);
-  const [noticeLeaveDate, setNoticeLeaveDate] = useState("");
-  const [noticeSaving, setNoticeSaving] = useState(false);
-  const [noticeError, setNoticeError] = useState(null);
+      map.set(occ.id, {
+        outstandingBalance,
+        isOverdue,
+        unpaidInvoices,
+        firstUnpaidInvoice: unpaidInvoices[0] || null,
+        depositHeld,
+        kyc,
+      });
+    }
+    return map;
+  }, [occupancies, documents]);
 
-  // Search & Filters
-  const [query, setQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState(initialStatus);
-  const [filterRoom, setFilterRoom] = useState(initialRoom);
-
+  // Summary Metrics
   const activeCount = useMemo(() => occupancies.filter((o) => o.status === "ACTIVE").length, [occupancies]);
   const noticeCount = useMemo(() => occupancies.filter((o) => o.status === "NOTICE").length, [occupancies]);
   const leftCount = useMemo(() => occupancies.filter((o) => o.status === "LEFT").length, [occupancies]);
 
-  // CSV Import
-  const [csvText, setCsvText] = useState("");
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState(null);
-  const [importSuccess, setImportSuccess] = useState(null);
+  const duesStats = useMemo(() => {
+    let totalDuesAmount = 0;
+    let residentsWithDuesCount = 0;
+    for (const occ of occupancies) {
+      const data = occupancyDataMap.get(occ.id);
+      if (data && data.outstandingBalance > 0) {
+        totalDuesAmount += data.outstandingBalance;
+        residentsWithDuesCount += 1;
+      }
+    }
+    return { totalDuesAmount, residentsWithDuesCount };
+  }, [occupancies, occupancyDataMap]);
 
-  // Available beds for currently selected room in Check-in
+  // Is any filter active?
+  const hasActiveFilters =
+    query.trim() !== "" ||
+    filterStatus !== "ALL" ||
+    filterRoom !== "ALL" ||
+    filterKyc !== "ALL" ||
+    filterDues !== "ALL";
+
+  function clearAllFilters() {
+    setQuery("");
+    setFilterStatus("ALL");
+    setFilterRoom("ALL");
+    setFilterKyc("ALL");
+    setFilterDues("ALL");
+  }
+
+  // Filtered Occupancies
+  const filteredOccupancies = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return occupancies.filter((occ) => {
+      // Status filter
+      if (filterStatus !== "ALL" && occ.status !== filterStatus) return false;
+
+      // Room filter
+      if (filterRoom !== "ALL" && occ.unit?.unitNumber !== filterRoom) return false;
+
+      const data = occupancyDataMap.get(occ.id);
+
+      // KYC filter
+      if (filterKyc === "VERIFIED" && !data?.kyc?.isComplete) return false;
+      if (filterKyc === "MISSING" && data?.kyc?.isComplete) return false;
+
+      // Dues filter
+      if (filterDues === "DUE" && (!data || data.outstandingBalance <= 0)) return false;
+      if (filterDues === "PAID" && data && data.outstandingBalance > 0) return false;
+
+      // Search query
+      if (!q) return true;
+      return (
+        occ.user?.name?.toLowerCase().includes(q) ||
+        occ.user?.email?.toLowerCase().includes(q) ||
+        occ.user?.phone?.toLowerCase().includes(q) ||
+        occ.unit?.unitNumber?.toLowerCase().includes(q) ||
+        occ.bed?.bedLabel?.toLowerCase().includes(q)
+      );
+    });
+  }, [occupancies, query, filterStatus, filterRoom, filterKyc, filterDues, occupancyDataMap]);
+
+  // Available beds for selected room in Check-in form
   const selectedUnit = units.find((u) => u.id === checkInForm.unitId);
   const availableBeds = useMemo(() => {
     if (!selectedUnit) return [];
     return selectedUnit.beds?.filter((b) => b.status === "VACANT") || [];
   }, [selectedUnit]);
 
-  // Filtered occupancies
-  const filteredOccupancies = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return occupancies.filter((occ) => {
-      if (filterStatus !== "ALL" && occ.status !== filterStatus) return false;
-      if (filterRoom !== "ALL" && occ.unit?.unitNumber !== filterRoom) return false;
-      if (!q) return true;
-      return (
-        occ.user?.name?.toLowerCase().includes(q) ||
-        occ.user?.email?.toLowerCase().includes(q) ||
-        occ.user?.phone?.toLowerCase().includes(q) ||
-        occ.unit?.unitNumber?.toLowerCase().includes(q)
-      );
-    });
-  }, [occupancies, query, filterStatus, filterRoom]);
-
+  // Document upload in Check-in modal
   async function handleOnboardingDocUpload(e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -248,42 +330,6 @@ export default function ResidentsClient({
     }
   }
 
-  // Set notice by Admin
-  async function handleSetNotice(e) {
-    e.preventDefault();
-    if (!noticeOccupancy) return;
-    setNoticeSaving(true);
-    setNoticeError(null);
-
-    try {
-      await api.patch(`/api/occupancies/${noticeOccupancy.id}`, {
-        status: "NOTICE",
-        leaveDate: noticeLeaveDate,
-      });
-
-      setNoticeOccupancy(null);
-      router.refresh();
-    } catch (err) {
-      setNoticeError(err?.message || "Failed to set notice");
-    } finally {
-      setNoticeSaving(false);
-    }
-  }
-
-  // Withdraw notice by Admin
-  async function handleWithdrawNotice(occId) {
-    if (!confirm("Are you sure you want to cancel the notice period and keep this resident active?")) return;
-    try {
-      await api.patch(`/api/occupancies/${occId}`, {
-        status: "ACTIVE",
-        leaveDate: null,
-      });
-      router.refresh();
-    } catch (err) {
-      alert(err?.message || "Failed to cancel notice");
-    }
-  }
-
   // Check-out submit
   async function handleCheckoutSubmit(e) {
     e.preventDefault();
@@ -347,7 +393,11 @@ export default function ResidentsClient({
       const res = await api.post("/api/occupancies/import", { rows });
       setImportSuccess(`Successfully imported ${res?.imported || rows.length} residents!`);
       setCsvText("");
-      router.refresh();
+      setTimeout(() => {
+        setImportOpen(false);
+        setImportSuccess(null);
+        router.refresh();
+      }, 1500);
     } catch (err) {
       setImportError(err?.message || "Import failed");
     } finally {
@@ -355,698 +405,681 @@ export default function ResidentsClient({
     }
   }
 
-  // Deposit calculation during checkout
-  const depositHeld = checkoutOccupancy?.deposits?.[0]?.amountReceived || checkoutOccupancy?.depositAmount || 0;
+  // Deposit calculation for checkout
+  const depositHeld =
+    checkoutOccupancy?.deposits?.[0]?.amountReceived || checkoutOccupancy?.depositAmount || 0;
   const totalDeductions = deductions.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
   const netRefund = Math.max(0, depositHeld - totalDeductions);
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5">
+      {/* 1. Header with Primary & Secondary Actions */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            {isPg ? "Residents & Check-in" : "Residents"}
+            Residents & Check-in
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            {isPg
-              ? "Onboard occupants, assign rooms & beds, record deposits, and process check-outs."
-              : "Manage residents, tenancies and flat assignments."}
+            Manage residents, room assignments, rent, deposits, and check-in/check-out activities.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setCheckInOpen(true)} size="md">
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="secondary"
+            onClick={() => setImportOpen(true)}
+            size="md"
+            className="shadow-2xs"
+          >
+            <Upload className="size-4" />
+            Import Residents
+          </Button>
+          <Button onClick={() => setCheckInOpen(true)} size="md" className="shadow-xs">
             <Plus className="size-4" />
-            {isPg ? "Check-in Resident" : "Add Resident"}
+            Check-in Resident
           </Button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs
-        tabs={[
-          { id: "list", label: isPg ? `Active Occupants (${occupancies.filter(o => o.status === 'ACTIVE').length})` : `Residents (${residents.length})` },
-          { id: "import", label: "Excel / CSV Import" },
-        ]}
-        value={tab}
-        onChange={setTab}
-      />
+      {/* 2. Compact Resident Statistics Bar (Clickable Metrics) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+        {/* Metric 1: Total Residents */}
+        <button
+          type="button"
+          onClick={() => {
+            setFilterStatus("ALL");
+            setFilterDues("ALL");
+          }}
+          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+            filterStatus === "ALL" && filterDues === "ALL"
+              ? "border-slate-900 bg-slate-900 text-white shadow-xs"
+              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60 text-slate-800"
+          }`}
+        >
+          <span
+            className={`text-[11px] font-semibold uppercase tracking-wider block ${
+              filterStatus === "ALL" && filterDues === "ALL" ? "text-slate-300" : "text-slate-500"
+            }`}
+          >
+            Total Residents
+          </span>
+          <span className="text-xl font-extrabold mt-0.5 tracking-tight">
+            {occupancies.length}
+          </span>
+        </button>
 
-      {tab === "list" && (
-        <div className="space-y-4">
-          {/* Quick Filter Status Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <button
-              type="button"
-              onClick={() => setFilterStatus("ALL")}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 ${
-                filterStatus === "ALL"
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80"
-              }`}
-            >
-              All Records ({occupancies.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterStatus("ACTIVE")}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 ${
-                filterStatus === "ACTIVE"
-                  ? "bg-emerald-600 text-white"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80"
-              }`}
-            >
-              Active Staying ({activeCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterStatus("NOTICE")}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 flex items-center gap-1.5 ${
-                filterStatus === "NOTICE"
-                  ? "bg-amber-500 text-white"
-                  : noticeCount > 0
-                  ? "bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80"
-              }`}
-            >
-              <span>⚠️ On Notice</span>
-              <span
-                className={`rounded-full px-2 py-0.2 text-[10px] font-black ${
-                  filterStatus === "NOTICE" ? "bg-white text-amber-900" : "bg-amber-200 text-amber-900"
-                }`}
-              >
-                {noticeCount}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterStatus("LEFT")}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 ${
-                filterStatus === "LEFT"
-                  ? "bg-slate-700 text-white"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80"
-              }`}
-            >
-              Checked Out ({leftCount})
-            </button>
-          </div>
+        {/* Metric 2: Active Residents */}
+        <button
+          type="button"
+          onClick={() => {
+            setFilterStatus("ACTIVE");
+            setFilterDues("ALL");
+          }}
+          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+            filterStatus === "ACTIVE" && filterDues === "ALL"
+              ? "border-emerald-600 bg-emerald-600 text-white shadow-xs"
+              : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30 text-slate-800"
+          }`}
+        >
+          <span
+            className={`text-[11px] font-semibold uppercase tracking-wider block ${
+              filterStatus === "ACTIVE" && filterDues === "ALL" ? "text-emerald-100" : "text-slate-500"
+            }`}
+          >
+            Active Staying
+          </span>
+          <span className="text-xl font-extrabold mt-0.5 tracking-tight text-emerald-700 group-hover:text-emerald-800">
+            <span className={filterStatus === "ACTIVE" && filterDues === "ALL" ? "text-white" : "text-emerald-700"}>
+              {activeCount}
+            </span>
+          </span>
+        </button>
 
-          {/* Filters Bar */}
-          <div className="flex flex-col gap-3 rounded-2xl bg-white p-3.5 sm:p-4 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder={isPg ? "Search resident, room, phone..." : "Search resident..."}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full rounded-xl border border-slate-200/90 bg-white py-2 pl-9.5 pr-3 text-xs text-slate-800 shadow-2xs placeholder:text-slate-400 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
-              />
-            </div>
+        {/* Metric 3: Residents on Notice */}
+        <button
+          type="button"
+          onClick={() => {
+            setFilterStatus("NOTICE");
+            setFilterDues("ALL");
+          }}
+          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+            filterStatus === "NOTICE"
+              ? "border-amber-500 bg-amber-500 text-white shadow-xs"
+              : noticeCount > 0
+              ? "border-amber-200 bg-amber-50/50 hover:bg-amber-100/50 text-slate-800"
+              : "border-slate-200 bg-white hover:border-slate-300 text-slate-800"
+          }`}
+        >
+          <span
+            className={`text-[11px] font-semibold uppercase tracking-wider block ${
+              filterStatus === "NOTICE" ? "text-amber-100" : "text-amber-700 font-bold"
+            }`}
+          >
+            On Notice
+          </span>
+          <span className="text-xl font-extrabold mt-0.5 tracking-tight">
+            <span className={filterStatus === "NOTICE" ? "text-white" : "text-amber-700"}>
+              {noticeCount}
+            </span>
+          </span>
+        </button>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              {isPg && (
-                <select
-                  value={filterRoom}
-                  onChange={(e) => setFilterRoom(e.target.value)}
-                  className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
-                >
-                  <option value="ALL">All Rooms</option>
-                  {units.map((u) => (
-                    <option key={u.id} value={u.unitNumber}>
-                      Room {u.unitNumber}
-                    </option>
-                  ))}
-                </select>
-              )}
+        {/* Metric 4: Outstanding Dues */}
+        <button
+          type="button"
+          onClick={() => {
+            setFilterDues("DUE");
+            setFilterStatus("ALL");
+          }}
+          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+            filterDues === "DUE"
+              ? "border-rose-600 bg-rose-600 text-white shadow-xs"
+              : duesStats.residentsWithDuesCount > 0
+              ? "border-rose-200 bg-rose-50/40 hover:bg-rose-100/40 text-slate-800"
+              : "border-slate-200 bg-white hover:border-slate-300 text-slate-800"
+          }`}
+        >
+          <span
+            className={`text-[11px] font-semibold uppercase tracking-wider block ${
+              filterDues === "DUE" ? "text-rose-100" : "text-rose-600 font-bold"
+            }`}
+          >
+            Outstanding Dues
+          </span>
+          <span className="text-xl font-extrabold mt-0.5 tracking-tight">
+            <span className={filterDues === "DUE" ? "text-white" : "text-rose-600"}>
+              ₹{duesStats.totalDuesAmount.toLocaleString()}
+            </span>
+          </span>
+        </button>
 
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
-              >
-                <option value="ACTIVE">Active Staying ({activeCount})</option>
-                <option value="NOTICE">⚠️ On Notice ({noticeCount})</option>
-                <option value="LEFT">Checked Out ({leftCount})</option>
-                <option value="ALL">All Statuses ({occupancies.length})</option>
-              </select>
-            </div>
-          </div>
+        {/* Metric 5: Checked Out */}
+        <button
+          type="button"
+          onClick={() => {
+            setFilterStatus("LEFT");
+            setFilterDues("ALL");
+          }}
+          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+            filterStatus === "LEFT"
+              ? "border-slate-700 bg-slate-700 text-white shadow-xs"
+              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60 text-slate-800"
+          }`}
+        >
+          <span
+            className={`text-[11px] font-semibold uppercase tracking-wider block ${
+              filterStatus === "LEFT" ? "text-slate-300" : "text-slate-500"
+            }`}
+          >
+            Checked Out
+          </span>
+          <span className="text-xl font-extrabold mt-0.5 tracking-tight">
+            {leftCount}
+          </span>
+        </button>
+      </div>
 
-          {/* Table */}
-          {filteredOccupancies.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="No resident records found"
-              description="Click 'Check-in Resident' to onboard an occupant into a room and bed."
+      {/* 3. Compact Search & Filters Toolbar */}
+      <div className="flex flex-col gap-2.5 rounded-2xl bg-white p-3 sm:p-3.5 shadow-2xs border border-slate-200/80">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+          {/* Search Field */}
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search resident name, phone, room, bed..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full h-9 rounded-xl border border-slate-200/90 bg-white pl-9.5 pr-3 text-xs text-slate-900 shadow-2xs placeholder:text-slate-400 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none"
             />
-          ) : (
-            <>
-              {/* Mobile Cards for Occupants (< 640px) */}
-              <div className="space-y-3 sm:hidden">
-                {filteredOccupancies.map((occ) => {
-                  const depositAmount = occ.deposits?.[0]?.amountReceived || occ.depositAmount || 0;
-                  const isNotice = occ.status === "NOTICE";
-                  const isLeft = occ.status === "LEFT";
-                  const daysLeft = occ.leaveDate
-                    ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
-                    : null;
-                  const pendingInv = occ.invoices?.[0];
-                  const pendingAmount = pendingInv ? pendingInv.totalAmount - pendingInv.paidAmount : 0;
-                  const origin = typeof window !== "undefined" ? window.location.origin : "";
-                  const payUrl = pendingInv ? `${origin}/pay/${pendingInv.id}` : "";
-                  const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
-                  const reminderText = pendingInv
-                    ? buildRentReminderMessage({
-                        residentName: occ.user?.name,
-                        roomLabel,
-                        period: pendingInv.billingPeriod,
-                        amount: pendingAmount,
-                        dueDate: formatDate(pendingInv.dueDate),
-                        payUrl,
-                        pgName: societyName || "Bedy PG",
-                      })
-                    : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
-                  const waUrl = occ.user?.phone ? getWhatsAppUrl(occ.user?.phone, reminderText) : null;
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
 
-                  return (
-                    <div
-                      key={occ.id}
-                      className={`rounded-2xl border p-4 shadow-2xs space-y-3 transition-colors ${
-                        isNotice
-                          ? daysLeft !== null && daysLeft <= 7
-                            ? "border-2 border-rose-300 bg-rose-50/30"
-                            : daysLeft !== null && daysLeft <= 15
-                            ? "border-2 border-amber-300 bg-amber-50/30"
-                            : "border-2 border-yellow-300 bg-yellow-50/30"
-                          : "border-slate-200/90 bg-white"
-                      }`}
-                    >
-                      {/* Prominent Notice Banner if on notice */}
-                      {isNotice && (
-                        <div
-                          className={`flex items-center justify-between rounded-xl p-2.5 text-xs font-semibold border ${
-                            daysLeft !== null && daysLeft <= 7
-                              ? "bg-rose-100/90 border-rose-300 text-rose-950"
-                              : daysLeft !== null && daysLeft <= 15
-                              ? "bg-amber-100/90 border-amber-300 text-amber-950"
-                              : "bg-yellow-100/90 border-yellow-300 text-yellow-950"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <span
-                              className={`size-2 rounded-full ${
-                                daysLeft !== null && daysLeft <= 7 ? "bg-rose-600" : "bg-amber-600"
-                              } animate-pulse`}
-                            />
-                            {daysLeft !== null && daysLeft <= 7
-                              ? `🔴 Vacating in ${daysLeft} days (Urgent)`
-                              : daysLeft !== null && daysLeft <= 15
-                              ? `🟠 Vacating in ${daysLeft} days`
-                              : `🟡 On Notice (${daysLeft !== null ? `${daysLeft}d left` : "Serving"})`}
-                          </span>
-                          {occ.leaveDate && <span>Move-out: {formatDate(occ.leaveDate)}</span>}
-                        </div>
-                      )}
-                      {/* Top Header: Occupant name + Room badge + Status */}
-                      <div className="flex items-start justify-between gap-2.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <Avatar name={occ.user?.name} size="sm" />
-                          <div className="min-w-0">
-                            <h3 className="font-semibold text-slate-900 text-sm truncate">
-                              {occ.user?.name}
-                            </h3>
-                            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-600">
-                              <span className="font-medium text-slate-800">Room {occ.unit?.unitNumber || "-"}</span>
-                              {(() => {
-                                const kyc = getResidentKyc(occ.user?.id);
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={() => setKycResident(occ.user)}
-                                    className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold transition ${
-                                      kyc.isComplete
-                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                        : kyc.count > 0
-                                        ? "bg-amber-50 text-amber-700 border border-amber-200"
-                                        : "bg-rose-50 text-rose-700 border border-rose-200"
-                                    }`}
-                                  >
-                                    <ShieldCheck className="size-3" />
-                                    {kyc.isComplete ? "KYC ✓" : kyc.count > 0 ? `KYC ${kyc.count}/2` : "KYC ✕"}
-                                  </button>
-                                );
-                              })()}
-                              {occ.bed ? (
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-700">
-                                  Bed {occ.bed.bedLabel}
-                                </span>
-                              ) : null}
-                              <span className="text-slate-400">·</span>
-                              <span className="text-[11px] text-slate-500">{occ.unit?.unitType}</span>
-                            </div>
-                          </div>
-                        </div>
+          {/* Filter Dropdowns Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Room Filter */}
+            <select
+              value={filterRoom}
+              onChange={(e) => setFilterRoom(e.target.value)}
+              className="h-9 rounded-xl border border-slate-200/90 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All Rooms</option>
+              {units.map((u) => (
+                <option key={u.id} value={u.unitNumber}>
+                  Room {u.unitNumber}
+                </option>
+              ))}
+            </select>
 
-                        <span
-                          className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold ${
-                            isNotice
-                              ? "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20"
-                              : isLeft
-                                ? "bg-slate-100 text-slate-600 ring-1 ring-slate-400/20"
-                                : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
-                          }`}
-                        >
-                          {isNotice ? "On Notice" : isLeft ? "Left" : "Active"}
-                        </span>
-                      </div>
+            {/* Status Filter */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="h-9 rounded-xl border border-slate-200/90 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All Statuses ({occupancies.length})</option>
+              <option value="ACTIVE">Active ({activeCount})</option>
+              <option value="NOTICE">On Notice ({noticeCount})</option>
+              <option value="LEFT">Checked Out ({leftCount})</option>
+            </select>
 
-                      {/* Contact & WhatsApp Reminder pill */}
-                      <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50/80 p-2.5 border border-slate-100 text-xs">
-                        <div className="flex items-center gap-2 min-w-0 text-slate-600">
-                          <Phone className="size-3.5 text-slate-400 shrink-0" />
-                          <span className="font-mono text-xs truncate">
-                            {occ.user?.phone || occ.user?.email || "No contact"}
-                          </span>
-                        </div>
+            {/* KYC Filter */}
+            <select
+              value={filterKyc}
+              onChange={(e) => setFilterKyc(e.target.value)}
+              className="h-9 rounded-xl border border-slate-200/90 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All KYC</option>
+              <option value="VERIFIED">KYC Verified ✓</option>
+              <option value="MISSING">KYC Missing / Incomplete</option>
+            </select>
 
-                        {waUrl ? (
-                          <a
-                            href={waUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-2xs transition ${
-                              pendingInv
-                                ? "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95"
-                                : "bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50"
-                            }`}
-                          >
-                            <MessageCircle className="size-3.5" />
-                            <span>{pendingInv ? "Remind Due" : "WhatsApp"}</span>
-                          </a>
-                        ) : null}
-                      </div>
+            {/* Dues Filter */}
+            <select
+              value={filterDues}
+              onChange={(e) => setFilterDues(e.target.value)}
+              className="h-9 rounded-xl border border-slate-200/90 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All Balances</option>
+              <option value="DUE">Has Dues ({duesStats.residentsWithDuesCount})</option>
+              <option value="PAID">Paid Up</option>
+            </select>
+          </div>
 
-                      {/* Financial Numbers Grid */}
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-2.5">
-                          <span className="text-[11px] text-slate-500 block font-medium">Monthly Rent</span>
-                          <span className="font-bold text-slate-900 text-sm">{formatMoney(occ.monthlyRent)}</span>
-                          <span className="text-[10px] text-slate-400 block mt-0.5">per month</span>
-                        </div>
-
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-2.5">
-                          <span className="text-[11px] text-slate-500 block font-medium">Security Deposit</span>
-                          <span className="font-bold text-emerald-700 text-sm">{formatMoney(depositAmount)}</span>
-                          <span className="text-[10px] text-slate-400 block mt-0.5">
-                            {occ.deposits?.[0]?.status === "HELD" ? "Held safely" : "Recorded"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Footer: Joined date & Actions */}
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                        <span className="text-slate-500 text-[11px]">
-                          Joined {formatDate(occ.joinDate)}
-                          {occ.leaveDate ? ` · Left ${formatDate(occ.leaveDate)}` : ""}
-                        </span>
-
-                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                            <Button
-                              variant="secondary"
-                              size="xs"
-                              onClick={() => setKycResident(occ.user)}
-                              className="!text-slate-700 hover:!bg-slate-100"
-                            >
-                              <FileText className="size-3" />
-                              KYC
-                            </Button>
-                            {isNotice ? (
-                              <>
-                                <Button
-                                  variant="secondary"
-                                  size="xs"
-                                  onClick={() => setCheckoutOccupancy(occ)}
-                                  className="!bg-amber-600 !text-white hover:!bg-amber-700 !border-amber-600 font-bold"
-                                >
-                                  Settle Deposit
-                                </Button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleWithdrawNotice(occ.id)}
-                                  className="text-[11px] text-slate-500 hover:text-slate-700 px-1"
-                                >
-                                  Withdraw
-                                </button>
-                              </>
-                            ) : !isLeft ? (
-                              <>
-                                <Button
-                                  variant="secondary"
-                                  size="xs"
-                                  onClick={() => {
-                                    setNoticeOccupancy(occ);
-                                    const defDate = new Date(Date.now() + (occ.noticePeriodDays || 30) * 24 * 60 * 60 * 1000)
-                                      .toISOString()
-                                      .slice(0, 10);
-                                    setNoticeLeaveDate(defDate);
-                                  }}
-                                  className="!text-amber-700 hover:!bg-amber-50 !border-amber-300"
-                                >
-                                  <DoorOpen className="size-3" />
-                                  Notice
-                                </Button>
-                                <Button
-                                  variant="secondary"
-                                  size="xs"
-                                  onClick={() => setCheckoutOccupancy(occ)}
-                                  className="!text-rose-600 hover:!bg-rose-50 !border-rose-200"
-                                >
-                                  Check-out
-                                </Button>
-                              </>
-                            ) : (
-                              <span className="text-slate-400 text-[11px] font-medium">Settled</span>
-                            )}
-                          </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop Table (>= 640px) */}
-              <div className="hidden sm:block overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xs">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      <tr>
-                        <th className="px-5 py-3.5">Occupant</th>
-                        <th className="px-4 py-3.5">Room & Bed</th>
-                        <th className="px-4 py-3.5">Rent / Month</th>
-                        <th className="px-4 py-3.5">Security Deposit</th>
-                        <th className="px-4 py-3.5">Joined</th>
-                        <th className="px-4 py-3.5">Status</th>
-                        <th className="px-5 py-3.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredOccupancies.map((occ) => {
-                        const depositAmount = occ.deposits?.[0]?.amountReceived || occ.depositAmount || 0;
-                        const isNotice = occ.status === "NOTICE";
-                        const isLeft = occ.status === "LEFT";
-                        const daysLeft = occ.leaveDate
-                          ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
-                          : null;
-
-                        return (
-                          <tr
-                            key={occ.id}
-                            className={`transition-colors ${
-                              isNotice
-                                ? daysLeft !== null && daysLeft <= 7
-                                  ? "bg-rose-50/50 hover:bg-rose-100/40 border-l-4 border-l-rose-500"
-                                  : daysLeft !== null && daysLeft <= 15
-                                  ? "bg-amber-50/50 hover:bg-amber-100/40 border-l-4 border-l-amber-500"
-                                  : "bg-yellow-50/50 hover:bg-yellow-100/40 border-l-4 border-l-yellow-500"
-                                : "hover:bg-slate-50/60"
-                            }`}
-                          >
-                            <td className="px-5 py-4">
-                              <div className="flex items-center gap-3">
-                                <Avatar name={occ.user?.name} size="sm" />
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-semibold text-slate-900">{occ.user?.name}</p>
-                                    {(() => {
-                                      const kyc = getResidentKyc(occ.user?.id);
-                                      return (
-                                        <button
-                                          type="button"
-                                          onClick={() => setKycResident(occ.user)}
-                                          className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.2 text-[10px] font-bold transition cursor-pointer ${
-                                            kyc.isComplete
-                                              ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
-                                              : kyc.count > 0
-                                              ? "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
-                                              : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
-                                          }`}
-                                          title={kyc.isComplete ? "Aadhaar & PAN submitted" : "KYC incomplete - click to upload"}
-                                        >
-                                          <ShieldCheck className="size-2.5" />
-                                          {kyc.isComplete ? "Verified" : kyc.count > 0 ? `KYC ${kyc.count}/2` : "KYC Missing"}
-                                        </button>
-                                      );
-                                    })()}
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
-                                    <span>{occ.user?.phone || occ.user?.email}</span>
-                                    {occ.user?.phone ? (() => {
-                                      const pendingInv = occ.invoices?.[0];
-                                      const pendingAmount = pendingInv ? pendingInv.totalAmount - pendingInv.paidAmount : 0;
-                                      const origin = typeof window !== "undefined" ? window.location.origin : "";
-                                      const payUrl = pendingInv ? `${origin}/pay/${pendingInv.id}` : "";
-                                      const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
-                                      const reminderText = pendingInv
-                                        ? buildRentReminderMessage({
-                                            residentName: occ.user?.name,
-                                            roomLabel,
-                                            period: pendingInv.billingPeriod,
-                                            amount: pendingAmount,
-                                            dueDate: formatDate(pendingInv.dueDate),
-                                            payUrl,
-                                            pgName: societyName || "Bedy PG",
-                                          })
-                                        : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
-                                      const waUrl = getWhatsAppUrl(occ.user?.phone, reminderText);
-
-                                      return (
-                                        <a
-                                          href={waUrl}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          title={pendingInv ? `Send WhatsApp Rent Reminder (Due: ₹${pendingAmount})` : "Chat on WhatsApp"}
-                                          className={`inline-flex items-center gap-1 text-[10.5px] font-semibold transition ${
-                                            pendingInv
-                                              ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200"
-                                              : "text-emerald-600 hover:text-emerald-700"
-                                          }`}
-                                        >
-                                          <MessageCircle className="size-3 text-emerald-600" />
-                                          {pendingInv ? "Remind Due" : ""}
-                                        </a>
-                                      );
-                                    })() : null}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-4">
-                              <span className="font-medium text-slate-900">
-                                Room {occ.unit?.unitNumber || "-"}
-                              </span>
-                              {occ.bed ? (
-                                <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-700">
-                                  Bed {occ.bed.bedLabel}
-                                </span>
-                              ) : null}
-                              <p className="text-[11px] text-slate-400 mt-0.5">
-                                {occ.unit?.unitType} Sharing
-                              </p>
-                            </td>
-
-                            <td className="px-4 py-4">
-                              <p className="font-bold text-slate-900">
-                                {formatMoney(occ.monthlyRent)}
-                              </p>
-                              <p className="text-[11px] text-slate-400 mt-0.5">per month</p>
-                            </td>
-
-                            <td className="px-4 py-4">
-                              <p className="font-semibold text-emerald-700">
-                                {formatMoney(depositAmount)}
-                              </p>
-                              <p className="text-[10.5px] text-slate-400 mt-0.5">
-                                {occ.deposits?.[0]?.status === "HELD" ? "Held safely" : "Recorded"}
-                              </p>
-                            </td>
-
-                            <td className="px-4 py-4">
-                              <p className="text-slate-700 font-medium">{formatDate(occ.joinDate)}</p>
-                              {occ.leaveDate ? (
-                                <p className="text-[11px] text-amber-600 mt-0.5">
-                                  Left: {formatDate(occ.leaveDate)}
-                                </p>
-                              ) : null}
-                            </td>
-
-                            <td className="px-4 py-4">
-                              {isNotice ? (
-                                <div className="flex flex-col gap-1 items-start">
-                                  <span
-                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                                      daysLeft !== null && daysLeft <= 7
-                                        ? "bg-rose-100 text-rose-800 ring-1 ring-rose-600/30"
-                                        : daysLeft !== null && daysLeft <= 15
-                                        ? "bg-orange-100 text-orange-800 ring-1 ring-orange-600/30"
-                                        : "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/30"
-                                    }`}
-                                  >
-                                    <span className="size-1.5 rounded-full bg-current animate-pulse" />
-                                    {daysLeft !== null && daysLeft <= 7 ? "🔴 " : daysLeft !== null && daysLeft <= 15 ? "🟠 " : "🟡 "}
-                                    {daysLeft !== null ? `Leaves in ${daysLeft}d` : "On Notice"}
-                                  </span>
-                                  {occ.leaveDate && (
-                                    <span className="text-[10.5px] font-semibold text-slate-600">
-                                      Move-out: {formatDate(occ.leaveDate)}
-                                    </span>
-                                  )}
-                                </div>
-                              ) : isLeft ? (
-                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold bg-slate-100 text-slate-600 ring-1 ring-slate-400/20">
-                                  Left
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
-                                  Active
-                                </span>
-                              )}
-                            </td>
-
-                            <td className="px-5 py-4 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setKycResident(occ.user)}
-                                  className="text-[11px] text-slate-700 hover:bg-slate-100 font-semibold"
-                                  title="Manage KYC Documents"
-                                >
-                                  <FileText className="size-3.5" />
-                                  KYC Docs
-                                </Button>
-                                {isNotice ? (
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => setCheckoutOccupancy(occ)}
-                                      className="!bg-amber-600 !text-white hover:!bg-amber-700 font-bold text-xs shadow-2xs"
-                                    >
-                                      Settle & Out
-                                    </Button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleWithdrawNotice(occ.id)}
-                                      className="text-[11px] text-slate-500 hover:text-slate-800 hover:underline px-1 py-0.5"
-                                      title="Cancel notice and keep active"
-                                    >
-                                      Withdraw
-                                    </button>
-                                  </div>
-                                ) : !isLeft ? (
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setNoticeOccupancy(occ);
-                                        const defDate = new Date(Date.now() + (occ.noticePeriodDays || 30) * 24 * 60 * 60 * 1000)
-                                          .toISOString()
-                                          .slice(0, 10);
-                                        setNoticeLeaveDate(defDate);
-                                      }}
-                                      className="text-[11px] text-amber-700 hover:bg-amber-50 font-semibold"
-                                      title="Put on notice period"
-                                    >
-                                      <DoorOpen className="size-3.5" />
-                                      Notice
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => setCheckoutOccupancy(occ)}
-                                      className="text-[11px] text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                                    >
-                                      Check-out
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span className="text-[11px] text-slate-400">Settled</span>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
+          {/* Reset Filters */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors shrink-0"
+              title="Reset all search and filters"
+            >
+              <RotateCcw className="size-3.5" />
+              Reset
+            </button>
           )}
         </div>
-      )}
 
-      {tab === "import" && (
-        <Card className="p-6">
-          <div className="max-w-2xl space-y-4">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">
-                Bulk Excel / CSV Resident Import
-              </h2>
-              <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                Import dozens of residents, rooms, beds and security deposits in a single transaction.
-                All imported residents will be created with the default login password: <strong className="text-slate-900">bedy@123</strong>.
-              </p>
-            </div>
+        {/* Showing count indicator */}
+        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+          <span>
+            Showing <strong>{filteredOccupancies.length}</strong> of {occupancies.length} residents
+          </span>
+          {hasActiveFilters && (
+            <span className="text-amber-700 font-medium">Filtered results</span>
+          )}
+        </div>
+      </div>
 
-            <pre className="rounded-xl bg-slate-900 p-3 font-mono text-xs text-slate-200 overflow-x-auto">
-              {PG_CSV_TEMPLATE}
-            </pre>
+      {/* 4. Redesigned Resident Table & Mobile Cards */}
+      {filteredOccupancies.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No residents match the selected filters"
+          description="Try clearing your search query or adjusting your status filters to find residents."
+          action={
+            hasActiveFilters ? (
+              <Button variant="secondary" onClick={clearAllFilters}>
+                Clear Filters
+              </Button>
+            ) : (
+              <Button onClick={() => setCheckInOpen(true)}>
+                <Plus className="size-4" /> Check-in Resident
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <>
+          {/* Mobile Cards View (< 640px) */}
+          <div className="space-y-3 sm:hidden">
+            {filteredOccupancies.map((occ) => {
+              const data = occupancyDataMap.get(occ.id) || {
+                outstandingBalance: 0,
+                isOverdue: false,
+                depositHeld: occ.depositAmount || 0,
+                kyc: { isComplete: false, count: 0 },
+              };
+              const isNotice = occ.status === "NOTICE";
+              const isLeft = occ.status === "LEFT";
+              const daysLeft = occ.leaveDate
+                ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
+                : null;
 
-            <form onSubmit={handleImportSubmit} className="space-y-4">
-              <ErrorBanner error={importError} />
-              {importSuccess ? (
-                <div className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800 border border-emerald-200">
-                  {importSuccess}
-                </div>
-              ) : null}
+              const origin = typeof window !== "undefined" ? window.location.origin : "";
+              const firstInv = data.firstUnpaidInvoice;
+              const payUrl = firstInv ? `${origin}/pay/${firstInv.id}` : "";
+              const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
+              const reminderText = firstInv
+                ? buildRentReminderMessage({
+                    residentName: occ.user?.name,
+                    roomLabel,
+                    period: firstInv.billingPeriod,
+                    amount: data.outstandingBalance,
+                    dueDate: formatDate(firstInv.dueDate),
+                    payUrl,
+                    pgName: societyName || "Bedy PG",
+                  })
+                : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
+              const waUrl = occ.user?.phone ? getWhatsAppUrl(occ.user?.phone, reminderText) : null;
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Paste CSV Content
-                </label>
-                <textarea
-                  rows={8}
-                  value={csvText}
-                  onChange={(e) => setCsvText(e.target.value)}
-                  placeholder="Paste CSV rows here..."
-                  className="w-full rounded-xl border border-slate-300 p-3 font-mono text-xs focus:border-primary-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button type="submit" loading={importing}>
-                  <Upload className="size-4" />
-                  Validate & Import
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setCsvText(PG_CSV_TEMPLATE)}
+              return (
+                <div
+                  key={occ.id}
+                  className={`rounded-2xl border p-4 shadow-2xs space-y-3 bg-white ${
+                    isNotice ? "border-amber-300 bg-amber-50/20" : "border-slate-200"
+                  }`}
                 >
-                  Load Sample Template
-                </Button>
-              </div>
-            </form>
+                  {/* Top: Name, Status, Room */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar name={occ.user?.name} size="sm" />
+                      <div className="min-w-0">
+                        <Link
+                          href={`/admin/residents/${occ.id}`}
+                          className="font-bold text-slate-900 text-sm hover:text-brand-600 hover:underline flex items-center gap-1 truncate"
+                        >
+                          <span>{occ.user?.name}</span>
+                          <ChevronRight className="size-3.5 text-slate-400 shrink-0" />
+                        </Link>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">
+                          {occ.user?.phone || "No phone"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                        isNotice
+                          ? "bg-amber-100 text-amber-800 ring-1 ring-amber-600/30"
+                          : isLeft
+                          ? "bg-slate-100 text-slate-600"
+                          : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
+                      }`}
+                    >
+                      {isNotice ? `On Notice (${daysLeft}d)` : isLeft ? "Left" : "Active"}
+                    </span>
+                  </div>
+
+                  {/* Room & KYC Tags */}
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-lg">
+                      Room {occ.unit?.unitNumber || "-"}{occ.bed ? ` · Bed ${occ.bed.bedLabel}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setKycResident(occ.user)}
+                      className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold ${
+                        data.kyc.isComplete
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-rose-50 text-rose-700 border border-rose-200"
+                      }`}
+                    >
+                      <ShieldCheck className="size-3" />
+                      {data.kyc.isComplete ? "Verified" : "KYC Missing"}
+                    </button>
+                  </div>
+
+                  {/* Financial Grid */}
+                  <div className="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-slate-100">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block font-medium">Rent</span>
+                      <span className="font-bold text-slate-900">{formatMoney(occ.monthlyRent)}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-500 block font-medium">Balance</span>
+                      {data.outstandingBalance > 0 ? (
+                        <span className={`font-extrabold ${data.isOverdue ? "text-rose-600" : "text-amber-700"}`}>
+                          ₹{data.outstandingBalance.toLocaleString()} Due
+                        </span>
+                      ) : (
+                        <span className="font-bold text-emerald-600">Paid Up</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-500 block font-medium">Deposit</span>
+                      <span className="font-bold text-slate-900">{formatMoney(data.depositHeld)}</span>
+                    </div>
+                  </div>
+
+                  {/* Mobile Actions Bar */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <Link
+                      href={`/admin/residents/${occ.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-brand-700 hover:text-brand-800"
+                    >
+                      View Details <ArrowRight className="size-3" />
+                    </Link>
+
+                    <div className="flex items-center gap-1.5">
+                      {data.outstandingBalance > 0 && waUrl && (
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          title="WhatsApp Reminder"
+                        >
+                          <MessageCircle className="size-4 text-emerald-600" />
+                        </a>
+                      )}
+                      {!isLeft && (
+                        <Button
+                          variant="secondary"
+                          size="xs"
+                          onClick={() => setCheckoutOccupancy(occ)}
+                          className="!text-rose-600 hover:!bg-rose-50"
+                        >
+                          Check-out
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </Card>
+
+          {/* Desktop Table View (>= 640px) */}
+          <div className="hidden sm:block overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="border-b border-slate-200/80 bg-slate-50/90 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                  <tr>
+                    <th className="px-5 py-3.5 font-bold">Resident</th>
+                    <th className="px-4 py-3.5 font-bold">Room & Bed</th>
+                    <th className="px-4 py-3.5 font-bold">Monthly Rent</th>
+                    <th className="px-4 py-3.5 font-bold">Outstanding Balance</th>
+                    <th className="px-4 py-3.5 font-bold">Security Deposit</th>
+                    <th className="px-4 py-3.5 font-bold">Check-in Date</th>
+                    <th className="px-4 py-3.5 font-bold text-center">Status</th>
+                    <th className="px-5 py-3.5 font-bold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredOccupancies.map((occ) => {
+                    const data = occupancyDataMap.get(occ.id) || {
+                      outstandingBalance: 0,
+                      isOverdue: false,
+                      depositHeld: occ.depositAmount || 0,
+                      kyc: { isComplete: false, count: 0 },
+                    };
+                    const isNotice = occ.status === "NOTICE";
+                    const isLeft = occ.status === "LEFT";
+                    const daysLeft = occ.leaveDate
+                      ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
+                      : null;
+
+                    const origin = typeof window !== "undefined" ? window.location.origin : "";
+                    const firstInv = data.firstUnpaidInvoice;
+                    const payUrl = firstInv ? `${origin}/pay/${firstInv.id}` : "";
+                    const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
+                    const reminderText = firstInv
+                      ? buildRentReminderMessage({
+                          residentName: occ.user?.name,
+                          roomLabel,
+                          period: firstInv.billingPeriod,
+                          amount: data.outstandingBalance,
+                          dueDate: formatDate(firstInv.dueDate),
+                          payUrl,
+                          pgName: societyName || "Bedy PG",
+                        })
+                      : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
+                    const waUrl = occ.user?.phone ? getWhatsAppUrl(occ.user?.phone, reminderText) : null;
+
+                    return (
+                      <tr
+                        key={occ.id}
+                        className={`transition-colors hover:bg-slate-50/70 ${
+                          isNotice ? "bg-amber-50/30" : ""
+                        }`}
+                      >
+                        {/* 1. Resident Column */}
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={occ.user?.name} size="sm" />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/admin/residents/${occ.id}`}
+                                  className="font-bold text-slate-900 hover:text-brand-600 hover:underline truncate"
+                                  title="View full resident profile & billing"
+                                >
+                                  {occ.user?.name}
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => setKycResident(occ.user)}
+                                  className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold transition cursor-pointer ${
+                                    data.kyc.isComplete
+                                      ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                                      : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+                                  }`}
+                                  title={data.kyc.isComplete ? "Aadhaar & PAN submitted" : "KYC incomplete - click to upload"}
+                                >
+                                  <ShieldCheck className="size-2.5" />
+                                  {data.kyc.isComplete ? "Verified" : "KYC Missing"}
+                                </button>
+                              </div>
+                              <p className="font-mono text-[11px] text-slate-500 mt-0.5">
+                                {occ.user?.phone || occ.user?.email || "No contact"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 2. Room & Bed Column */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-900">
+                              Room {occ.unit?.unitNumber || "-"}
+                            </span>
+                            {occ.bed ? (
+                              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-bold text-slate-700">
+                                Bed {occ.bed.bedLabel}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {occ.unit?.unitType} Sharing
+                          </p>
+                        </td>
+
+                        {/* 3. Monthly Rent Column */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="font-bold text-slate-900">
+                            {formatMoney(occ.monthlyRent)}
+                          </span>
+                          <span className="text-[11px] text-slate-400 block mt-0.5">/ month</span>
+                        </td>
+
+                        {/* 4. Outstanding Balance Column */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          {data.outstandingBalance > 0 ? (
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <span
+                                  className={`inline-block font-extrabold text-xs ${
+                                    data.isOverdue ? "text-rose-600" : "text-amber-700"
+                                  }`}
+                                >
+                                  ₹{data.outstandingBalance.toLocaleString()}
+                                </span>
+                                <span
+                                  className={`block text-[10px] font-semibold ${
+                                    data.isOverdue ? "text-rose-500" : "text-amber-600"
+                                  }`}
+                                >
+                                  {data.isOverdue ? "Overdue" : "Pending Due"}
+                                </span>
+                              </div>
+
+                              {waUrl && (
+                                <a
+                                  href={waUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={`Send WhatsApp Rent Reminder (Due: ₹${data.outstandingBalance})`}
+                                  className="inline-flex items-center gap-1 text-[10.5px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors"
+                                >
+                                  <MessageCircle className="size-3 text-emerald-600" />
+                                  <span>Remind</span>
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="size-3" /> Paid Up
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 5. Security Deposit Column */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="font-bold text-emerald-700">
+                            {formatMoney(data.depositHeld)}
+                          </span>
+                          <span className="text-[10.5px] text-slate-400 block mt-0.5">
+                            {isLeft ? "Settled on checkout" : "Held safely"}
+                          </span>
+                        </td>
+
+                        {/* 6. Check-in Date Column */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="text-slate-700 font-medium">
+                            {formatDate(occ.joinDate)}
+                          </span>
+                          {occ.leaveDate ? (
+                            <span className="text-[10.5px] text-amber-600 block mt-0.5 font-semibold">
+                              Move-out: {formatDate(occ.leaveDate)}
+                            </span>
+                          ) : null}
+                        </td>
+
+                        {/* 7. Status Column */}
+                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                          {isNotice ? (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-amber-100 text-amber-900 ring-1 ring-amber-600/30">
+                              <span className="size-1.5 rounded-full bg-amber-600 animate-pulse" />
+                              On Notice {daysLeft !== null ? `(${daysLeft}d left)` : ""}
+                            </span>
+                          ) : isLeft ? (
+                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-slate-100 text-slate-600">
+                              Checked Out
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
+                              Active
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 8. Actions Column */}
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Link
+                              href={`/admin/residents/${occ.id}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 transition-colors"
+                              title="Open resident details, billing, payments, and stay history"
+                            >
+                              <span>View Details</span>
+                              <ArrowRight className="size-3" />
+                            </Link>
+
+                            {!isLeft && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setCheckoutOccupancy(occ)}
+                                className="text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                title="Check out and settle security deposit"
+                              >
+                                Check-out
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Check-in Modal */}
+      {/* 5. Check-in Modal */}
       {checkInOpen ? (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 p-2 sm:p-4 backdrop-blur-xs">
           <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
@@ -1058,7 +1091,11 @@ export default function ResidentsClient({
                 </p>
               </div>
               <button
-                onClick={() => { setCheckInOpen(false); setCheckInDocs([]); setDocUploadError(null); }}
+                onClick={() => {
+                  setCheckInOpen(false);
+                  setCheckInDocs([]);
+                  setDocUploadError(null);
+                }}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
                 <X className="size-5" />
@@ -1212,7 +1249,6 @@ export default function ResidentsClient({
                   </div>
                 </div>
 
-                {/* Document Type Picker & Direct Uploader */}
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3">
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
                     <div className="sm:col-span-6">
@@ -1222,7 +1258,7 @@ export default function ResidentsClient({
                       <select
                         value={docTypeToUpload}
                         onChange={(e) => setDocTypeToUpload(e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:outline-none"
                       >
                         {KYC_DOCUMENT_OPTIONS.map((t) => (
                           <option key={t.value} value={t.value}>
@@ -1234,26 +1270,19 @@ export default function ResidentsClient({
 
                     <div className="sm:col-span-6">
                       <label
-                        className={`flex items-center justify-center gap-2 w-full rounded-lg border border-primary-600 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-100 cursor-pointer ${
+                        className={`flex items-center justify-center gap-2 w-full rounded-lg border border-brand-600 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100 cursor-pointer ${
                           uploadingDoc ? "opacity-60 cursor-not-allowed" : ""
                         }`}
                       >
                         {uploadingDoc ? (
                           <>
-                            <Spinner className="size-3.5 text-primary-600" />
+                            <Spinner className="size-3.5 text-brand-600" />
                             <span>Uploading...</span>
                           </>
                         ) : (
                           <>
                             <Upload className="size-3.5" />
-                            <span>
-                              Upload{" "}
-                              {
-                                KYC_DOCUMENT_OPTIONS.find((t) => t.value === docTypeToUpload)
-                                  ?.label?.split(" ")[0]
-                              }{" "}
-                              Doc
-                            </span>
+                            <span>Upload Document</span>
                           </>
                         )}
                         <input
@@ -1268,13 +1297,12 @@ export default function ResidentsClient({
                     </div>
                   </div>
 
-                  {docUploadError ? (
+                  {docUploadError && (
                     <p className="mt-2 text-[11px] font-medium text-rose-600">{docUploadError}</p>
-                  ) : null}
+                  )}
                 </div>
 
-                {/* Attached Documents List */}
-                {checkInDocs.length > 0 ? (
+                {checkInDocs.length > 0 && (
                   <div className="mt-2.5 space-y-1.5">
                     <p className="text-[11px] font-semibold text-slate-600">
                       Uploaded Documents ({checkInDocs.length}):
@@ -1289,10 +1317,7 @@ export default function ResidentsClient({
                             <FileCheck2 className="size-4 shrink-0 text-emerald-600" />
                             <div className="truncate">
                               <span className="font-semibold text-slate-800">
-                                {
-                                  KYC_DOCUMENT_OPTIONS.find((t) => t.value === doc.docType)?.label ||
-                                  doc.docType
-                                }
+                                {KYC_DOCUMENT_OPTIONS.find((t) => t.value === doc.docType)?.label || doc.docType}
                               </span>
                               <span className="ml-1.5 text-[11px] text-slate-400 truncate">
                                 ({doc.fileName || "Uploaded file"})
@@ -1305,16 +1330,14 @@ export default function ResidentsClient({
                               href={doc.fileUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-primary-600 hover:bg-primary-50 hover:underline"
+                              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50 hover:underline"
                             >
                               <Eye className="size-3" />
                               View
                             </a>
                             <button
                               type="button"
-                              onClick={() =>
-                                setCheckInDocs((prev) => prev.filter((_, i) => i !== idx))
-                              }
+                              onClick={() => setCheckInDocs((prev) => prev.filter((_, i) => i !== idx))}
                               className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                               title="Remove document"
                             >
@@ -1325,7 +1348,7 @@ export default function ResidentsClient({
                       ))}
                     </div>
                   </div>
-                ) : null}
+                )}
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -1345,55 +1368,76 @@ export default function ResidentsClient({
         </div>
       ) : null}
 
-      {/* Admin Set Notice Modal */}
-      {noticeOccupancy && (
+      {/* 6. Excel / CSV Import Modal */}
+      {importOpen && (
         <Modal
-          open={!!noticeOccupancy}
-          onClose={() => setNoticeOccupancy(null)}
-          title={`Serve Move-out Notice · ${noticeOccupancy.user?.name}`}
-          description={`Room ${noticeOccupancy.unit?.unitNumber || "-"} · Bed ${noticeOccupancy.bed?.bedLabel || "-"}`}
-          size="sm"
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          title="Import Residents from Excel / CSV"
+          description="Batch import residents, room & bed assignments, and security deposits."
+          size="lg"
         >
-          <form onSubmit={handleSetNotice} className="space-y-4">
-            {noticeError && <ErrorBanner message={noticeError} />}
+          <div className="space-y-4">
+            <ErrorBanner error={importError} />
+            {importSuccess && (
+              <div className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800 border border-emerald-200">
+                {importSuccess}
+              </div>
+            )}
+
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Scheduled Move-out Date *
-              </label>
-              <Input
-                type="date"
-                required
-                min={new Date().toISOString().slice(0, 10)}
-                value={noticeLeaveDate}
-                onChange={(e) => setNoticeLeaveDate(e.target.value)}
-              />
-              <p className="mt-1 text-[11px] text-slate-500">
-                Notice period policy is {noticeOccupancy.noticePeriodDays || 30} days. Setting this marks tenant as vacating soon on dashboard & rooms.
+              <p className="text-xs font-semibold text-slate-700 mb-1.5">
+                Expected CSV Format:
               </p>
+              <pre className="rounded-xl bg-slate-900 p-3 font-mono text-xs text-slate-200 overflow-x-auto leading-relaxed">
+                {PG_CSV_TEMPLATE}
+              </pre>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setNoticeOccupancy(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                loading={noticeSaving}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
-              >
-                Confirm Notice Status
-              </Button>
-            </div>
-          </form>
+            <form onSubmit={handleImportSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Paste CSV Rows:
+                </label>
+                <textarea
+                  rows={6}
+                  value={csvText}
+                  onChange={(e) => setCsvText(e.target.value)}
+                  placeholder="Paste CSV rows here (Room,Bed,Name,Phone,Email,JoinDate,MonthlyRent,Deposit)..."
+                  className="w-full rounded-xl border border-slate-300 p-3 font-mono text-xs focus:border-brand-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setCsvText(PG_CSV_TEMPLATE)}
+                >
+                  Load Sample Data
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setImportOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" loading={importing}>
+                    <Upload className="size-4" /> Import Records
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </div>
         </Modal>
       )}
 
-      {/* Check-out Modal */}
-      {checkoutOccupancy ? (
+      {/* 7. Check-out Modal with Deposit Settlement */}
+      {checkoutOccupancy && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 p-2 sm:p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1468,7 +1512,7 @@ export default function ResidentsClient({
                   <button
                     type="button"
                     onClick={() => setDeductions([...deductions, { reason: "Maintenance dues", amount: 500 }])}
-                    className="text-[11px] font-semibold text-primary-600 hover:underline py-1"
+                    className="text-[11px] font-semibold text-brand-600 hover:underline py-1"
                   >
                     + Add Deduction Item
                   </button>
@@ -1502,10 +1546,10 @@ export default function ResidentsClient({
             </form>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {/* Tenant KYC Document Verification Modal */}
-      {kycResident ? (
+      {/* 8. KYC Modal */}
+      {kycResident && (
         <Modal
           open={Boolean(kycResident)}
           onClose={() => setKycResident(null)}
@@ -1529,7 +1573,20 @@ export default function ResidentsClient({
             }}
           />
         </Modal>
-      ) : null}
+      )}
+
+      {/* 9. Record Payment Modal */}
+      {paymentOccupancy && (
+        <RecordPaymentModal
+          open={Boolean(paymentOccupancy)}
+          onClose={() => setPaymentOccupancy(null)}
+          residentName={paymentOccupancy.user?.name}
+          onSuccess={() => {
+            setPaymentOccupancy(null);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
