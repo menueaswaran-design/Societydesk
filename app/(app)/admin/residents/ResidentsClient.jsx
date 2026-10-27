@@ -9,7 +9,6 @@ import {
   Search,
   Users,
   CheckCircle2,
-  ShieldCheck,
   ArrowRight,
   Phone,
   DoorOpen,
@@ -716,14 +715,18 @@ export default function ResidentsClient({
                     <button
                       type="button"
                       onClick={() => setKycResident(occ.user)}
-                      className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold ${
+                      className={`inline-flex items-center justify-center size-4 rounded-full transition cursor-pointer shrink-0 ${
                         data.kyc.isComplete
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-rose-50 text-rose-700 border border-rose-200"
+                          ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                          : "bg-rose-50 text-rose-600 border border-rose-200"
                       }`}
+                      title={data.kyc.isComplete ? "KYC Verified" : "KYC Incomplete - click to upload"}
                     >
-                      <ShieldCheck className="size-3" />
-                      {data.kyc.isComplete ? "Verified" : "KYC Missing"}
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          data.kyc.isComplete ? "bg-emerald-500" : "bg-rose-500"
+                        }`}
+                      />
                     </button>
                   </div>
 
@@ -817,15 +820,18 @@ export default function ResidentsClient({
                                 <button
                                   type="button"
                                   onClick={() => setKycResident(occ.user)}
-                                  className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold transition cursor-pointer ${
+                                  className={`inline-flex items-center justify-center size-4 rounded-full transition cursor-pointer shrink-0 ${
                                     data.kyc.isComplete
-                                      ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
-                                      : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+                                      ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200"
+                                      : "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
                                   }`}
-                                  title={data.kyc.isComplete ? "Aadhaar & PAN submitted" : "KYC incomplete - click to upload"}
+                                  title={data.kyc.isComplete ? "KYC Verified" : "KYC Incomplete - click to upload"}
                                 >
-                                  <ShieldCheck className="size-2.5" />
-                                  {data.kyc.isComplete ? "Verified" : "KYC Missing"}
+                                  <span
+                                    className={`size-1.5 rounded-full ${
+                                      data.kyc.isComplete ? "bg-emerald-500" : "bg-rose-500"
+                                    }`}
+                                  />
                                 </button>
                               </div>
                               <p className="font-mono text-[11px] text-slate-500 mt-0.5">
