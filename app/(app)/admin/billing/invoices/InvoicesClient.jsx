@@ -45,6 +45,7 @@ function WhatsAppReminderButton({ invoice, size = "xs" }) {
       dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : "the due date",
       payUrl,
       pgName: invoice.societyName || "Bedy PG",
+      items: invoice.items,
     });
     const url = getWhatsAppUrl(invoice.residentPhone, text);
     window.open(url, "_blank");

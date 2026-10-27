@@ -13,6 +13,12 @@ import {
   Wallet,
   AlertOctagon,
   Info,
+  Zap,
+  Utensils,
+  Wrench,
+  Sparkles,
+  Droplets,
+  Home,
 } from "lucide-react";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -26,6 +32,60 @@ import Button, { IconButton } from "@/components/ui/Button";
 import PayCheckoutButton from "@/components/billing/PayCheckoutButton";
 import { openDocument } from "@/lib/client/api";
 import { formatDate, formatMoney, formatPeriod, titleCase } from "@/lib/format";
+
+function getItemBadge(type) {
+  switch (type?.toUpperCase()) {
+    case "ELECTRICITY":
+      return {
+        label: "Electricity",
+        icon: Zap,
+        emoji: "⚡",
+        bg: "bg-amber-50 text-amber-800 border-amber-200",
+      };
+    case "FOOD":
+      return {
+        label: "Food / Mess",
+        icon: Utensils,
+        emoji: "🍽️",
+        bg: "bg-emerald-50 text-emerald-800 border-emerald-200",
+      };
+    case "MAINTENANCE":
+      return {
+        label: "Maintenance",
+        icon: Wrench,
+        emoji: "🔧",
+        bg: "bg-sky-50 text-sky-800 border-sky-200",
+      };
+    case "LAUNDRY":
+      return {
+        label: "Laundry",
+        icon: Sparkles,
+        emoji: "🧺",
+        bg: "bg-purple-50 text-purple-800 border-purple-200",
+      };
+    case "WATER":
+      return {
+        label: "Water",
+        icon: Droplets,
+        emoji: "💧",
+        bg: "bg-blue-50 text-blue-800 border-blue-200",
+      };
+    case "RENT":
+      return {
+        label: "Room Rent",
+        icon: Home,
+        emoji: "🏠",
+        bg: "bg-indigo-50 text-indigo-800 border-indigo-200",
+      };
+    default:
+      return {
+        label: "Other",
+        icon: Receipt,
+        emoji: "📋",
+        bg: "bg-slate-50 text-slate-700 border-slate-200",
+      };
+  }
+}
 
 const DUE_FILTERS = [
   { value: "ALL", label: "All invoices" },
@@ -142,6 +202,24 @@ export default function ResidentInvoicesClient({ invoices }) {
                     <p className="mt-1 text-[11px] text-slate-500">
                       {inv.invoiceNumber} · {flatLabel}
                     </p>
+                    {inv.items && inv.items.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {inv.items.map((it) => {
+                          const meta = getItemBadge(it.type);
+                          return (
+                            <span
+                              key={it.id}
+                              className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border ${meta.bg}`}
+                              title={it.name}
+                            >
+                              <span>{meta.emoji}</span>
+                              <span className="truncate max-w-[110px]">{meta.label}</span>
+                              <span className="font-bold">{formatMoney(it.amount)}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                     <div className="mt-2.5 flex items-baseline justify-between border-t border-slate-100 pt-2">
                       <span className="text-xs text-slate-500">Due {formatDate(inv.dueDate)}</span>
                       <span className="tabular text-base font-bold text-slate-900">
@@ -269,6 +347,25 @@ export default function ResidentInvoicesClient({ invoices }) {
                       </div>
                     </div>
 
+                    {inv.items && inv.items.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {inv.items.map((it) => {
+                          const meta = getItemBadge(it.type);
+                          return (
+                            <span
+                              key={it.id}
+                              className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border ${meta.bg}`}
+                              title={it.name}
+                            >
+                              <span>{meta.emoji}</span>
+                              <span className="truncate max-w-[110px]">{meta.label}</span>
+                              <span className="font-semibold">{formatMoney(it.amount)}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+
                     <div className="flex items-center justify-between gap-2 pt-1">
                       <button
                         type="button"
@@ -340,8 +437,27 @@ export default function ResidentInvoicesClient({ invoices }) {
                   return (
                     <Fragment key={inv.id}>
                       <Tr>
-                        <Td dense className="font-mono font-semibold text-slate-900 whitespace-nowrap">
-                          {inv.invoiceNumber}
+                        <Td dense className="whitespace-nowrap">
+                          <span className="font-mono font-semibold text-slate-900 block">
+                            {inv.invoiceNumber}
+                          </span>
+                          {inv.items && inv.items.length > 0 ? (
+                            <div className="mt-1 flex flex-wrap gap-1 max-w-[220px]">
+                              {inv.items.map((it) => {
+                                const meta = getItemBadge(it.type);
+                                return (
+                                  <span
+                                    key={it.id}
+                                    className={`inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[9.5px] font-medium border ${meta.bg}`}
+                                    title={`${it.name} (${formatMoney(it.amount)})`}
+                                  >
+                                    <span>{meta.emoji}</span>
+                                    <span>{meta.label}</span>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          ) : null}
                         </Td>
                         <Td dense className="hidden sm:table-cell whitespace-nowrap">
                           {flatLabel}
@@ -414,40 +530,56 @@ export default function ResidentInvoicesClient({ invoices }) {
 
 function Breakdown({ invoice }) {
   return (
-    <div className="grid gap-6 py-2 lg:grid-cols-2">
+    <div className="grid gap-6 py-2.5 lg:grid-cols-2">
       <div>
-        <p className="label-xs mb-2">Charges</p>
-        <ul className="space-y-1">
-          {invoice.items.map((item) => (
-            <li key={item.id} className="flex justify-between gap-3 text-sm">
-              <span className="text-slate-700">
-                {item.name}{" "}
-                <span className="text-xs text-slate-400">({titleCase(item.type)})</span>
-              </span>
-              <span className="tabular text-slate-900">{formatMoney(item.amount)}</span>
-            </li>
-          ))}
+        <p className="label-xs mb-2.5 flex items-center justify-between">
+          <span>Charges Breakdown</span>
+          <span className="text-[11px] font-normal text-slate-500">
+            {invoice.items?.length || 0} item{invoice.items?.length === 1 ? "" : "s"}
+          </span>
+        </p>
+        <ul className="space-y-1.5">
+          {invoice.items?.map((item) => {
+            const meta = getItemBadge(item.type);
+            const Icon = meta.icon;
+            return (
+              <li key={item.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="flex items-center gap-2 min-w-0 text-slate-700">
+                  <span className={`flex size-6 shrink-0 items-center justify-center rounded-md border ${meta.bg}`}>
+                    <Icon className="size-3.5" />
+                  </span>
+                  <span className="truncate font-medium text-slate-800" title={item.name}>
+                    {item.name}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 shrink-0">
+                    {meta.label}
+                  </span>
+                </span>
+                <span className="tabular font-semibold text-slate-900 shrink-0">{formatMoney(item.amount)}</span>
+              </li>
+            );
+          })}
           {invoice.previousDue > 0 ? (
-            <li className="flex justify-between gap-3 text-sm">
-              <span className="text-slate-700">Previous due</span>
-              <span className="tabular text-amber-700">{formatMoney(invoice.previousDue)}</span>
+            <li className="flex justify-between gap-3 pt-1 text-sm">
+              <span className="text-slate-700">Previous due / Arrears</span>
+              <span className="tabular font-medium text-amber-700">+{formatMoney(invoice.previousDue)}</span>
             </li>
           ) : null}
           {invoice.penalty > 0 ? (
             <li className="flex justify-between gap-3 text-sm">
               <span className="text-slate-700">Late payment penalty</span>
-              <span className="tabular text-rose-700">{formatMoney(invoice.penalty)}</span>
+              <span className="tabular font-medium text-rose-700">+{formatMoney(invoice.penalty)}</span>
             </li>
           ) : null}
           {invoice.discount > 0 ? (
             <li className="flex justify-between gap-3 text-sm">
-              <span className="text-slate-700">Discount</span>
-              <span className="tabular text-emerald-700">-{formatMoney(invoice.discount)}</span>
+              <span className="text-slate-700">Discount / Concession</span>
+              <span className="tabular font-medium text-emerald-700">-{formatMoney(invoice.discount)}</span>
             </li>
           ) : null}
-          <li className="flex justify-between gap-3 border-t border-slate-200 pt-1.5 text-sm font-semibold">
-            <span>Total</span>
-            <span className="tabular">{formatMoney(invoice.totalAmount)}</span>
+          <li className="flex justify-between gap-3 border-t border-slate-200 pt-2 text-sm font-semibold">
+            <span>Total Bill</span>
+            <span className="tabular font-bold text-slate-900">{formatMoney(invoice.totalAmount)}</span>
           </li>
         </ul>
       </div>

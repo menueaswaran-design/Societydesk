@@ -19,6 +19,12 @@ import {
   ExternalLink,
   HelpCircle,
   RefreshCw,
+  Zap,
+  Utensils,
+  Wrench,
+  Sparkles,
+  Droplets,
+  Home,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -28,6 +34,53 @@ import {
   buildReceiptWhatsAppMessage,
   getWhatsAppUrl,
 } from "@/lib/billing/whatsapp";
+
+function getPayItemMeta(type) {
+  switch (type?.toUpperCase()) {
+    case "ELECTRICITY":
+      return {
+        label: "Electricity",
+        icon: Zap,
+        bg: "bg-amber-50 text-amber-700 border-amber-200",
+      };
+    case "FOOD":
+      return {
+        label: "Food / Mess",
+        icon: Utensils,
+        bg: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      };
+    case "MAINTENANCE":
+      return {
+        label: "Maintenance",
+        icon: Wrench,
+        bg: "bg-sky-50 text-sky-700 border-sky-200",
+      };
+    case "LAUNDRY":
+      return {
+        label: "Laundry",
+        icon: Sparkles,
+        bg: "bg-purple-50 text-purple-700 border-purple-200",
+      };
+    case "WATER":
+      return {
+        label: "Water",
+        icon: Droplets,
+        bg: "bg-blue-50 text-blue-700 border-blue-200",
+      };
+    case "RENT":
+      return {
+        label: "Room Rent",
+        icon: Home,
+        bg: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      };
+    default:
+      return {
+        label: "Charge",
+        icon: Receipt,
+        bg: "bg-slate-50 text-slate-700 border-slate-200",
+      };
+  }
+}
 
 // Dynamically load Razorpay SDK
 function loadRazorpay() {
@@ -384,33 +437,54 @@ export default function PayLandingClient({ initialData }) {
 
           {/* Itemized Line Items */}
           <div className="space-y-2 pt-1">
-            <div className="text-xs font-semibold text-slate-700">Fee Breakdown</div>
-            <div className="divide-y divide-slate-100 rounded-xl border border-slate-100 text-xs bg-slate-50/50">
-              {invoice.items?.map((item) => (
-                <div key={item.id} className="flex justify-between p-2.5">
-                  <span className="text-slate-600 font-medium">{item.name}</span>
-                  <span className="font-semibold text-slate-900 tabular-nums">
-                    {formatMoney(item.amount)}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+              <span>Itemized Charges Breakdown</span>
+              <span className="text-[11px] font-normal text-slate-500">
+                {invoice.items?.length || 0} charge{invoice.items?.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 text-xs bg-slate-50/70 overflow-hidden shadow-2xs">
+              {invoice.items?.map((item) => {
+                const meta = getPayItemMeta(item.type);
+                const Icon = meta.icon;
+                return (
+                  <div key={item.id} className="flex items-center justify-between p-2.5 gap-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`flex size-6 shrink-0 items-center justify-center rounded-md border ${meta.bg}`}>
+                        <Icon className="size-3.5" />
+                      </span>
+                      <div className="min-w-0">
+                        <span className="text-slate-800 font-medium truncate block" title={item.name}>
+                          {item.name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                          {meta.label}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-slate-900 tabular-nums shrink-0">
+                      {formatMoney(item.amount)}
+                    </span>
+                  </div>
+                );
+              })}
               {invoice.penalty > 0 && (
-                <div className="flex justify-between p-2.5 text-rose-600">
-                  <span>Late Fee / Penalty</span>
-                  <span className="font-semibold tabular-nums">{formatMoney(invoice.penalty)}</span>
+                <div className="flex justify-between p-2.5 text-rose-600 bg-rose-50/40">
+                  <span className="font-medium">Late Fee / Penalty</span>
+                  <span className="font-semibold tabular-nums">+{formatMoney(invoice.penalty)}</span>
                 </div>
               )}
               {invoice.previousDue > 0 && (
-                <div className="flex justify-between p-2.5 text-amber-700">
-                  <span>Previous Balance / Arrears</span>
+                <div className="flex justify-between p-2.5 text-amber-700 bg-amber-50/40">
+                  <span className="font-medium">Previous Balance / Arrears</span>
                   <span className="font-semibold tabular-nums">
-                    {formatMoney(invoice.previousDue)}
+                    +{formatMoney(invoice.previousDue)}
                   </span>
                 </div>
               )}
               {invoice.paidAmount > 0 && !isPaid && (
-                <div className="flex justify-between p-2.5 text-emerald-600">
-                  <span>Already Paid</span>
+                <div className="flex justify-between p-2.5 text-emerald-600 bg-emerald-50/40">
+                  <span className="font-medium">Already Paid</span>
                   <span className="font-semibold tabular-nums">
                     -{formatMoney(invoice.paidAmount)}
                   </span>

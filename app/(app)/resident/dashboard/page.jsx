@@ -26,6 +26,11 @@ import {
   BedSingle,
   ShieldCheck,
   DoorOpen,
+  Zap,
+  Utensils,
+  Wrench,
+  Sparkles,
+  Droplets,
 } from "lucide-react";
 
 export const metadata = { title: "My Dashboard" };
@@ -36,6 +41,60 @@ function greeting() {
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
+}
+
+function getChargeMeta(type) {
+  switch (type?.toUpperCase()) {
+    case "ELECTRICITY":
+      return {
+        label: "Electricity",
+        icon: Zap,
+        bg: "bg-amber-50 text-amber-600 border-amber-200",
+        badge: "bg-amber-100 text-amber-800",
+      };
+    case "FOOD":
+      return {
+        label: "Food / Mess",
+        icon: Utensils,
+        bg: "bg-emerald-50 text-emerald-600 border-emerald-200",
+        badge: "bg-emerald-100 text-emerald-800",
+      };
+    case "MAINTENANCE":
+      return {
+        label: "Maintenance",
+        icon: Wrench,
+        bg: "bg-sky-50 text-sky-600 border-sky-200",
+        badge: "bg-sky-100 text-sky-800",
+      };
+    case "LAUNDRY":
+      return {
+        label: "Laundry",
+        icon: Sparkles,
+        bg: "bg-purple-50 text-purple-600 border-purple-200",
+        badge: "bg-purple-100 text-purple-800",
+      };
+    case "WATER":
+      return {
+        label: "Water",
+        icon: Droplets,
+        bg: "bg-blue-50 text-blue-600 border-blue-200",
+        badge: "bg-blue-100 text-blue-800",
+      };
+    case "RENT":
+      return {
+        label: "Room Rent",
+        icon: Home,
+        bg: "bg-indigo-50 text-indigo-600 border-indigo-200",
+        badge: "bg-indigo-100 text-indigo-800",
+      };
+    default:
+      return {
+        label: "Charge",
+        icon: Receipt,
+        bg: "bg-slate-50 text-slate-600 border-slate-200",
+        badge: "bg-slate-100 text-slate-800",
+      };
+  }
 }
 
 function ViewAll({ href }) {
@@ -349,14 +408,70 @@ export default async function ResidentDashboardPage() {
                   <p className="mt-0.5 text-[13px] text-slate-500">
                     {formatPeriod(due.billingPeriod)} · {dueLabel} · Due {formatDate(due.dueDate)}
                   </p>
-                  <div className="mt-4 max-w-md space-y-2 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-900/5">
-                    <StatLine label="Billed" value={formatMoney(due.totalAmount)} tone="muted" />
-                    <StatLine label="Paid so far" value={formatMoney(due.paidAmount)} tone="green" />
-                    <StatLine
-                      label="Payable"
-                      value={formatMoney(due.outstanding)}
-                      tone={due.isOverdue ? "rose" : "amber"}
-                    />
+                  <div className="mt-4 max-w-lg space-y-2 rounded-xl bg-slate-50/90 p-4 ring-1 ring-slate-900/5">
+                    {due.items && due.items.length > 0 ? (
+                      <div className="space-y-1.5 pb-2 border-b border-slate-200/80">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center justify-between">
+                          <span>Charges Breakdown</span>
+                          <span className="font-medium text-slate-400">
+                            {due.items.length} charge{due.items.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        {due.items.map((it) => {
+                          const meta = getChargeMeta(it.type);
+                          const Icon = meta.icon;
+                          return (
+                            <div key={it.id} className="flex items-center justify-between gap-2.5 text-xs">
+                              <span className="flex items-center gap-1.5 min-w-0 text-slate-700">
+                                <span className={`flex size-5 shrink-0 items-center justify-center rounded border ${meta.bg}`}>
+                                  <Icon className="size-3" />
+                                </span>
+                                <span className="truncate" title={it.name}>
+                                  {it.name}
+                                </span>
+                              </span>
+                              <span className="tabular font-semibold text-slate-900 shrink-0">
+                                {formatMoney(it.amount)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <StatLine label="Base Bill" value={formatMoney(due.subtotal || due.totalAmount)} tone="muted" />
+                    )}
+
+                    {due.previousDue > 0 && (
+                      <div className="flex items-center justify-between text-xs text-amber-700">
+                        <span>Previous Unpaid Dues</span>
+                        <span className="tabular font-semibold">+{formatMoney(due.previousDue)}</span>
+                      </div>
+                    )}
+                    {due.penalty > 0 && (
+                      <div className="flex items-center justify-between text-xs text-rose-600">
+                        <span>Late Payment Penalty</span>
+                        <span className="tabular font-semibold">+{formatMoney(due.penalty)}</span>
+                      </div>
+                    )}
+                    {due.discount > 0 && (
+                      <div className="flex items-center justify-between text-xs text-emerald-600">
+                        <span>Discount / Concession</span>
+                        <span className="tabular font-semibold">-{formatMoney(due.discount)}</span>
+                      </div>
+                    )}
+                    {due.paidAmount > 0 && (
+                      <div className="flex items-center justify-between text-xs text-emerald-700 font-medium">
+                        <span>Paid so far</span>
+                        <span className="tabular">-{formatMoney(due.paidAmount)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-xs">
+                      <span className="font-semibold text-slate-700">Net Payable</span>
+                      <span className={`tabular text-sm font-bold ${due.isOverdue ? "text-rose-600" : "text-amber-700"}`}>
+                        {formatMoney(due.outstanding)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
