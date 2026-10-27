@@ -10,6 +10,20 @@ const nextConfig = {
   // Pinned so Next does not infer C:\Users\VIGNESH as the workspace root
   // (there is an unrelated package-lock.json in the user profile).
   outputFileTracingRoot: __dirname,
+  async redirects() {
+    return [
+      {
+        source: "/pricing",
+        destination: "/#pricing",
+        permanent: true,
+      },
+      {
+        source: "/features",
+        destination: "/#features",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

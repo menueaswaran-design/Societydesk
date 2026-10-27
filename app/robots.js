@@ -7,10 +7,17 @@ export default function robots() {
         userAgent: "*",
         allow: [
           "/",
+          "/favicon.ico",
+          "/favicon-48x48.png",
+          "/favicon-96x96.png",
+          "/favicon.png",
+          "/apple-icon.png",
+          "/apple-touch-icon.png",
+          "/icon.png",
+          "/logo.png",
+          "/contact",
           "/login",
           "/forgot-password",
-          "/pricing",
-          "/features",
           "/refund-policy",
           "/terms",
           "/privacy",
@@ -23,8 +30,20 @@ export default function robots() {
           "/staff/",
         ],
       },
+      {
+        userAgent: "Googlebot-Image",
+        allow: [
+          "/favicon.ico",
+          "/favicon-48x48.png",
+          "/favicon-96x96.png",
+          "/favicon.png",
+          "/apple-icon.png",
+          "/apple-touch-icon.png",
+          "/icon.png",
+          "/logo.png",
+        ],
+      },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
-

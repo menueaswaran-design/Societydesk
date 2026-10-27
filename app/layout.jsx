@@ -32,7 +32,8 @@ export const metadata = {
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-48x48.png", type: "image/png", sizes: "48x48" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
       { url: "/icon.png", type: "image/png", sizes: "192x192" },
     ],
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
@@ -86,18 +87,38 @@ const jsonLd = {
       "@id": "https://bedy.in/#organization",
       "name": "Bedy",
       "url": "https://bedy.in",
-      "logo": "https://bedy.in/logo.png",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://bedy.in/logo.png",
+        "width": 1024,
+        "height": 1024
+      },
       "sameAs": [],
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Features",
-      "url": "https://bedy.in/features",
+      "name": "Live Showcase",
+      "url": "https://bedy.in/#showcase",
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Pricing",
-      "url": "https://bedy.in/pricing",
+      "name": "Features",
+      "url": "https://bedy.in/#features",
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Pricing Plans",
+      "url": "https://bedy.in/#pricing",
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Test Drive Demo",
+      "url": "https://bedy.in/#demo-portals",
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Sign In",
+      "url": "https://bedy.in/login",
     },
     {
       "@type": "SiteNavigationElement",
@@ -108,11 +129,6 @@ const jsonLd = {
       "@type": "SiteNavigationElement",
       "name": "Terms of Service",
       "url": "https://bedy.in/terms",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Sign In",
-      "url": "https://bedy.in/login",
     },
   ],
 };
@@ -127,6 +143,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={manrope.variable}>
       <head>
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

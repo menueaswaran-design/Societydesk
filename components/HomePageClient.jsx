@@ -51,6 +51,107 @@ import { homeForRole } from "@/lib/routing";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 
+const PRICING_TIERS = [
+  {
+    name: "Starter PG",
+    nameTa: "தொடக்க பிஜி",
+    tagline: "Ideal for small hostels and boutique PGs",
+    taglineTa: "சிறிய விடுதிகள் மற்றும் தொடக்க பிஜிகளுக்கு ஏற்றது",
+    price: "₹999",
+    period: "/ month",
+    periodTa: "/ மாதம்",
+    beds: "Up to 30 Beds",
+    bedsTa: "30 படுக்கைகள் வரை",
+    features: [
+      "Per-bed live occupancy grid",
+      "Automated rent invoicing",
+      "1-Click WhatsApp payment reminders",
+      "Direct UPI payments (Zero gateway fees)",
+      "Resident login portal & receipts",
+      "Security deposit refund tracking",
+      "Room sub-meter electricity support",
+    ],
+    featuresTa: [
+      "படுக்கை வாரியான நேரடி வரைபடம்",
+      "தானியங்கி வாடகை ரசீது உருவாக்கம்",
+      "1-கிளிக் வாட்ஸ்அப் கட்டண நினைவூட்டல்",
+      "நேரடி யுபிஐ (கட்டணக் கமிஷன் பூஜ்ஜியம்)",
+      "குடியிருப்போருக்கான தனி இணையதள அணுகல்",
+      "முன்பணம் திரும்ப அளித்தல் கண்காணிப்பு",
+      "அறை வாரியான மின் மீட்டர்கள் ஆதரவு",
+    ],
+    cta: "Try Live Demo",
+    ctaTa: "மாதிரி பார்க்க",
+    ctaLink: "#demo-portals",
+    popular: false,
+  },
+  {
+    name: "Growth PG & Hostels",
+    nameTa: "வளர்ச்சி பிஜி & விடுதிகள்",
+    tagline: "For busy PGs looking to automate billing & maintenance",
+    taglineTa: "விரைவான வாடகை வசூல் மற்றும் பராமரிப்புக்கு",
+    price: "₹2,499",
+    period: "/ month",
+    periodTa: "/ மாதம்",
+    beds: "Up to 100 Beds",
+    bedsTa: "100 படுக்கைகள் வரை",
+    features: [
+      "All Starter PG features included",
+      "Multi-floor room & bed matrix",
+      "Automated daily rent penalty rules",
+      "Maintenance & complaint ticketing desk",
+      "Notice period vacate dashboard",
+      "Resident Web Push notifications",
+      "Excel & Tally exportable reports",
+    ],
+    featuresTa: [
+      "அனைத்து தொடக்க பிஜி வசதிகளும் அடங்கும்",
+      "பல தள அறை & படுக்கை கட்டமைப்பு",
+      "தானியங்கி தாமதக் கட்டண விதிமுறைகள்",
+      "பழுது மற்றும் பராமரிப்பு மேசை",
+      "வெளியேறும் அறிவிப்பு மேலாண்மை",
+      "குடியிருப்பாளர் புஷ் அறிவிப்புகள்",
+      "எக்செல் மற்றும் கணக்கு அறிக்கைகள்",
+    ],
+    cta: "Start Free Trial",
+    ctaTa: "இலவசமாகத் தொடங்குங்கள்",
+    ctaLink: "#demo-portals",
+    popular: true,
+  },
+  {
+    name: "Enterprise & Chains",
+    nameTa: "நிறுவனம் & கிளைகள்",
+    tagline: "Multiple branches, hostels & co-living buildings",
+    taglineTa: "பல கிளைகள் மற்றும் பெரு விடுதிகளுக்கு",
+    price: "Custom",
+    priceTa: "தனிப்பயன்",
+    period: "",
+    periodTa: "",
+    beds: "Unlimited Beds",
+    bedsTa: "வரம்பற்ற படுக்கைகள்",
+    features: [
+      "All Growth features included",
+      "Multi-property owner dashboard",
+      "Custom staff roles & access permissions",
+      "Priority WhatsApp & phone support",
+      "Dedicated account manager",
+      "Custom domain & branding options",
+    ],
+    featuresTa: [
+      "அனைத்து வளர்ச்சி வசதிகளும் அடங்கும்",
+      "பல கிளைகளை ஒரே இடத்தில் நிர்வகிக்கும் மேடை",
+      "தனிப்பயன் பணியாளர் அனுமதி நிலைகள்",
+      "முன்னுரிமை வாட்ஸ்அப் & தொலைபேசி ஆதரவு",
+      "தனி மேலாளர் உதவி",
+      "தனிப்பயன் டொமைன் & வர்த்தகப் பெயர்",
+    ],
+    cta: "Contact Sales",
+    ctaTa: "தொடர்பு கொள்ள",
+    ctaLink: "/contact",
+    popular: false,
+  },
+];
+
 /* ── Lightweight Scroll Reveal Hook ─────────────────────────────────────── */
 function useScrollReveal(threshold = 0.12) {
   const ref = useRef(null);
@@ -234,8 +335,8 @@ export default function HomePageClient({ user = null }) {
             <a href="#features" className="hover:text-emerald-700 transition-colors">
               {isTa ? "வசதிகள்" : "Features"}
             </a>
-            <a href="#submeter-feature" className="hover:text-emerald-700 transition-colors">
-              {isTa ? "மின் கணக்கீடு" : "Sub-Meters"}
+            <a href="#pricing" className="hover:text-emerald-700 transition-colors">
+              {isTa ? "விலை விவரம்" : "Pricing"}
             </a>
             <a href="#calculator" className="hover:text-emerald-700 transition-colors">
               {isTa ? "கணிப்பான்" : "Calculator"}
@@ -829,6 +930,109 @@ export default function HomePageClient({ user = null }) {
           </div>
         </section>
 
+        {/* ── PRICING SECTION (COMBINED FULL MODERN SAAS PRICING) ─────────── */}
+        <section id="pricing" className="py-14 sm:py-20 bg-slate-50/50 border-b border-slate-200/70 scroll-mt-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
+            <div className="text-center max-w-3xl mx-auto space-y-3">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3.5 py-1 text-xs font-bold text-emerald-800">
+                <Sparkles className="size-3.5 text-emerald-600" />
+                {isTa ? "வெளிப்படையான கட்டணம் · மறைமுகக் கட்டணங்கள் இல்லை" : "Transparent Pricing · Zero Hidden Commissions"}
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-950">
+                {isTa ? "உங்கள் பிஜி படுக்கை எண்ணிக்கைக்கு ஏற்ற எளிய கட்டணம்" : "Simple pricing that scales with your PG occupancy"}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                {isTa
+                  ? "குடியிருப்போரைத் துரத்தாமல் 100% வாடகையை சரியான நேரத்தில் வசூலியுங்கள். உங்கள் விடுதிக்கு ஏற்ற திட்டத்தைத் தேர்ந்தெடுங்கள்."
+                  : "Collect 100% of your rent on time without chasing residents. Pick a plan suited for your property size with zero transaction fees on UPI."}
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
+              {PRICING_TIERS.map((tier, idx) => (
+                <Reveal key={tier.name} delay={idx * 100}>
+                  <div
+                    className={`relative rounded-2xl p-6 sm:p-7 flex flex-col justify-between h-full transition-all ${
+                      tier.popular
+                        ? "bg-white border-2 border-emerald-500 shadow-md shadow-emerald-500/10 scale-[1.02]"
+                        : "bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                    }`}
+                  >
+                    {tier.popular && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-3.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider shadow-xs">
+                        {isTa ? "மிகவும் பிரபலமானது" : "Most Popular"}
+                      </span>
+                    )}
+
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-slate-900">
+                          {isTa ? tier.nameTa : tier.name}
+                        </h3>
+                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          {isTa ? tier.bedsTa : tier.beds}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {isTa ? tier.taglineTa : tier.tagline}
+                      </p>
+
+                      <div className="mt-5 flex items-baseline gap-1">
+                        <span className="text-3xl sm:text-4xl font-black text-slate-950">
+                          {isTa && tier.priceTa ? tier.priceTa : tier.price}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {isTa ? tier.periodTa : tier.period}
+                        </span>
+                      </div>
+
+                      <div className="mt-6 pt-5 border-t border-slate-100">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                          {isTa ? "சேர்க்கப்பட்டுள்ளவை:" : "What's included:"}
+                        </p>
+                        <ul className="space-y-2.5 text-xs text-slate-600">
+                          {(isTa ? tier.featuresTa : tier.features).map((feat) => (
+                            <li key={feat} className="flex items-start gap-2.5">
+                              <Check className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <span className="leading-tight">{feat}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="mt-8 pt-5 border-t border-slate-100">
+                      <a
+                        href={tier.ctaLink}
+                        className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition shadow-2xs ${
+                          tier.popular
+                            ? "bg-slate-950 text-white hover:bg-slate-800"
+                            : "bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>{isTa ? tier.ctaTa : tier.cta}</span>
+                        <ArrowRight className="size-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+
+            <div className="text-center text-xs text-slate-500 pt-2">
+              <p>
+                {isTa
+                  ? "150-க்கும் மேற்பட்ட படுக்கைகள் கொண்ட கிளைகள் உள்ளதா? "
+                  : "Have more than 150 beds across multiple branches? "}
+                <Link href="/contact" className="text-emerald-700 font-semibold underline underline-offset-4 hover:text-emerald-800">
+                  {isTa ? "எங்கள் குழுவைத் தொடர்பு கொள்ளவும்" : "Talk to our enterprise team"}
+                </Link>
+                {isTa ? " தனிப்பயன் அமைப்புக்கு." : " for custom setups."}
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* ── INTERACTIVE OPERATIONAL CALCULATOR ───────────────────────────── */}
         <section id="calculator" className="py-14 sm:py-20 bg-slate-50/60 border-b border-slate-200/70">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8">
@@ -1132,11 +1336,17 @@ export default function HomePageClient({ user = null }) {
             </div>
 
             <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-5 gap-y-2 font-medium text-slate-600">
-              <Link href="/features" className="hover:text-slate-950 transition-colors">
+              <a href="#features" className="hover:text-slate-950 transition-colors">
                 {isTa ? "அம்சங்கள்" : "Features"}
-              </Link>
-              <Link href="/pricing" className="hover:text-slate-950 transition-colors">
+              </a>
+              <a href="#pricing" className="hover:text-slate-950 transition-colors">
                 {isTa ? "கட்டணம்" : "Pricing"}
+              </a>
+              <a href="#demo-portals" className="hover:text-slate-950 transition-colors">
+                {isTa ? "டெமோ" : "Demo"}
+              </a>
+              <Link href="/contact" className="hover:text-slate-950 transition-colors">
+                {isTa ? "தொடர்பு" : "Contact"}
               </Link>
               <Link href="/refund-policy" className="hover:text-slate-950 transition-colors">
                 {isTa ? "திருப்பி அளித்தல்" : "Refund Policy"}

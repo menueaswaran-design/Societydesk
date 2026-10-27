@@ -40,10 +40,10 @@ export default function PublicLayout({ children }) {
             <Link href="/" className="hover:text-emerald-700 transition-colors">
               Home
             </Link>
-            <Link href="/features" className="hover:text-emerald-700 transition-colors">
+            <Link href="/#features" className="hover:text-emerald-700 transition-colors">
               Features
             </Link>
-            <Link href="/pricing" className="hover:text-emerald-700 transition-colors">
+            <Link href="/#pricing" className="hover:text-emerald-700 transition-colors">
               Pricing Plans
             </Link>
             <Link href="/contact" className="hover:text-emerald-700 transition-colors">
