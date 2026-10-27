@@ -29,23 +29,72 @@ describe("Generate Invoices Schema (lib/validation/schemas.js)", () => {
     expect(parsed.electricityConfig.commonTotal).toBe(6000);
   });
 
-  test("accepts ROOM_WISE electricity sub-meter configuration", () => {
+  test("accepts ROOM_WISE electricity sub-meter configuration with common-area charges and saveMeterReadings", () => {
     const payload = {
       billingPeriod: "2026-10",
       electricityConfig: {
         mode: "ROOM_WISE",
+        saveMeterReadings: true,
+        commonTotal: 1500,
+        commonPerPerson: 150,
         rooms: [
           { unitNumber: "101", amount: 1200 },
-          { unitNumber: "201", meterStart: 100, meterEnd: 220, ratePerUnit: 10 },
+          { unitNumber: "201", meterStart: 100, meterEnd: 220, unitsConsumed: 120, ratePerUnit: 10, amount: 1200 },
         ],
       },
     };
 
     const parsed = generateInvoicesSchema.parse(payload);
     expect(parsed.electricityConfig.mode).toBe("ROOM_WISE");
+    expect(parsed.electricityConfig.saveMeterReadings).toBe(true);
+    expect(parsed.electricityConfig.commonTotal).toBe(1500);
+    expect(parsed.electricityConfig.commonPerPerson).toBe(150);
     expect(parsed.electricityConfig.rooms).toHaveLength(2);
     expect(parsed.electricityConfig.rooms[0].amount).toBe(1200);
     expect(parsed.electricityConfig.rooms[1].meterEnd).toBe(220);
+    expect(parsed.electricityConfig.rooms[1].unitsConsumed).toBe(120);
+  });
+
+  test("accepts COMMON split configuration with units and rate per unit", () => {
+    const payload = {
+      billingPeriod: "2026-10",
+      electricityConfig: {
+        mode: "COMMON",
+        commonUnits: 650,
+        commonRatePerUnit: 12,
+      },
+    };
+
+    const parsed = generateInvoicesSchema.parse(payload);
+    expect(parsed.electricityConfig.mode).toBe("COMMON");
+    expect(parsed.electricityConfig.commonUnits).toBe(650);
+    expect(parsed.electricityConfig.commonRatePerUnit).toBe(12);
+  });
+
+  test("accepts FIXED electricity charge per resident via commonPerPerson", () => {
+    const payload = {
+      billingPeriod: "2026-10",
+      electricityConfig: {
+        mode: "COMMON",
+        commonPerPerson: 500,
+      },
+    };
+
+    const parsed = generateInvoicesSchema.parse(payload);
+    expect(parsed.electricityConfig.mode).toBe("COMMON");
+    expect(parsed.electricityConfig.commonPerPerson).toBe(500);
+  });
+
+  test("accepts INCLUDED in rent as mode NONE", () => {
+    const payload = {
+      billingPeriod: "2026-10",
+      electricityConfig: {
+        mode: "NONE",
+      },
+    };
+
+    const parsed = generateInvoicesSchema.parse(payload);
+    expect(parsed.electricityConfig.mode).toBe("NONE");
   });
 
   test("accepts INDIVIDUAL per-resident electricity configuration", () => {

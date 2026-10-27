@@ -27,6 +27,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
 import FilterPills from "@/components/ui/FilterPills";
 import CollectPaymentButton from "@/components/billing/CollectPaymentButton";
+import ElectricityBillingSection from "./ElectricityBillingSection";
 import { api, fieldErrors } from "@/lib/client/api";
 import { INVOICE_STATUS, PAYMENT_METHOD } from "@/lib/constants";
 import { formatDate, formatMoney, formatPeriod, titleCase } from "@/lib/format";
@@ -467,17 +468,8 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
 
   // Expandable sections toggles
   const [showElectricity, setShowElectricity] = useState(false);
+  const [electricityConfig, setElectricityConfig] = useState(undefined);
   const [showExtraCharges, setShowExtraCharges] = useState(false);
-
-  // Global default rate per unit (can be applied to all rooms in 1 click)
-  const [globalRate, setGlobalRate] = useState(10);
-
-  // Electricity state
-  const [electricityMode, setElectricityMode] = useState("NONE"); // "NONE" | "COMMON" | "ROOM_WISE" | "INDIVIDUAL"
-  const [commonType, setCommonType] = useState("TOTAL"); // "TOTAL" | "UNITS" | "PER_PERSON"
-  const [commonAmount, setCommonAmount] = useState("");
-  const [commonUnits, setCommonUnits] = useState("");
-  const [saveMeterReadings, setSaveMeterReadings] = useState(true);
 
   // All distinct rooms from units prop or derived from occupancies
   const allRooms = useMemo(() => {
@@ -508,29 +500,6 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
     return map;
   }, [occupancies]);
 
-  // Room-wise electricity state: initialized with prefilled lastReading from previous month!
-  const [roomElectricity, setRoomElectricity] = useState(() => {
-    const initial = {};
-    for (const room of allRooms) {
-      const rKey = room.id || room.unitNumber;
-      initial[rKey] = {
-        unitNumber: room.unitNumber,
-        mode: "METER", // "METER" | "UNITS" | "AMOUNT"
-        meterStart: room.lastReading != null ? String(room.lastReading) : "0",
-        meterEnd: "",
-        unitsConsumed: "",
-        ratePerUnit: String(room.defaultRate || 10),
-        amount: "",
-        lastReading: room.lastReading || 0,
-        lastPeriod: room.lastPeriod || null,
-      };
-    }
-    return initial;
-  });
-
-  // Individual electricity state: { [occupancyId]: amount }
-  const [individualElectricity, setIndividualElectricity] = useState({});
-
   // Extra charges list: array of { id, name, type, amount, targetType, targetId }
   const [extraChargesList, setExtraChargesList] = useState([]);
 
@@ -546,92 +515,11 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
     };
   }
 
-  function applyGlobalRateToAll() {
-    const updated = { ...roomElectricity };
-    for (const rKey of Object.keys(updated)) {
-      updated[rKey] = { ...updated[rKey], ratePerUnit: String(globalRate) };
-    }
-    setRoomElectricity(updated);
-  }
-
-  function updateRoom(rKey, field, val) {
-    const prev = roomElectricity[rKey] || {
-      unitNumber: rKey,
-      mode: "METER",
-      meterStart: "0",
-      meterEnd: "",
-      unitsConsumed: "",
-      ratePerUnit: String(globalRate),
-      amount: "",
-    };
-    setRoomElectricity({
-      ...roomElectricity,
-      [rKey]: { ...prev, [field]: val },
-    });
-  }
-
   async function run() {
     setSaving(true);
     setError(null);
     setErrors({});
     try {
-      let electricityConfig = undefined;
-      if (showElectricity && electricityMode !== "NONE") {
-        if (electricityMode === "COMMON") {
-          electricityConfig = {
-            mode: "COMMON",
-            commonTotal: commonType === "TOTAL" && Number(commonAmount) > 0 ? Number(commonAmount) : undefined,
-            commonPerPerson: commonType === "PER_PERSON" && Number(commonAmount) > 0 ? Number(commonAmount) : undefined,
-            commonUnits: commonType === "UNITS" && Number(commonUnits) > 0 ? Number(commonUnits) : undefined,
-            commonRatePerUnit: commonType === "UNITS" ? Number(globalRate) || 10 : undefined,
-          };
-        } else if (electricityMode === "ROOM_WISE") {
-          const rooms = Object.entries(roomElectricity)
-            .map(([unitId, data]) => {
-              const mode = data.mode || "METER";
-              const rate = Number(data.ratePerUnit) || 10;
-              let calculatedAmount = undefined;
-              let unitsConsumed = undefined;
-
-              if (mode === "METER" && data.meterEnd !== "" && Number(data.meterEnd) >= Number(data.meterStart || 0)) {
-                unitsConsumed = Number(data.meterEnd) - Number(data.meterStart || 0);
-                calculatedAmount = Math.round(unitsConsumed * rate);
-              } else if (mode === "UNITS" && Number(data.unitsConsumed) > 0) {
-                unitsConsumed = Number(data.unitsConsumed);
-                calculatedAmount = Math.round(unitsConsumed * rate);
-              } else if (mode === "AMOUNT" && Number(data.amount) > 0) {
-                calculatedAmount = Number(data.amount);
-              }
-
-              return {
-                unitId,
-                unitNumber: data.unitNumber,
-                mode,
-                amount: calculatedAmount,
-                unitsConsumed,
-                meterStart: data.meterStart !== "" ? Number(data.meterStart) : undefined,
-                meterEnd: data.meterEnd !== "" ? Number(data.meterEnd) : undefined,
-                ratePerUnit: rate,
-              };
-            })
-            .filter((r) => Number(r.amount) > 0 || r.meterEnd != null);
-
-          electricityConfig = {
-            mode: "ROOM_WISE",
-            saveMeterReadings,
-            rooms,
-          };
-        } else if (electricityMode === "INDIVIDUAL") {
-          const individuals = Object.entries(individualElectricity)
-            .filter(([_, amt]) => Number(amt) > 0)
-            .map(([occupancyId, amt]) => ({
-              occupancyId,
-              amount: Number(amt),
-            }));
-          electricityConfig = { mode: "INDIVIDUAL", individuals };
-        }
-      }
-
       const extraCharges =
         showExtraCharges && extraChargesList.length > 0
           ? extraChargesList
@@ -649,7 +537,7 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
         ...form,
         penaltyPercent: Number(form.penaltyPercent) || 0,
         dueDate: form.dueDate || undefined,
-        electricityConfig,
+        electricityConfig: showElectricity && electricityConfig ? electricityConfig : undefined,
         extraCharges,
       });
 
@@ -675,6 +563,7 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
       onClose={close}
       title="Generate invoices"
       description="One invoice per occupied room/flat for the selected period."
+      size="xl"
       footer={
         result ? (
           <Button onClick={close}>Done</Button>
@@ -754,455 +643,15 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
             />
           </div>
 
-          {/* Electricity Charges Collapsible Section */}
-          <div className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowElectricity(!showElectricity)}
-              className="flex items-center justify-between w-full p-3.5 bg-slate-50/70 hover:bg-slate-100/70 transition-colors text-left"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-white font-bold text-xs shadow-2xs">
-                  ⚡
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900">Add Electricity Charges</span>
-                    <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                      Optional
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    {electricityMode === "NONE"
-                      ? "None (rent only)"
-                      : electricityMode === "COMMON"
-                      ? "Split commonly across all residents"
-                      : electricityMode === "ROOM_WISE"
-                      ? `Room-wise sub-meters (${allRooms.length} rooms available)`
-                      : "Individual per resident"}
-                  </p>
-                </div>
-              </div>
-              <span className="text-slate-400">
-                {showElectricity ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-              </span>
-            </button>
-
-            {showElectricity && (
-              <div className="p-3.5 border-t border-slate-200 space-y-4 bg-white">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-                    Select Electricity Billing Method:
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
-                    {[
-                      { id: "NONE", label: "None / Rent Only" },
-                      { id: "COMMON", label: "🏢 Split Commonly" },
-                      { id: "ROOM_WISE", label: "⚡ Room-wise Sub-meter" },
-                      { id: "INDIVIDUAL", label: "👤 Per Resident" },
-                    ].map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setElectricityMode(m.id)}
-                        className={`py-2 px-2.5 rounded-lg font-semibold border transition-all text-center text-xs ${
-                          electricityMode === m.id
-                            ? "bg-amber-500 text-white border-amber-600 shadow-2xs"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                        }`}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* COMMON SPLIT MODE */}
-                {electricityMode === "COMMON" && (
-                  <div className="rounded-xl bg-amber-50/60 border border-amber-200/80 p-3.5 space-y-3.5 text-xs">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="commonType"
-                          checked={commonType === "TOTAL"}
-                          onChange={() => setCommonType("TOTAL")}
-                          className="accent-amber-600"
-                        />
-                        <span className="font-semibold text-slate-800">Total Bill (₹)</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="commonType"
-                          checked={commonType === "UNITS"}
-                          onChange={() => setCommonType("UNITS")}
-                          className="accent-amber-600"
-                        />
-                        <span className="font-semibold text-slate-800">Total Units Consumed</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="commonType"
-                          checked={commonType === "PER_PERSON"}
-                          onChange={() => setCommonType("PER_PERSON")}
-                          className="accent-amber-600"
-                        />
-                        <span className="font-semibold text-slate-800">Fixed Per Person (₹)</span>
-                      </label>
-                    </div>
-
-                    {commonType === "TOTAL" && (
-                      <Input
-                        id="commonAmount"
-                        label="Total Property Electricity Bill (₹)"
-                        type="number"
-                        min="0"
-                        value={commonAmount}
-                        onChange={(e) => setCommonAmount(e.target.value)}
-                        placeholder="e.g. 6000"
-                        hint={
-                          Number(commonAmount) > 0 && occupancies.length > 0
-                            ? `₹${commonAmount} will be divided equally among ${occupancies.length} active residents (approx ₹${Math.round(
-                                Number(commonAmount) / occupancies.length
-                              )} each).`
-                            : "Enter total electricity bill amount."
-                        }
-                      />
-                    )}
-
-                    {commonType === "UNITS" && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <Input
-                          id="commonUnits"
-                          label="Total Property Units (kWh)"
-                          type="number"
-                          min="0"
-                          value={commonUnits}
-                          onChange={(e) => setCommonUnits(e.target.value)}
-                          placeholder="e.g. 600"
-                        />
-                        <Input
-                          id="globalRateCommon"
-                          label="Rate per Unit (₹)"
-                          type="number"
-                          min="0"
-                          value={globalRate}
-                          onChange={(e) => setGlobalRate(e.target.value)}
-                          placeholder="e.g. 10"
-                          hint={
-                            Number(commonUnits) > 0 && occupancies.length > 0
-                              ? `Total: ₹${Number(commonUnits) * Number(globalRate)} split across ${occupancies.length} residents (₹${Math.round(
-                                  (Number(commonUnits) * Number(globalRate)) / occupancies.length
-                                )}/resident)`
-                              : undefined
-                          }
-                        />
-                      </div>
-                    )}
-
-                    {commonType === "PER_PERSON" && (
-                      <Input
-                        id="commonPerPerson"
-                        label="Electricity Charge Per Resident (₹)"
-                        type="number"
-                        min="0"
-                        value={commonAmount}
-                        onChange={(e) => setCommonAmount(e.target.value)}
-                        placeholder="e.g. 500"
-                        hint="Every active occupant will have this fixed charge added to their bill."
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* ROOM-WISE SUB-METER MODE */}
-                {electricityMode === "ROOM_WISE" && (
-                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-3.5 text-xs">
-                    {/* Quick rate setter bar */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-lg bg-amber-50/90 border border-amber-200/90 p-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-amber-950 text-xs">Default Rate per Unit:</span>
-                        <div className="flex items-center gap-1">
-                          <span className="font-bold text-slate-700">₹</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={globalRate}
-                            onChange={(e) => setGlobalRate(e.target.value)}
-                            className="w-16 rounded border border-amber-300 bg-white px-2 py-1 text-xs font-bold text-slate-900"
-                          />
-                          <span className="text-slate-600 font-medium">/ unit</span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={applyGlobalRateToAll}
-                        className="self-start sm:self-auto rounded-lg bg-amber-600 hover:bg-amber-700 px-3 py-1 font-bold text-white text-xs shadow-2xs transition-colors"
-                      >
-                        Apply to all rooms
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold text-slate-900 text-xs">
-                        Configure Room Electricity ({allRooms.length} rooms):
-                      </p>
-                      <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-600 select-none">
-                        <input
-                          type="checkbox"
-                          checked={saveMeterReadings}
-                          onChange={(e) => setSaveMeterReadings(e.target.checked)}
-                          className="rounded accent-brand-600"
-                        />
-                        <span className="font-medium">Save readings for next month</span>
-                      </label>
-                    </div>
-
-                    {/* Room cards list */}
-                    <div className="max-h-80 overflow-y-auto space-y-3 pr-1">
-                      {allRooms.map((room) => {
-                        const rKey = room.id || room.unitNumber;
-                        const data = roomElectricity[rKey] || {
-                          unitNumber: room.unitNumber,
-                          mode: "METER",
-                          meterStart: room.lastReading != null ? String(room.lastReading) : "0",
-                          meterEnd: "",
-                          unitsConsumed: "",
-                          ratePerUnit: String(globalRate),
-                          amount: "",
-                          lastReading: room.lastReading || 0,
-                          lastPeriod: room.lastPeriod || null,
-                        };
-                        const occs = occupantsByRoomMap[rKey] || [];
-                        const occupantCount = occs.length;
-
-                        // Real-time calculation preview
-                        let previewUnits = 0;
-                        let previewTotal = 0;
-                        const rate = Number(data.ratePerUnit) || 10;
-
-                        if (data.mode === "METER") {
-                          if (data.meterEnd !== "" && Number(data.meterEnd) >= Number(data.meterStart || 0)) {
-                            previewUnits = Number(data.meterEnd) - Number(data.meterStart || 0);
-                            previewTotal = Math.round(previewUnits * rate);
-                          }
-                        } else if (data.mode === "UNITS") {
-                          if (Number(data.unitsConsumed) > 0) {
-                            previewUnits = Number(data.unitsConsumed);
-                            previewTotal = Math.round(previewUnits * rate);
-                          }
-                        } else if (data.mode === "AMOUNT") {
-                          if (Number(data.amount) > 0) {
-                            previewTotal = Number(data.amount);
-                          }
-                        }
-                        const perOccupant = occupantCount > 0 ? Math.round(previewTotal / occupantCount) : previewTotal;
-
-                        return (
-                          <div
-                            key={rKey}
-                            className="rounded-xl border border-slate-200/90 bg-white p-3 space-y-2.5 shadow-2xs"
-                          >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900 text-sm">
-                                  Room {room.unitNumber}
-                                </span>
-                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                                  {occupantCount} {occupantCount === 1 ? "resident" : "residents"}
-                                </span>
-                                {data.lastReading > 0 ? (
-                                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                    Stored: {data.lastReading} units
-                                  </span>
-                                ) : null}
-                              </div>
-
-                              {/* 3-Way Mode Switcher for this room */}
-                              <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[11px]">
-                                {[
-                                  { id: "METER", label: "⚡ Meter Readings" },
-                                  { id: "UNITS", label: "🔢 Total Units" },
-                                  { id: "AMOUNT", label: "💵 Fixed ₹" },
-                                ].map((tab) => (
-                                  <button
-                                    key={tab.id}
-                                    type="button"
-                                    onClick={() => updateRoom(rKey, "mode", tab.id)}
-                                    className={`px-2 py-1 rounded-md font-semibold transition-all ${
-                                      data.mode === tab.id
-                                        ? "bg-white text-slate-900 shadow-2xs"
-                                        : "text-slate-600 hover:text-slate-900"
-                                    }`}
-                                  >
-                                    {tab.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Residents in this room pill */}
-                            {occs.length > 0 ? (
-                              <p className="text-[11px] text-slate-500">
-                                Occupants: {occs.map((o) => o.user?.name || "Resident").join(", ")}
-                              </p>
-                            ) : (
-                              <p className="text-[11px] text-slate-400 italic">Room is currently vacant</p>
-                            )}
-
-                            {/* Mode Inputs */}
-                            {data.mode === "METER" && (
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <div>
-                                  <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
-                                    Previous Reading (Pre-filled):
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={data.meterStart}
-                                    onChange={(e) => updateRoom(rKey, "meterStart", e.target.value)}
-                                    placeholder="e.g. 1000"
-                                    className="w-full text-xs rounded-lg border border-slate-300 p-1.5 bg-slate-50 font-medium"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-amber-700 block mb-0.5">
-                                    Current Reading (New):
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={data.meterEnd}
-                                    onChange={(e) => updateRoom(rKey, "meterEnd", e.target.value)}
-                                    placeholder="e.g. 1130"
-                                    className="w-full text-xs rounded-lg border border-amber-300 p-1.5 bg-white font-bold text-slate-900 focus:ring-1 focus:ring-amber-500"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
-                                    Rate per Unit (₹):
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    value={data.ratePerUnit}
-                                    onChange={(e) => updateRoom(rKey, "ratePerUnit", e.target.value)}
-                                    placeholder="10"
-                                    className="w-full text-xs rounded-lg border border-slate-300 p-1.5 bg-white font-medium"
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            {data.mode === "UNITS" && (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-[10px] font-bold text-amber-700 block mb-0.5">
-                                    Units Consumed (kWh):
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={data.unitsConsumed}
-                                    onChange={(e) => updateRoom(rKey, "unitsConsumed", e.target.value)}
-                                    placeholder="e.g. 120"
-                                    className="w-full text-xs rounded-lg border border-amber-300 p-1.5 bg-white font-bold"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-slate-500 block mb-0.5">
-                                    Rate per Unit (₹):
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    value={data.ratePerUnit}
-                                    onChange={(e) => updateRoom(rKey, "ratePerUnit", e.target.value)}
-                                    placeholder="10"
-                                    className="w-full text-xs rounded-lg border border-slate-300 p-1.5 bg-white font-medium"
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            {data.mode === "AMOUNT" && (
-                              <div>
-                                <label className="text-[10px] font-bold text-amber-700 block mb-0.5">
-                                  Fixed Total Room Electricity Bill (₹):
-                                </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={data.amount}
-                                  onChange={(e) => updateRoom(rKey, "amount", e.target.value)}
-                                  placeholder="e.g. 1200"
-                                  className="w-full text-xs rounded-lg border border-amber-300 p-1.5 bg-white font-bold"
-                                />
-                              </div>
-                            )}
-
-                            {/* Live calculation banner */}
-                            {previewTotal > 0 ? (
-                              <div className="flex items-center justify-between rounded-lg bg-emerald-50/80 border border-emerald-200/90 px-2.5 py-1.5 text-[11px] text-emerald-900 font-semibold">
-                                <span>
-                                  {previewUnits > 0 ? `${previewUnits} units × ₹${rate} =` : "Total Bill:"} ₹{previewTotal.toLocaleString()}
-                                </span>
-                                <span className="text-emerald-700 font-bold">
-                                  {occupantCount > 0 ? `₹${perOccupant} / resident` : "Vacant room"}
-                                </span>
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* INDIVIDUAL OCCUPANT MODE */}
-                {electricityMode === "INDIVIDUAL" && (
-                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2.5 text-xs">
-                    <p className="font-bold text-slate-800 text-xs">
-                      Enter individual electricity bill per resident:
-                    </p>
-                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-200/60">
-                      {occupancies.map((occ) => {
-                        const val = individualElectricity[occ.id] || "";
-                        return (
-                          <div key={occ.id} className="pt-2 first:pt-0 flex items-center justify-between gap-2">
-                            <div>
-                              <div className="font-bold text-slate-900">{occ.user?.name || "Resident"}</div>
-                              <div className="text-[11px] text-slate-500">
-                                Room {occ.unit?.unitNumber || "-"}{occ.bed ? ` · Bed ${occ.bed.bedLabel}` : ""}
-                              </div>
-                            </div>
-                            <div className="w-28">
-                              <input
-                                type="number"
-                                min="0"
-                                placeholder="₹ Amount"
-                                value={val}
-                                onChange={(e) => {
-                                  setIndividualElectricity({
-                                    ...individualElectricity,
-                                    [occ.id]: e.target.value,
-                                  });
-                                }}
-                                className="w-full text-xs rounded-lg border border-slate-300 p-1.5 bg-white font-semibold"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Electricity Billing Redesigned Section */}
+          <ElectricityBillingSection
+            allRooms={allRooms}
+            occupancies={occupancies}
+            occupantsByRoomMap={occupantsByRoomMap}
+            enabled={showElectricity}
+            onToggleEnabled={setShowElectricity}
+            onConfigChange={setElectricityConfig}
+          />
 
           {/* Extra Charges Collapsible Section */}
           <div className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
