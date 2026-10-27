@@ -2,9 +2,12 @@ import Link from "next/link";
 import { ArrowLeft, ShieldCheck, Mail } from "lucide-react";
 
 export const metadata = {
-  title: "Refund and Cancellation Policy — Bedy",
+  title: "Refund Policy | Bedy",
   description:
-    "Official refund, cancellation, and security deposit settlement terms for Bedy subscriptions and managed properties.",
+    "Read Bedy's refund and cancellation policies for software subscriptions and resident security deposit processing.",
+  alternates: {
+    canonical: "/refund-policy",
+  },
 };
 
 export default function RefundPolicyPage() {

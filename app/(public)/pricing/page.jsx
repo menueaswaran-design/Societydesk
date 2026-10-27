@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Pricing — Simple & Transparent PG Management Software",
+  title: "Pricing & Plans | Bedy",
   description:
-    "Affordable per-bed and monthly plans for PGs, hostels, and student co-living properties. 100% digital rent collection with zero hidden charges.",
+    "Simple, transparent per-bed and monthly plans for PGs and hostels. 100% digital rent collection with zero hidden commissions.",
+  alternates: {
+    canonical: "/#pricing",
+  },
 };
 
 export default function PricingPage() {

@@ -12,18 +12,21 @@ const manrope = Manrope({
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://bedy.in"),
   title: {
-    default: "Bedy | PG/Hostel/Co-Living Management App",
-    template: "%s · Bedy",
+    default: "Bedy – PG & Hostel Rent Management Software",
+    template: "%s | Bedy",
   },
   description:
-    "Now manage your PG/Hostel smartly with Bedy. Get automated reports, 1-click WhatsApp rent reminders, instant UPI, per-bed matrix, and deposit settlements.",
+    "Manage your PG or hostel with Bedy. Track rent payments, pending invoices, resident details, deposits, and complaints in one simple platform.",
   applicationName: "Bedy",
+  alternates: {
+    canonical: "/",
+  },
   keywords: [
     "Bedy",
-    "PG Management App",
+    "PG Management Software",
     "Hostel Management Software",
+    "PG Rent Collection App",
     "Coliving Management System",
-    "Rent Collection App",
     "Paying Guest Software India",
   ],
   authors: [{ name: "Bedy Technologies" }],
@@ -43,11 +46,11 @@ export const metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://bedy.in",
+    url: "https://bedy.in/",
     siteName: "Bedy",
-    title: "Bedy | PG/Hostel/Co-Living Management App",
+    title: "Bedy – PG & Hostel Rent Management Software",
     description:
-      "Now manage your PG/Hostel smartly with Bedy. Automated reports, bulk WhatsApp reminders, instant UPI, and real-time bed occupancy.",
+      "Simplify rent collection, invoice tracking, and resident management with Bedy.",
     images: [
       {
         url: "https://bedy.in/logo.png",
@@ -59,9 +62,9 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bedy | PG/Hostel/Co-Living Management App",
+    title: "Bedy – PG & Hostel Rent Management Software",
     description:
-      "Now manage your PG/Hostel smartly with Bedy. Automated reports, bulk WhatsApp reminders, instant UPI, and real-time bed occupancy.",
+      "Simplify rent collection, invoice tracking, and resident management with Bedy.",
     images: ["https://bedy.in/logo.png"],
   },
 };

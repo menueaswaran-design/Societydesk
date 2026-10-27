@@ -2,8 +2,12 @@ import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export const metadata = {
-  title: "Terms of Service — Bedy",
-  description: "Terms and conditions governing the use of Bedy PG & Hostel management software.",
+  title: "Terms of Service | Bedy",
+  description:
+    "Review the terms and conditions governing the use of Bedy's PG and hostel management platform.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default function TermsPage() {

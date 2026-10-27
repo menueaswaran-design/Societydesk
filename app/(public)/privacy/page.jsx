@@ -2,8 +2,12 @@ import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export const metadata = {
-  title: "Privacy Policy — Bedy",
-  description: "Learn how Bedy collects, secures, and handles tenant and property management data.",
+  title: "Privacy Policy | Bedy",
+  description:
+    "Learn how Bedy securely handles, protects, and encrypts your property and resident data.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 export default function PrivacyPage() {

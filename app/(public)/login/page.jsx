@@ -4,7 +4,13 @@ import { homeForRole } from "@/lib/routing";
 import LoginForm from "./LoginForm";
 import { LoginHeader, LoginFooter } from "./LoginHeader";
 
-export const metadata = { title: "Sign in — Bedy" };
+export const metadata = {
+  title: "Sign In | Bedy",
+  description: "Sign in to your Bedy owner, manager, or resident portal.",
+  alternates: {
+    canonical: "/login",
+  },
+};
 
 export default async function LoginPage({ searchParams }) {
   const user = await getServerSessionOrNull();
