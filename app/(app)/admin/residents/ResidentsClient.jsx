@@ -15,7 +15,6 @@ import {
   DoorOpen,
   Calendar,
   Receipt,
-  MessageCircle,
   FileText,
   FileCheck2,
   Trash2,
@@ -38,7 +37,6 @@ import Avatar from "@/components/ui/Avatar";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { api } from "@/lib/client/api";
 import { formatMoney, formatDate } from "@/lib/format";
-import { buildRentReminderMessage, getWhatsAppUrl } from "@/lib/billing/whatsapp";
 import DocumentUploadSection from "@/components/residents/DocumentUploadSection";
 
 const PG_CSV_TEMPLATE = `Room,Bed,Name,Phone,Email,JoinDate,MonthlyRent,Deposit
@@ -103,16 +101,6 @@ export default function ResidentsClient({
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState(null);
   const [importSuccess, setImportSuccess] = useState(null);
-
-  // Check-out modal
-  const [checkoutOccupancy, setCheckoutOccupancy] = useState(null);
-  const [checkoutDate, setCheckoutDate] = useState(new Date().toISOString().slice(0, 10));
-  const [deductions, setDeductions] = useState([
-    { reason: "Room Cleaning", amount: 1000 },
-  ]);
-  const [checkoutNotes, setCheckoutNotes] = useState("");
-  const [checkoutSaving, setCheckoutSaving] = useState(false);
-  const [checkoutError, setCheckoutError] = useState(null);
 
   // Record payment modal
   const [paymentOccupancy, setPaymentOccupancy] = useState(null);
@@ -330,32 +318,6 @@ export default function ResidentsClient({
     }
   }
 
-  // Check-out submit
-  async function handleCheckoutSubmit(e) {
-    e.preventDefault();
-    if (!checkoutOccupancy) return;
-    setCheckoutSaving(true);
-    setCheckoutError(null);
-
-    try {
-      await api.post(`/api/occupancies/${checkoutOccupancy.id}/checkout`, {
-        leaveDate: checkoutDate,
-        deductions: deductions.map((d) => ({
-          reason: d.reason,
-          amount: Number(d.amount) || 0,
-        })),
-        notes: checkoutNotes,
-      });
-
-      setCheckoutOccupancy(null);
-      router.refresh();
-    } catch (err) {
-      setCheckoutError(err?.message || "Failed to check out resident");
-    } finally {
-      setCheckoutSaving(false);
-    }
-  }
-
   // CSV Import submit
   async function handleImportSubmit(e) {
     e.preventDefault();
@@ -404,12 +366,6 @@ export default function ResidentsClient({
       setImporting(false);
     }
   }
-
-  // Deposit calculation for checkout
-  const depositHeld =
-    checkoutOccupancy?.deposits?.[0]?.amountReceived || checkoutOccupancy?.depositAmount || 0;
-  const totalDeductions = deductions.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-  const netRefund = Math.max(0, depositHeld - totalDeductions);
 
   return (
     <div className="space-y-5">
@@ -714,23 +670,6 @@ export default function ResidentsClient({
                 ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
                 : null;
 
-              const origin = typeof window !== "undefined" ? window.location.origin : "";
-              const firstInv = data.firstUnpaidInvoice;
-              const payUrl = firstInv ? `${origin}/pay/${firstInv.id}` : "";
-              const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
-              const reminderText = firstInv
-                ? buildRentReminderMessage({
-                    residentName: occ.user?.name,
-                    roomLabel,
-                    period: firstInv.billingPeriod,
-                    amount: data.outstandingBalance,
-                    dueDate: formatDate(firstInv.dueDate),
-                    payUrl,
-                    pgName: societyName || "Bedy PG",
-                  })
-                : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
-              const waUrl = occ.user?.phone ? getWhatsAppUrl(occ.user?.phone, reminderText) : null;
-
               return (
                 <div
                   key={occ.id}
@@ -812,39 +751,14 @@ export default function ResidentsClient({
                     </div>
                   </div>
 
-                  {/* Mobile Actions Bar */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                    <Link
-                      href={`/admin/residents/${occ.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-brand-700 hover:text-brand-800"
-                    >
-                      View Details <ArrowRight className="size-3" />
-                    </Link>
-
-                    <div className="flex items-center gap-1.5">
-                      {data.outstandingBalance > 0 && waUrl && (
-                        <a
-                          href={waUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                          title="WhatsApp Reminder"
-                        >
-                          <MessageCircle className="size-4 text-emerald-600" />
-                        </a>
-                      )}
-                      {!isLeft && (
-                        <Button
-                          variant="secondary"
-                          size="xs"
-                          onClick={() => setCheckoutOccupancy(occ)}
-                          className="!text-rose-600 hover:!bg-rose-50"
-                        >
-                          Check-out
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                  {/* Mobile Link to Details */}
+                  <Link
+                    href={`/admin/residents/${occ.id}`}
+                    className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs font-semibold text-slate-600 hover:text-brand-600 group"
+                  >
+                    <span>View Profile & Billing</span>
+                    <ArrowRight className="size-3.5 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all" />
+                  </Link>
                 </div>
               );
             })}
@@ -879,23 +793,6 @@ export default function ResidentsClient({
                     const daysLeft = occ.leaveDate
                       ? Math.max(0, Math.ceil((new Date(occ.leaveDate) - new Date()) / (1000 * 60 * 60 * 24)))
                       : null;
-
-                    const origin = typeof window !== "undefined" ? window.location.origin : "";
-                    const firstInv = data.firstUnpaidInvoice;
-                    const payUrl = firstInv ? `${origin}/pay/${firstInv.id}` : "";
-                    const roomLabel = `Room ${occ.unit?.unitNumber || "-"}${occ.bed ? ` (Bed ${occ.bed.bedLabel})` : ""}`;
-                    const reminderText = firstInv
-                      ? buildRentReminderMessage({
-                          residentName: occ.user?.name,
-                          roomLabel,
-                          period: firstInv.billingPeriod,
-                          amount: data.outstandingBalance,
-                          dueDate: formatDate(firstInv.dueDate),
-                          payUrl,
-                          pgName: societyName || "Bedy PG",
-                        })
-                      : `Hi ${occ.user?.name}, greetings from ${societyName || "Bedy PG"}.`;
-                    const waUrl = occ.user?.phone ? getWhatsAppUrl(occ.user?.phone, reminderText) : null;
 
                     return (
                       <tr
@@ -966,36 +863,21 @@ export default function ResidentsClient({
                         {/* 4. Outstanding Balance Column */}
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           {data.outstandingBalance > 0 ? (
-                            <div className="flex items-center gap-2">
-                              <div>
-                                <span
-                                  className={`inline-block font-extrabold text-xs ${
-                                    data.isOverdue ? "text-rose-600" : "text-amber-700"
-                                  }`}
-                                >
-                                  ₹{data.outstandingBalance.toLocaleString()}
-                                </span>
-                                <span
-                                  className={`block text-[10px] font-semibold ${
-                                    data.isOverdue ? "text-rose-500" : "text-amber-600"
-                                  }`}
-                                >
-                                  {data.isOverdue ? "Overdue" : "Pending Due"}
-                                </span>
-                              </div>
-
-                              {waUrl && (
-                                <a
-                                  href={waUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  title={`Send WhatsApp Rent Reminder (Due: ₹${data.outstandingBalance})`}
-                                  className="inline-flex items-center gap-1 text-[10.5px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors"
-                                >
-                                  <MessageCircle className="size-3 text-emerald-600" />
-                                  <span>Remind</span>
-                                </a>
-                              )}
+                            <div>
+                              <span
+                                className={`inline-block font-extrabold text-xs ${
+                                  data.isOverdue ? "text-rose-600" : "text-amber-700"
+                                }`}
+                              >
+                                ₹{data.outstandingBalance.toLocaleString()}
+                              </span>
+                              <span
+                                className={`block text-[10px] font-semibold ${
+                                  data.isOverdue ? "text-rose-500" : "text-amber-600"
+                                }`}
+                              >
+                                {data.isOverdue ? "Overdue" : "Pending Due"}
+                              </span>
                             </div>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
@@ -1046,27 +928,14 @@ export default function ResidentsClient({
 
                         {/* 8. Actions Column */}
                         <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end">
                             <Link
                               href={`/admin/residents/${occ.id}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 transition-colors"
-                              title="Open resident details, billing, payments, and stay history"
+                              className="inline-flex items-center justify-center size-8 rounded-xl text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                              title="View resident details"
                             >
-                              <span>View Details</span>
-                              <ArrowRight className="size-3" />
+                              <ArrowRight className="size-4" />
                             </Link>
-
-                            {!isLeft && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setCheckoutOccupancy(occ)}
-                                className="text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                                title="Check out and settle security deposit"
-                              >
-                                Check-out
-                              </Button>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -1436,119 +1305,7 @@ export default function ResidentsClient({
         </Modal>
       )}
 
-      {/* 7. Check-out Modal with Deposit Settlement */}
-      {checkoutOccupancy && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 p-2 sm:p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Resident Check-out</h2>
-                <p className="text-xs text-slate-500">
-                  {checkoutOccupancy.user?.name} · Room {checkoutOccupancy.unit?.unitNumber}
-                </p>
-              </div>
-              <button
-                onClick={() => setCheckoutOccupancy(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCheckoutSubmit} className="mt-4 space-y-4">
-              <ErrorBanner error={checkoutError} />
-
-              <Input
-                label="Move-out / Leave Date"
-                type="date"
-                required
-                value={checkoutDate}
-                onChange={(e) => setCheckoutDate(e.target.value)}
-              />
-
-              {/* Deposit Settlement Card */}
-              <div className="rounded-xl border border-slate-200/90 bg-slate-50 p-4 space-y-2.5 text-xs">
-                <div className="flex justify-between items-center text-slate-600">
-                  <span>Security Deposit Held:</span>
-                  <span className="font-bold text-slate-900">{formatMoney(depositHeld)}</span>
-                </div>
-
-                <div className="border-t border-slate-200/80 pt-2 space-y-2">
-                  <p className="font-semibold text-slate-700">Deductions (Damages, Cleaning, Dues)</p>
-                  {deductions.map((d, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="Reason"
-                        value={d.reason}
-                        onChange={(e) => {
-                          const next = [...deductions];
-                          next[idx].reason = e.target.value;
-                          setDeductions(next);
-                        }}
-                        className="flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Amount"
-                        value={d.amount}
-                        onChange={(e) => {
-                          const next = [...deductions];
-                          next[idx].amount = e.target.value;
-                          setDeductions(next);
-                        }}
-                        className="w-24 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setDeductions(deductions.filter((_, i) => i !== idx))}
-                        className="text-slate-400 hover:text-rose-600 p-1"
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() => setDeductions([...deductions, { reason: "Maintenance dues", amount: 500 }])}
-                    className="text-[11px] font-semibold text-brand-600 hover:underline py-1"
-                  >
-                    + Add Deduction Item
-                  </button>
-                </div>
-
-                <div className="border-t border-slate-200/80 pt-2 flex justify-between items-center font-bold text-sm">
-                  <span>Net Refund to Resident:</span>
-                  <span className="text-emerald-700">{formatMoney(netRefund)}</span>
-                </div>
-              </div>
-
-              <Input
-                label="Settlement Notes"
-                placeholder="Refund method (UPI, cash), hand-over notes..."
-                value={checkoutNotes}
-                onChange={(e) => setCheckoutNotes(e.target.value)}
-              />
-
-              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setCheckoutOccupancy(null)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" loading={checkoutSaving} variant="danger">
-                  Confirm Check-out & Settle
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 8. KYC Modal */}
+      {/* KYC Modal */}
       {kycResident && (
         <Modal
           open={Boolean(kycResident)}
