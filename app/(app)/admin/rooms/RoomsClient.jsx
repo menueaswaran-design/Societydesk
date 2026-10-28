@@ -111,6 +111,8 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
     try {
       await api.post("/api/units", {
         ...form,
+        buildingId: form.buildingId?.trim() ? form.buildingId.trim() : null,
+        floor: form.floor?.trim() ? form.floor.trim() : null,
         bedCapacity: Number(form.bedCapacity),
         rentAmount: Number(form.rentAmount),
       });
@@ -700,6 +702,21 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                   onChange={(e) => setForm({ ...form, floor: e.target.value })}
                 />
               </div>
+
+              {buildings.length > 0 && (
+                <Select
+                  label="Building / Block"
+                  value={form.buildingId}
+                  onChange={(e) => setForm({ ...form, buildingId: e.target.value })}
+                >
+                  <option value="">Default / Main Building</option>
+                  {buildings.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Select
