@@ -279,11 +279,11 @@ export default function AppShell({ user, society, flats, occupancies, children }
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-white">
-          {society?.name ?? (isPgWorkspace ? "Bedy PG" : "Bedy")}
+          {society?.name ?? (user.role === "SUPER_ADMIN" ? "Bedy Platform" : isPgWorkspace ? "Bedy PG" : "Bedy")}
         </p>
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className="rounded bg-white/10 px-1.5 py-0.2 text-[9.5px] font-semibold text-white/80">
-            {isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
+            {user.role === "SUPER_ADMIN" ? "SUPER ADMIN" : isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
           </span>
           <p className="truncate text-[11px] text-white/50">
             {titleCase(user.role)}
