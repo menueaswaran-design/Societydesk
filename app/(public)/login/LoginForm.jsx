@@ -48,8 +48,8 @@ const ROLE_BADGE = {
   SOCIETY_ADMIN: {
     icon: Building2,
     badge: "bg-primary-50 text-primary-700 ring-1 ring-primary-600/20",
-    label: "Society Admin",
-    labelTa: "குடியிருப்பு நிர்வாகி",
+    label: "PG Manager",
+    labelTa: "பிஜி மேலாளர்",
   },
   FLAT_ADMIN: {
     icon: ShieldCheck,
@@ -69,7 +69,7 @@ const ROLE_BLURB = {
   SUPER_ADMIN: "Platform owner: manage all societies, PGs, system admins & platform analytics",
   OWNER: "Full control: rooms, beds, rent billing, security deposits & staff",
   MANAGER: "Day-to-day operations: resident check-in, rent collection, complaints & notices",
-  SOCIETY_ADMIN: "Full oversight: society bills, complaints, residents and notices",
+  SOCIETY_ADMIN: "Day-to-day operations: resident check-in, rent collection, complaints & notices",
   FLAT_ADMIN: "Manages flat members, unit maintenance & payments",
   RESIDENT: "View room/bed, pay rent online, view deposit status & raise complaints",
 };

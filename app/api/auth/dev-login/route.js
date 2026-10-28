@@ -11,6 +11,9 @@ const DEMO_USERS = {
   "bedy@in": { id: "cmvl59khg0000m7og4a8uysdi", email: "bedy@bedy.in", role: "SUPER_ADMIN", societyId: null, name: "Bedy Super Admin" },
   "kumarvignesh865@gmail.com": { id: "cmvckm8mk0000m7gocp8bbb3f", email: "kumarvignesh865@gmail.com", role: "SUPER_ADMIN", societyId: null, name: "Kumar Vignesh" },
   "superadmin@societydesk.local": { id: "demo-super", email: "superadmin@societydesk.local", role: "SUPER_ADMIN", societyId: null, name: "Platform Owner" },
+  "owner@srilakshmipg.local": { id: "demo-pg-owner", email: "owner@srilakshmipg.local", role: "OWNER", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Suresh Reddy" },
+  "manager@srilakshmipg.local": { id: "demo-pg-manager", email: "manager@srilakshmipg.local", role: "MANAGER", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Venkatesh Babu" },
+  "resident@srilakshmipg.local": { id: "demo-resident", email: "resident@srilakshmipg.local", role: "RESIDENT", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Karthik Raja" },
   "admin@greenvalley.local": { id: "demo-admin", email: "admin@greenvalley.local", role: "SOCIETY_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Lakshmi Iyer" },
   "priya@greenvalley.local": { id: "demo-flat-admin", email: "priya@greenvalley.local", role: "FLAT_ADMIN", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Priya Sharma" },
   "ravi@greenvalley.local": { id: "demo-resident", email: "ravi@greenvalley.local", role: "RESIDENT", societyId: "cmvce8djg0002m7ggemm6z1m7", name: "Ravi Kumar" },
@@ -49,10 +52,11 @@ const POSTImpl = handler(async (req) => {
   }
 
   if (!user) {
-    if (email.includes("admin@greenvalley")) user = DEMO_USERS["admin@greenvalley.local"];
+    if (email.includes("owner")) user = DEMO_USERS["owner@srilakshmipg.local"];
+    else if (email.includes("manager")) user = DEMO_USERS["manager@srilakshmipg.local"];
     else if (email.includes("ravi")) user = DEMO_USERS["ravi@greenvalley.local"];
-    else if (email.includes("kumarvignesh") || email.includes("superadmin")) user = DEMO_USERS["kumarvignesh865@gmail.com"];
-    else user = DEMO_USERS["admin@greenvalley.local"];
+    else if (email.includes("kumarvignesh") || email.includes("superadmin") || email.includes("bedy")) user = DEMO_USERS["bedy@bedy.in"];
+    else user = DEMO_USERS["manager@srilakshmipg.local"];
   }
 
   const jar = await cookies();

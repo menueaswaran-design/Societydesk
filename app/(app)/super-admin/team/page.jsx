@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import TeamClient from "@/components/team/TeamClient";
 
-export const metadata = { title: "Society Admins - Bedy" };
+export const metadata = { title: "PG Managers & Admins - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function SuperAdminTeamPage() {
@@ -16,9 +16,9 @@ export default async function SuperAdminTeamPage() {
       orderBy: { name: "asc" },
     }),
     prisma.user.findMany({
-      where: { role: "SOCIETY_ADMIN" },
+      where: { role: { in: ["SUPER_ADMIN", "MANAGER", "OWNER", "SOCIETY_ADMIN"] } },
       include: { society: { select: { id: true, name: true, code: true } } },
-      orderBy: { name: "asc" },
+      orderBy: [{ role: "asc" }, { name: "asc" }],
     }),
   ]);
 

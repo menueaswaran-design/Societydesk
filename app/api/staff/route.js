@@ -25,7 +25,7 @@ const GETImpl = handler(async (req) => {
 
   const where = {};
   if (isSuperAdmin(user)) {
-    where.role = ROLES.SOCIETY_ADMIN;
+    where.role = { in: [ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.OWNER, ROLES.SOCIETY_ADMIN] };
     const societyId = req.nextUrl.searchParams.get("societyId");
     if (societyId) where.societyId = String(societyId);
   } else {
@@ -66,13 +66,16 @@ const POSTImpl = handler(async (req) => {
   let flatId = null;
 
   if (isSuperAdmin(user)) {
-    if (body.role !== ROLES.SOCIETY_ADMIN) {
-      throw forbidden("Super admins can only add society admins");
+    if (body.role === ROLES.SUPER_ADMIN) {
+      societyId = null;
+    } else if (body.role === ROLES.MANAGER || body.role === ROLES.OWNER || body.role === ROLES.SOCIETY_ADMIN) {
+      if (!body.societyId) throw badRequest("Choose which PG property this manager belongs to");
+      const society = await prisma.society.findUnique({ where: { id: body.societyId } });
+      if (!society) throw notFound("PG Property");
+      societyId = society.id;
+    } else {
+      throw forbidden("Super admins can only add PG Managers, Owners, or other Super Admins");
     }
-    if (!body.societyId) throw badRequest("Choose which society this admin belongs to");
-    const society = await prisma.society.findUnique({ where: { id: body.societyId } });
-    if (!society) throw notFound("Society");
-    societyId = society.id;
   } else if (isSocietyAdmin(user)) {
     if (body.role !== ROLES.FLAT_ADMIN) {
       throw forbidden("Society admins can add flat admins");

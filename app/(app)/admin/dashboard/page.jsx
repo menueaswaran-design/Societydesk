@@ -42,6 +42,10 @@ export default async function AdminDashboardPage() {
   const data = await getAdminDashboard(user.societyId);
   const { cards, collection } = data;
   const isPg = data.workspaceType === "PG";
+  const society = data.society;
+  const hasBankDetails = Boolean(society?.upiId || society?.bankAccountNo);
+  const hasAddress = Boolean(society?.address && society?.city);
+  const isProfileIncomplete = !hasBankDetails || !hasAddress;
 
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
@@ -177,6 +181,48 @@ export default async function AdminDashboardPage() {
           </div>
         }
       />
+
+      {/* Incomplete Bank & Property Details Warning */}
+      {isProfileIncomplete && (
+        <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 p-4 sm:p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs">
+                <AlertTriangle className="size-5" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-amber-950">
+                    Property Profile & Payout Setup Required
+                  </h4>
+                  <span className="rounded-full bg-amber-200/70 px-2 py-0.5 text-[11px] font-bold text-amber-900 ring-1 ring-amber-600/30">
+                    Action Required
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-amber-900/80 leading-relaxed max-w-2xl">
+                  {!hasBankDetails && !hasAddress
+                    ? "Bank / UPI payout details and property address were omitted during onboarding. Configure your UPI ID or Bank Account so tenants can pay rent via QR codes, and add your address for invoice headers."
+                    : !hasBankDetails
+                    ? "UPI ID and Bank Account details are not configured yet. Tenants will not be able to pay rent via UPI QR codes until your payout details are saved."
+                    : "Property address and city are missing. Update your address to ensure correct details appear on rent receipts and invoices."}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              <Button
+                as="a"
+                href="/admin/billing/configuration"
+                variant="primary"
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs"
+              >
+                Configure Details
+                <ArrowRight className="size-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upcoming Move-outs notice for PG */}
       {isPg && data.upcomingMoveOuts?.length > 0 ? (

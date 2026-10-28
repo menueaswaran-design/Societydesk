@@ -34,6 +34,11 @@ model Society {
   phone     String?
   email     String?
   logoUrl   String?
+  bankName        String?
+  bankAccountNo   String?
+  bankIfsc        String?
+  bankHolderName  String?
+  upiId           String?
   status    String   @default("ACTIVE") // ACTIVE | INACTIVE
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
