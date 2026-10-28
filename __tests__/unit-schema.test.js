@@ -65,3 +65,4 @@ describe("Unit & Room Validation Schemas (lib/validation/schemas.js)", () => {
     expect(updatedWithNull.buildingId).toBeNull();
   });
 });
+
