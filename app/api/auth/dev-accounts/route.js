@@ -29,12 +29,6 @@ const PUBLIC_DEMO_ACCOUNTS = [
     role: "RESIDENT",
     society: { name: "Sri Lakshmi Luxury PG & Coliving" },
   },
-  {
-    email: "admin@greenvalley.local",
-    name: "Anand Murthy",
-    role: "SOCIETY_ADMIN",
-    society: { name: "Green Valley Apartments" },
-  },
 ];
 
 /**
@@ -50,13 +44,13 @@ const GETImpl = handler(async () => {
   try {
     const users = await prisma.user.findMany({
       where: {
+        role: { notIn: ["SOCIETY_ADMIN", "FLAT_ADMIN"] },
         email: {
           in: [
             "bedy@bedy.in",
             "owner@srilakshmipg.local",
             "manager@srilakshmipg.local",
             "resident@srilakshmipg.local",
-            "admin@greenvalley.local",
           ],
         },
       },

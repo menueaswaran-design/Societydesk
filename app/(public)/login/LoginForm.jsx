@@ -108,12 +108,6 @@ const FALLBACK_ACCOUNTS = [
     role: "RESIDENT",
     society: { name: "Sri Lakshmi Luxury PG & Coliving" },
   },
-  {
-    email: "admin@greenvalley.local",
-    name: "Anand Murthy",
-    role: "SOCIETY_ADMIN",
-    society: { name: "Green Valley Apartments" },
-  },
 ];
 
 export default function LoginForm({ next }) {
@@ -133,7 +127,7 @@ export default function LoginForm({ next }) {
     setMode("loading");
     try {
       const rows = await api.get("/api/auth/dev-accounts");
-      setAccounts(rows);
+      setAccounts(rows.filter((r) => r.role !== "SOCIETY_ADMIN" && r.role !== "FLAT_ADMIN"));
     } catch {
       setAccounts(FALLBACK_ACCOUNTS);
     }
