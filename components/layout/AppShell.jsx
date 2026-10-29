@@ -371,7 +371,6 @@ export default function AppShell({ user, society, flats, occupancies, children }
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <LanguageSwitcher />
               <NotificationBellToggle user={user} compact />
               <Badge tone={ROLE_TONE[user.role] ?? "slate"} className="hidden sm:inline-flex text-[11px] py-0.5 px-2">
                 {titleCase(user.role)}
