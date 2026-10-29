@@ -356,25 +356,8 @@ export default function AppShell({ user, society, flats, occupancies, children }
               </span>
             </div>
 
-            <div className="hidden min-w-0 items-center gap-2 lg:flex">
-              <Building className="size-4 shrink-0 text-brand-600" />
-              <p className="truncate text-xs text-slate-500">
-                {society ? (
-                  <>
-                    <span className="font-semibold text-slate-700">{society.name}</span>
-                    {roomLabel ? ` · ${roomLabel}` : ""}
-                  </>
-                ) : (
-                  "Platform console"
-                )}
-              </p>
-            </div>
-
             <div className="ml-auto flex items-center gap-2">
               <NotificationBellToggle user={user} compact />
-              <Badge tone={ROLE_TONE[user.role] ?? "slate"} className="hidden sm:inline-flex text-[11px] py-0.5 px-2">
-                {titleCase(user.role)}
-              </Badge>
 
               <div className="relative">
                 <button

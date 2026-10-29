@@ -3,48 +3,33 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  CalendarDays,
   CreditCard,
   Plus,
   Wallet,
   Clock,
   AlertTriangle,
   FileText,
-  Megaphone,
-  ShieldCheck,
-  Building2,
   Users,
   ArrowUpRight,
-  TrendingUp,
   BedSingle,
   DoorOpen,
-  Phone,
   ArrowRight,
   CheckCircle2,
   MessageCircle,
   X,
-  Sparkles,
 } from "lucide-react";
 import { formatMoney, formatDate, formatPeriod, titleCase } from "@/lib/format";
 import { Card, CardHeader } from "@/components/ui/Card";
-import StatusBadge from "@/components/ui/StatusBadge";
-import { EmptyState } from "@/components/ui/Feedback";
 import Button from "@/components/ui/Button";
-import Avatar from "@/components/ui/Avatar";
 import {
   getWhatsAppUrl,
   buildRentReminderMessage,
   buildDefaulterNoticeMessage,
 } from "@/lib/billing/whatsapp";
 
-export default function AdminDashboardClient({ data, user }) {
+export default function AdminDashboardClient({ data }) {
   const { cards, collection, society, pendingInvoices = [], bedsGrid = [] } = data;
-  const isPg = data.workspaceType === "PG";
-  const hasBankDetails = Boolean(society?.upiId || society?.bankAccountNo);
-  const hasAddress = Boolean(society?.address && society?.city);
-  const isProfileIncomplete = !hasBankDetails || !hasAddress;
 
-  const [dismissProfileWarning, setDismissProfileWarning] = useState(false);
   const [dismissNoticeBanner, setDismissNoticeBanner] = useState(false);
 
   const today = new Date().toLocaleDateString("en-IN", {
@@ -62,105 +47,60 @@ export default function AdminDashboardClient({ data, user }) {
     return days <= 2; // only urgent departures (today, tomorrow, or in 2 days)
   });
 
-  // Notice count for general notice periods (e.g. 26d left)
   const noticeCount = upcomingMoveOuts.length;
 
   return (
     <div className="space-y-6">
-      {/* ── TOP HEADER / WELCOME COMMAND CARD ────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-brand p-6 sm:p-7 text-white shadow-soft">
-        {/* Ambient subtle decorative circles */}
-        <div className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full bg-white/10 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-10 -left-10 size-48 rounded-full bg-brand-400/20 blur-xl" />
-
-        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-0.5 text-xs font-semibold text-brand-100 backdrop-blur-xs">
-                <CalendarDays className="size-3.5" />
-                {today}
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-brand-200">
-                {society?.name ?? (isPg ? "PG Operations" : "Property Portal")}
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+      {/* ── TOP HEADER (CLEAN, NO HEAVY COLOR, NO DUPLICATE PG NAME) ────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-1">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
               Operations Dashboard
             </h1>
-            <p className="text-xs sm:text-sm text-brand-100/90 leading-relaxed">
-              Track pending & overdue rent collections, monitor live bed availability, and manage daily operations.
-            </p>
+            <span className="hidden sm:inline-block text-xs font-medium text-neutral-400">
+              · {today}
+            </span>
           </div>
+          <p className="text-xs sm:text-sm text-neutral-500 mt-1">
+            Track pending & overdue rent collections, monitor live bed availability, and record payments.
+          </p>
+        </div>
 
-          {/* Quick Action Buttons Directly in Header */}
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <Button
-              as="a"
-              href="/admin/residents"
-              variant="secondary"
-              size="md"
-              className="bg-white text-brand-700 hover:bg-brand-50 shadow-sm border-0 font-bold"
-            >
-              <Plus className="size-4" />
-              {isPg ? "Check-in Resident" : "Add Resident"}
-            </Button>
-            <Button
-              as="a"
-              href="/admin/billing/payments"
-              variant="primary"
-              size="md"
-              className="bg-brand-800/80 hover:bg-brand-900 text-white border border-white/20 font-bold shadow-sm"
-            >
-              <Wallet className="size-4" />
-              Record Payment
-            </Button>
-            <Button
-              as="a"
-              href="/admin/billing/invoices"
-              variant="ghost"
-              size="md"
-              className="text-white hover:bg-white/15 border border-white/20 text-xs font-semibold"
-            >
-              <FileText className="size-4" />
-              Invoices
-            </Button>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <Button
+            as="a"
+            href="/admin/residents"
+            variant="primary"
+            size="md"
+            className="shadow-2xs font-bold"
+          >
+            <Plus className="size-4" />
+            Check-in Resident
+          </Button>
+          <Button
+            as="a"
+            href="/admin/billing/payments"
+            variant="secondary"
+            size="md"
+            className="font-bold border border-neutral-200"
+          >
+            <Wallet className="size-4" />
+            Record Payment
+          </Button>
+          <Button
+            as="a"
+            href="/admin/billing/invoices"
+            variant="outline"
+            size="md"
+            className="font-semibold text-neutral-700 hover:bg-neutral-50"
+          >
+            <FileText className="size-4" />
+            Invoices
+          </Button>
         </div>
       </div>
-
-      {/* ── DISMISSIBLE INCOMPLETE PROFILE ALERT (COMPACT) ───────────────── */}
-      {isProfileIncomplete && !dismissProfileWarning && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-2.5 text-xs text-amber-900 shadow-2xs">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white">
-              <AlertTriangle className="size-4" />
-            </span>
-            <p className="truncate font-medium">
-              <strong className="font-bold">Setup Required:</strong>{" "}
-              {!hasBankDetails
-                ? "Configure your UPI ID or Bank Account so tenants can pay rent via QR codes."
-                : "Add your property address for official invoices & receipts."}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/admin/billing/configuration"
-              className="font-bold text-amber-800 underline hover:text-amber-950"
-            >
-              Configure Details →
-            </Link>
-            <button
-              type="button"
-              onClick={() => setDismissProfileWarning(true)}
-              className="p-1 text-amber-600 hover:text-amber-900 rounded-md hover:bg-amber-100"
-              title="Dismiss warning"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── CRITICAL MOVE-OUT ALERT (SHOWN ONLY WITHIN 2 DAYS BEFORE LEAVING) ── */}
       {urgentMoveOuts.length > 0 && !dismissNoticeBanner && (
@@ -647,100 +587,6 @@ export default function AdminDashboardClient({ data, user }) {
             )}
           </Card>
         </div>
-      </div>
-
-      {/* ── SECONDARY ACTIVITY: COMPLAINTS & NOTICES (2-COL COMPACT) ────── */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader
-            title="Open Complaints"
-            subtitle="Maintenance tickets"
-            icon={AlertTriangle}
-            action={
-              <Link
-                href="/admin/complaints"
-                className="text-xs font-bold text-brand-600 hover:text-brand-700"
-              >
-                View all →
-              </Link>
-            }
-          />
-          {data.recentComplaints.length === 0 ? (
-            <EmptyState
-              icon={AlertTriangle}
-              title="No open complaints"
-              description="Everything is running smoothly."
-              compact
-            />
-          ) : (
-            <ul className="divide-y divide-neutral-100 text-xs">
-              {data.recentComplaints.slice(0, 4).map((c) => {
-                const locationLabel = c.unit
-                  ? `Room ${c.unit.unitNumber}`
-                  : c.flat?.flatNumber || "PG";
-
-                return (
-                  <li key={c.id} className="p-3.5 hover:bg-neutral-50/50 transition">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-bold text-neutral-900 truncate">{c.title}</p>
-                        <p className="text-[11px] text-neutral-500 mt-0.5">
-                          {locationLabel} · {titleCase(c.category)} · {c.createdBy?.name}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <StatusBadge status={c.status} />
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Community Notices"
-            subtitle="Broadcasts & announcements"
-            icon={Megaphone}
-            action={
-              <Link
-                href="/admin/notices"
-                className="text-xs font-bold text-brand-600 hover:text-brand-700"
-              >
-                View all →
-              </Link>
-            }
-          />
-          {data.recentNotices.length === 0 ? (
-            <EmptyState
-              icon={Megaphone}
-              title="No notices posted"
-              description="Post an announcement to reach all residents."
-              compact
-            />
-          ) : (
-            <ul className="divide-y divide-neutral-100 text-xs">
-              {data.recentNotices.slice(0, 4).map((n) => (
-                <li
-                  key={n.id}
-                  className="p-3.5 hover:bg-neutral-50/50 transition flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <p className="font-bold text-neutral-900 truncate">{n.title}</p>
-                    <p className="text-[11px] text-neutral-500 mt-0.5">
-                      {titleCase(n.category)} · Posted by {n.postedBy?.name}
-                    </p>
-                  </div>
-                  <span className="text-[11px] text-neutral-400 shrink-0 tabular-nums">
-                    {n._count?.reads ?? 0} read
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
       </div>
     </div>
   );
