@@ -302,7 +302,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
       ) : null}
 
       {/* Sidebar */}
-      <aside className="brand-canvas sticky top-0 hidden h-screen w-64 shrink-0 flex-col lg:flex">
+      <aside className="brand-canvas sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start lg:flex">
         <div className="border-b border-white/10">{identity}</div>
         {nav}
         <UserPanel user={user} roomLabel={roomLabel} onSignOut={signOut} />
