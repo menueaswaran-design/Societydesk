@@ -88,7 +88,7 @@ export default function PushNotificationPrompt({ user }) {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-sm sm:max-w-md w-[calc(100vw-2rem)] animate-rise">
+    <div className="fixed bottom-20 sm:bottom-4 right-4 z-50 max-w-sm sm:max-w-md w-[calc(100vw-2rem)] animate-rise">
       <div className="relative overflow-hidden rounded-2xl border border-brand-200/90 bg-white/95 p-4 sm:p-5 shadow-2xl backdrop-blur-md ring-1 ring-slate-900/5">
         {/* Ambient Top Glow Line */}
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-amber-400 to-emerald-500" />
