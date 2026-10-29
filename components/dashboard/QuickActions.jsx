@@ -101,7 +101,7 @@ export function QuickAction({ href, icon: Icon, title, caption, tone = "brand", 
           </span>
         ) : null}
       </span>
-      <ArrowUpRight className="size-4 shrink-0 text-slate-400 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-emerald-600" />
+      <ArrowUpRight className="size-4 shrink-0 text-slate-400 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-brand-600" />
     </Link>
   );
 }

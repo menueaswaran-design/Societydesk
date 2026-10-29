@@ -294,10 +294,10 @@ export default function AppShell({ user, society, flats, occupancies, children }
   );
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#F8FAFF]">
       {isNavigating ? (
         <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10">
-          <div className="h-full w-full bg-linear-to-r from-brand-500 via-indigo-600 to-sky-400 animate-progress" />
+          <div className="h-full w-full bg-gradient-to-r from-brand-600 via-brand-500 to-[#6995FF] animate-progress" />
         </div>
       ) : null}
 
@@ -335,7 +335,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
 
       {/* Main Content Area */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-2xs">
+        <header className="sticky top-0 z-30 border-b border-[#E5EAF3] bg-white shadow-2xs">
           <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8">
             <button
               onClick={() => setDrawer(true)}
@@ -357,7 +357,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
             </div>
 
             <div className="hidden min-w-0 items-center gap-2 lg:flex">
-              <Building className="size-4 shrink-0 text-primary-500" />
+              <Building className="size-4 shrink-0 text-brand-600" />
               <p className="truncate text-xs text-slate-500">
                 {society ? (
                   <>
@@ -440,11 +440,11 @@ function NavLink({ item, label, pathname, onNavigate }) {
       {active ? (
         <span
           aria-hidden="true"
-          className="absolute top-1/2 -left-2.5 h-5 w-1 -translate-y-1/2 rounded-r-full bg-emerald-400"
+          className="absolute top-1/2 -left-2.5 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-400"
         />
       ) : null}
       <Icon
-        className={`size-4.5 shrink-0 transition-colors ${active ? "text-emerald-400" : "text-white/45 group-hover:text-white/80"}`}
+        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-400" : "text-white/45 group-hover:text-white/80"}`}
       />
       {label ?? item.label}
     </Link>

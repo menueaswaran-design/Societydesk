@@ -1,22 +1,22 @@
 const VARIANTS = {
   primary:
-    "bg-slate-900 text-white shadow-2xs hover:bg-slate-800 active:scale-[0.98] focus-visible:outline-slate-900",
+    "bg-brand-600 text-white shadow-xs hover:bg-brand-700 active:scale-[0.98] focus-visible:outline-brand-600",
   brand:
-    "bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 active:scale-[0.98] focus-visible:outline-emerald-600",
+    "bg-brand-600 text-white shadow-xs hover:bg-brand-700 active:scale-[0.98] focus-visible:outline-brand-600",
   accent:
-    "bg-slate-800 text-white shadow-2xs hover:bg-slate-900 active:scale-[0.98] focus-visible:outline-slate-800",
+    "bg-brand-700 text-white shadow-xs hover:bg-brand-800 active:scale-[0.98] focus-visible:outline-brand-700",
   secondary:
-    "bg-white text-slate-700 border border-slate-200/90 shadow-2xs hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 focus-visible:outline-slate-500",
+    "bg-brand-100 text-brand-700 hover:bg-brand-200 active:scale-[0.98] focus-visible:outline-brand-500",
   outline:
-    "bg-transparent text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:outline-slate-500",
-  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    "bg-white text-brand-700 border border-brand-300 hover:bg-brand-50 focus-visible:outline-brand-500",
+  ghost: "text-brand-700 hover:bg-brand-50",
   danger:
-    "bg-rose-600 text-white shadow-2xs hover:bg-rose-700 active:scale-[0.98] focus-visible:outline-rose-600",
+    "bg-error-600 text-white shadow-xs hover:bg-error-700 active:scale-[0.98] focus-visible:outline-error-600",
   "danger-ghost":
-    "text-rose-600 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-rose-600",
+    "text-error-600 hover:bg-error-50 hover:text-error-700 focus-visible:outline-error-600",
   success:
-    "bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 active:scale-[0.98] focus-visible:outline-emerald-600",
-  subtle: "bg-slate-100 text-slate-700 hover:bg-slate-200/80",
+    "bg-success-600 text-white shadow-xs hover:bg-success-700 active:scale-[0.98] focus-visible:outline-success-600",
+  subtle: "bg-neutral-100 text-neutral-700 hover:bg-neutral-200/80",
 };
 
 const SIZES = {
@@ -45,7 +45,7 @@ export default function Button({
       disabled={Tag === "button" ? isDisabled : undefined}
       aria-disabled={Tag !== "button" && isDisabled ? true : undefined}
       aria-busy={loading || undefined}
-      className={`inline-flex shrink-0 items-center justify-center font-semibold whitespace-nowrap transition-all duration-150 select-none focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 ${VARIANTS[variant] ?? VARIANTS.primary} ${SIZES[size] ?? SIZES.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center font-semibold whitespace-nowrap transition-all duration-150 select-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-0 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 ${VARIANTS[variant] ?? VARIANTS.primary} ${SIZES[size] ?? SIZES.md} ${className}`}
       {...props}
     >
       {loading ? <Spinner /> : null}
@@ -64,11 +64,11 @@ export function Spinner({ className = "" }) {
 }
 
 const ICON_VARIANTS = {
-  ghost: "text-slate-400 hover:bg-slate-900/5 hover:text-slate-800",
-  brand: "text-slate-400 hover:bg-brand-50 hover:text-brand-700",
-  danger: "text-slate-400 hover:bg-rose-50 hover:text-rose-600",
-  success: "text-slate-400 hover:bg-emerald-50 hover:text-emerald-600",
-  warning: "text-slate-400 hover:bg-amber-50 hover:text-amber-600",
+  ghost: "text-neutral-400 hover:bg-neutral-100 hover:text-neutral-800",
+  brand: "text-neutral-400 hover:bg-brand-50 hover:text-brand-700",
+  danger: "text-neutral-400 hover:bg-error-50 hover:text-error-600",
+  success: "text-neutral-400 hover:bg-success-50 hover:text-success-600",
+  warning: "text-neutral-400 hover:bg-warning-50 hover:text-warning-600",
 };
 
 /** Square icon-only control for dense table rows. */
@@ -87,7 +87,7 @@ export function IconButton({
       type={type}
       title={label}
       aria-label={label}
-      className={`inline-flex shrink-0 items-center justify-center rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4 ${ICON_VARIANTS[variant] ?? ICON_VARIANTS.ghost} ${sizes[size] ?? sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4 ${ICON_VARIANTS[variant] ?? ICON_VARIANTS.ghost} ${sizes[size] ?? sizes.md} ${className}`}
       {...props}
     >
       {children}
@@ -99,13 +99,13 @@ export function IconButton({
 export function TextAction({ tone = "brand", className = "", ...props }) {
   const tones = {
     brand: "text-brand-700 hover:bg-brand-50",
-    neutral: "text-slate-600 hover:bg-slate-900/5 hover:text-slate-900",
-    danger: "text-rose-600 hover:bg-rose-50",
+    neutral: "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900",
+    danger: "text-error-600 hover:bg-error-50",
   };
   return (
     <button
       type="button"
-      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 ${tones[tone] ?? tones.brand} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 ${tones[tone] ?? tones.brand} ${className}`}
       {...props}
     />
   );

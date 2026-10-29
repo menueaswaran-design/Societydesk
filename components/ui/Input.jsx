@@ -1,10 +1,10 @@
 import { ChevronDown } from "lucide-react";
 
 const BASE =
-  "w-full rounded-xl bg-white text-[13px] text-slate-900 border border-slate-200/90 shadow-2xs transition-all duration-150 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
+  "w-full rounded-xl bg-white text-[13px] text-neutral-900 border border-[#D2D9E6] shadow-2xs transition-all duration-150 placeholder:text-neutral-400 focus:border-brand-600 focus:ring-3 focus:ring-brand-200 focus:outline-none disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-500";
 
 const FIELD =
-  "h-9.5 px-3 aria-[invalid=true]:border-rose-400 aria-[invalid=true]:focus:ring-rose-400/20";
+  "h-9.5 px-3 aria-[invalid=true]:border-error-500 aria-[invalid=true]:focus:ring-error-400/20";
 
 function Shell({ label, labelRight, error, hint, id, required, className = "", children, htmlFor }) {
   return (
@@ -12,9 +12,9 @@ function Shell({ label, labelRight, error, hint, id, required, className = "", c
       {label || labelRight ? (
         <div className="mb-1 flex items-center justify-between gap-2">
           {label ? (
-            <label htmlFor={htmlFor ?? id} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+            <label htmlFor={htmlFor ?? id} className="flex items-center gap-1 text-xs font-semibold text-neutral-700">
               {label}
-              {required ? <span className="text-rose-500">*</span> : null}
+              {required ? <span className="text-error-500">*</span> : null}
             </label>
           ) : <span />}
           {labelRight}
@@ -22,9 +22,9 @@ function Shell({ label, labelRight, error, hint, id, required, className = "", c
       ) : null}
       {children}
       {error ? (
-        <p className="mt-1.5 text-[12px] font-medium text-rose-600">{error}</p>
+        <p className="mt-1.5 text-[12px] font-medium text-error-600">{error}</p>
       ) : hint ? (
-        <p className="mt-1.5 text-[12px] text-slate-500">{hint}</p>
+        <p className="mt-1.5 text-[12px] text-neutral-500">{hint}</p>
       ) : null}
     </div>
   );
@@ -57,7 +57,7 @@ export function Input({
       {prefix || suffix ? (
         <div className="relative">
           {prefix ? (
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex w-9 items-center justify-center text-slate-400 [&_svg]:size-4">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex w-9 items-center justify-center text-neutral-400 [&_svg]:size-4">
               {prefix}
             </span>
           ) : null}
@@ -92,7 +92,7 @@ export function Textarea({
         id={id}
         rows={rows}
         aria-invalid={error ? "true" : undefined}
-        className={`${BASE} resize-y px-3 py-2.5 leading-relaxed focus:border-transparent aria-[invalid=true]:ring-rose-400 ${mono ? "font-mono text-xs" : ""}`}
+        className={`${BASE} resize-y px-3 py-2.5 leading-relaxed focus:border-brand-600 focus:ring-3 focus:ring-brand-200 focus:outline-none aria-[invalid=true]:border-error-500 ${mono ? "font-mono text-xs" : ""}`}
         {...props}
       />
     </Shell>
@@ -116,12 +116,12 @@ export function Select({
         <select
           id={id}
           aria-invalid={error ? "true" : undefined}
-          className={`${BASE} ${FIELD} cursor-pointer appearance-none pr-9 focus:border-transparent aria-[invalid=true]:ring-rose-400 ${inputClassName}`}
+          className={`${BASE} ${FIELD} cursor-pointer appearance-none pr-9 focus:border-brand-600 focus:ring-3 focus:ring-brand-200 focus:outline-none aria-[invalid=true]:border-error-500 ${inputClassName}`}
           {...props}
         >
           {children}
         </select>
-        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-slate-400" />
+        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-neutral-400" />
       </div>
     </Shell>
   );
@@ -137,7 +137,7 @@ export function Checkbox({ label, description, className = "", id, ...props }) {
         <input
           id={id}
           type="checkbox"
-          className="peer size-4.5 cursor-pointer appearance-none rounded-md bg-white ring-1 ring-slate-400 transition checked:bg-primary-800 checked:ring-primary-800 hover:ring-slate-500 focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 focus-visible:outline-none aria-[invalid=true]:ring-rose-400"
+          className="peer size-4.5 cursor-pointer appearance-none rounded-md bg-white ring-1 ring-[#D2D9E6] transition checked:bg-brand-600 checked:ring-brand-600 hover:ring-brand-400 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:outline-none aria-[invalid=true]:ring-error-400"
           {...props}
         />
         <svg
@@ -156,8 +156,8 @@ export function Checkbox({ label, description, className = "", id, ...props }) {
         </svg>
       </span>
       <span className="min-w-0">
-        <span className="block font-medium text-slate-700 group-hover:text-slate-900">{label}</span>
-        {description ? <span className="mt-0.5 block text-xs text-slate-500">{description}</span> : null}
+        <span className="block font-medium text-neutral-700 group-hover:text-neutral-900">{label}</span>
+        {description ? <span className="mt-0.5 block text-xs text-neutral-500">{description}</span> : null}
       </span>
     </label>
   );
@@ -170,8 +170,8 @@ export function Switch({ label, description, className = "", id, ...props }) {
       className={`group flex cursor-pointer items-center justify-between gap-4 text-sm select-none ${className}`}
     >
       <span className="min-w-0">
-        <span className="block font-medium text-slate-700 group-hover:text-slate-900">{label}</span>
-        {description ? <span className="mt-0.5 block text-xs text-slate-500">{description}</span> : null}
+        <span className="block font-medium text-neutral-700 group-hover:text-neutral-900">{label}</span>
+        {description ? <span className="mt-0.5 block text-xs text-neutral-500">{description}</span> : null}
       </span>
       <span className="relative inline-flex shrink-0">
         <input
@@ -181,7 +181,7 @@ export function Switch({ label, description, className = "", id, ...props }) {
           className="peer sr-only"
           {...props}
         />
-        <span className="h-6 w-11 rounded-full bg-slate-200 ring-1 ring-slate-300 transition-colors duration-200 peer-checked:bg-brand-600 peer-checked:ring-brand-600 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2" />
+        <span className="h-6 w-11 rounded-full bg-neutral-200 ring-1 ring-neutral-300 transition-colors duration-200 peer-checked:bg-brand-600 peer-checked:ring-brand-600 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-2" />
         <span className="absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
       </span>
     </label>
@@ -192,8 +192,8 @@ export function Switch({ label, description, className = "", id, ...props }) {
 export function ReadOnlyField({ label, value, className = "" }) {
   return (
     <div className={className}>
-      <p className="mb-1.5 text-xs font-semibold text-slate-700">{label}</p>
-      <div className="flex h-10 items-center rounded-lg bg-slate-50 px-3 text-sm text-slate-500 ring-1 ring-slate-900/5">
+      <p className="mb-1.5 text-xs font-semibold text-neutral-700">{label}</p>
+      <div className="flex h-10 items-center rounded-lg bg-neutral-50 px-3 text-sm text-neutral-600 ring-1 ring-[#E5EAF3]">
         {value || "-"}
       </div>
     </div>

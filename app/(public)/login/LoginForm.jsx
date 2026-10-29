@@ -347,12 +347,12 @@ export default function LoginForm({ next }) {
                   i > 0 ? "border-t border-slate-100" : ""
                 }`}
               >
-                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-primary-50 group-hover:text-primary-600">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-brand-50 group-hover:text-brand-600">
                   <Icon className="size-5" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm font-semibold text-slate-900 group-hover:text-primary-700">
+                    <span className="text-sm font-semibold text-slate-900 group-hover:text-brand-700">
                       {acc.name}
                     </span>
                     <span
@@ -372,9 +372,9 @@ export default function LoginForm({ next }) {
                 </div>
                 <div className="shrink-0 pl-1">
                   {busy ? (
-                    <Loader2 className="size-4 animate-spin text-primary-600" />
+                    <Loader2 className="size-4 animate-spin text-brand-600" />
                   ) : (
-                    <span className="inline-flex size-7 items-center justify-center rounded-lg bg-slate-100/70 text-slate-400 transition-all group-hover:bg-primary-600 group-hover:text-white">
+                    <span className="inline-flex size-7 items-center justify-center rounded-lg bg-slate-100/70 text-slate-400 transition-all group-hover:bg-brand-600 group-hover:text-white">
                       <ArrowRight className="size-3.5" />
                     </span>
                   )}
@@ -420,7 +420,7 @@ export default function LoginForm({ next }) {
           labelRight={
             <Link
               href="/forgot-password"
-              className="text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+              className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline transition-colors"
             >
               {t("auth.forgotPassword", "Forgot password?")}
             </Link>

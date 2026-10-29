@@ -137,7 +137,7 @@ const jsonLd = {
 };
 
 export const viewport = {
-  themeColor: "#2563eb",
+  themeColor: "#3154D9",
   width: "device-width",
   initialScale: 1,
 };
@@ -155,7 +155,7 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${manrope.className} min-h-screen text-slate-900 bg-[#F8FAFC] antialiased`}>
+      <body className={`${manrope.className} min-h-screen text-[#10192E] bg-[#F8FAFF] antialiased`}>
         <FirebaseBootstrap />
         <LanguageProvider>
           {children}

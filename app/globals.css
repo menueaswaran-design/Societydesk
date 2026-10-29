@@ -1,79 +1,104 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Design tokens - Professional Property/Billing System
+   Bedy Design System v1.0 | Royal Cobalt #3154D9 + Manrope
    ========================================================================== */
 
 @theme {
-  /* Primary: Deep Navy/Indigo */
-  --color-primary-50: #f8fafc;
-  --color-primary-100: #f1f5f9;
-  --color-primary-200: #e2e8f0;
-  --color-primary-300: #cbd5e1;
-  --color-primary-400: #94a3b8;
-  --color-primary-500: #64748b;
-  --color-primary-600: #475569;
-  --color-primary-700: #334155;
-  --color-primary-800: #1e293b;
-  --color-primary-900: #0f172a;
-  --color-primary-950: #020617;
+  /* Royal Cobalt Primary Brand Palette */
+  --color-brand-50: #F7F9FF;
+  --color-brand-100: #EBEFFF;
+  --color-brand-200: #D7E1FF;
+  --color-brand-300: #B4C5FF;
+  --color-brand-400: #88A1FA;
+  --color-brand-500: #5678EF;
+  --color-brand-600: #3154D9;
+  --color-brand-700: #2445A8;
+  --color-brand-800: #1E398A;
+  --color-brand-900: #1B326E;
+  --color-brand-950: #14234B;
 
-  /* Semantic colors */
-  --color-success-50: #f0fdf4;
-  --color-success-100: #dcfce7;
-  --color-success-200: #bbf7d0;
-  --color-success-300: #86efac;
-  --color-success-400: #4ade80;
-  --color-success-500: #22c55e;
-  --color-success-600: #16a34a;
-  --color-success-700: #15803d;
-  --color-success-800: #166534;
-  --color-success-900: #14532d;
+  /* Royal Cobalt Neutrals */
+  --color-neutral-50: #F8FAFF;
+  --color-neutral-100: #F3F6FC;
+  --color-neutral-200: #E5EAF3;
+  --color-neutral-300: #D2D9E6;
+  --color-neutral-400: #9AA6BA;
+  --color-neutral-500: #6C7890;
+  --color-neutral-600: #516078;
+  --color-neutral-700: #39475F;
+  --color-neutral-800: #26344C;
+  --color-neutral-900: #17213A;
+  --color-neutral-950: #10192E;
 
-  --color-warning-50: #fffbeb;
-  --color-warning-100: #fef3c7;
-  --color-warning-200: #fde68a;
-  --color-warning-300: #fcd34d;
-  --color-warning-400: #fbbf24;
-  --color-warning-500: #f59e0b;
-  --color-warning-600: #d97706;
-  --color-warning-700: #b45309;
-  --color-warning-800: #92400e;
-  --color-warning-900: #78350f;
+  /* Semantic Colors */
+  --color-success-50: #ECFDF3;
+  --color-success-100: #D1FADF;
+  --color-success-200: #A6F4C5;
+  --color-success-300: #6CE9A6;
+  --color-success-400: #32D583;
+  --color-success-500: #12B76A;
+  --color-success-600: #039855;
+  --color-success-700: #027A48;
+  --color-success-800: #05603A;
+  --color-success-900: #054F31;
 
-  --color-danger-50: #fef2f2;
-  --color-danger-100: #fee2e2;
-  --color-danger-200: #fecaca;
-  --color-danger-300: #fca5a5;
-  --color-danger-400: #f87171;
-  --color-danger-500: #ef4444;
-  --color-danger-600: #dc2626;
-  --color-danger-700: #b91c1c;
-  --color-danger-800: #991b1b;
-  --color-danger-900: #7f1d1d;
+  --color-warning-50: #FFFAEB;
+  --color-warning-100: #FEF0C7;
+  --color-warning-200: #FEDF89;
+  --color-warning-300: #FEC84B;
+  --color-warning-400: #FDB022;
+  --color-warning-500: #F79009;
+  --color-warning-600: #DC6803;
+  --color-warning-700: #B54708;
+  --color-warning-800: #93370D;
+  --color-warning-900: #7A2E0E;
 
-  --color-info-50: #eff6ff;
-  --color-info-100: #dbeafe;
-  --color-info-200: #bfdbfe;
-  --color-info-300: #93c5fd;
-  --color-info-400: #60a5fa;
-  --color-info-500: #3b82f6;
-  --color-info-600: #2563eb;
-  --color-info-700: #1d4ed8;
-  --color-info-800: #1e40af;
-  --color-info-900: #1e3a8a;
+  --color-danger-50: #FEF3F2;
+  --color-danger-100: #FEE4E2;
+  --color-danger-200: #FECDCA;
+  --color-danger-300: #FDA29B;
+  --color-danger-400: #F97066;
+  --color-danger-500: #F04438;
+  --color-danger-600: #D92D20;
+  --color-danger-700: #B42318;
+  --color-danger-800: #912018;
+  --color-danger-900: #7A271A;
 
-  /* Brand accent: Bedy Emerald */
-  --color-brand-50: #ecfdf5;
-  --color-brand-100: #d1fae5;
-  --color-brand-200: #a7f3d0;
-  --color-brand-300: #6ee7b7;
-  --color-brand-400: #34d399;
-  --color-brand-500: #10b981;
-  --color-brand-600: #059669;
-  --color-brand-700: #047857;
-  --color-brand-800: #065f46;
-  --color-brand-900: #064e3b;
+  --color-error-50: #FEF3F2;
+  --color-error-100: #FEE4E2;
+  --color-error-200: #FECDCA;
+  --color-error-300: #FDA29B;
+  --color-error-400: #F97066;
+  --color-error-500: #F04438;
+  --color-error-600: #D92D20;
+  --color-error-700: #B42318;
+  --color-error-800: #912018;
+  --color-error-900: #7A271A;
+
+  --color-info-50: #EFF8FF;
+  --color-info-100: #D1E9FF;
+  --color-info-200: #B2DDFF;
+  --color-info-300: #84CAFF;
+  --color-info-400: #53B1FD;
+  --color-info-500: #2E90FA;
+  --color-info-600: #1570EF;
+  --color-info-700: #175CD3;
+  --color-info-800: #1849A9;
+  --color-info-900: #194185;
+
+  /* Primary Navy Aliases */
+  --color-primary-50: #F8FAFF;
+  --color-primary-100: #F3F6FC;
+  --color-primary-200: #E5EAF3;
+  --color-primary-300: #D2D9E6;
+  --color-primary-400: #9AA6BA;
+  --color-primary-500: #6C7890;
+  --color-primary-600: #516078;
+  --color-primary-700: #39475F;
+  --color-primary-800: #26344C;
+  --color-primary-900: #17213A;
+  --color-primary-950: #10192E;
 
   /* Type */
   --font-sans:
@@ -81,19 +106,41 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Depth - subtle, modern, layered */
-  --shadow-2xs: 0 1px 2px 0 rgb(15 23 42 / 0.04);
-  --shadow-xs: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04);
-  --shadow-soft: 0 2px 4px -1px rgb(15 23 42 / 0.05), 0 1px 2px -1px rgb(15 23 42 / 0.03);
-  --shadow-card: 0 1px 3px 0 rgb(15 23 42 / 0.05), 0 1px 2px -1px rgb(15 23 42 / 0.04);
-  --shadow-lift: 0 6px 14px -3px rgb(15 23 42 / 0.08), 0 2px 5px -2px rgb(15 23 42 / 0.04);
-  --shadow-pop: 0 12px 24px -4px rgb(15 23 42 / 0.09), 0 4px 8px -3px rgb(15 23 42 / 0.05);
+  --shadow-2xs: 0 1px 2px 0 rgb(17 24 39 / 0.04);
+  --shadow-xs: 0 1px 2px rgb(17 24 39 / 0.05);
+  --shadow-sm: 0 2px 6px rgb(17 24 39 / 0.06);
+  --shadow-md: 0 5px 16px rgb(17 24 39 / 0.08);
+  --shadow-lg: 0 12px 36px rgb(17 24 39 / 0.10);
+  --shadow-xl: 0 20px 56px rgb(17 24 39 / 0.12);
+  --shadow-soft: 0 2px 4px -1px rgb(17 24 39 / 0.05), 0 1px 2px -1px rgb(17 24 39 / 0.03);
+  --shadow-card: 0 1px 3px 0 rgb(17 24 39 / 0.05), 0 1px 2px -1px rgb(17 24 39 / 0.04);
+  --shadow-lift: 0 6px 14px -3px rgb(17 24 39 / 0.08), 0 2px 5px -2px rgb(17 24 39 / 0.04);
+  --shadow-pop: 0 12px 24px -4px rgb(17 24 39 / 0.09), 0 4px 8px -3px rgb(17 24 39 / 0.05);
 
   /* Motion */
-  --animate-fade-in: fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
-  --animate-rise: rise 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
-  --animate-pop: pop 0.15s cubic-bezier(0.4, 0, 0.2, 1) both;
+  --animate-fade-in: fade-in 0.2s cubic-bezier(0.2, 0, 0, 1) both;
+  --animate-rise: rise 0.25s cubic-bezier(0.2, 0, 0, 1) both;
+  --animate-pop: pop 0.15s cubic-bezier(0.2, 0, 0, 1) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
-  --animate-slide-left: slide-left 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+  --animate-slide-left: slide-left 0.25s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+:root {
+  --font-family: var(--font-manrope), 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --surface-page: #F8FAFF;
+  --surface-card: #FFFFFF;
+  --surface-subtle: #F3F6FC;
+  --text-primary: #10192E;
+  --text-secondary: #39475F;
+  --text-muted: #516078;
+  --border-default: #E5EAF3;
+  --border-strong: #D2D9E6;
+  --focus-ring: #88A1FA;
+
+  /* Royal Cobalt Signature Gradient System */
+  --gradient-brand: linear-gradient(135deg, #1E368D 0%, #3154D9 55%, #6995FF 100%);
+  --gradient-signature: linear-gradient(135deg, #2445A8 0%, #3458F5 52%, #8862EC 100%);
+  --gradient-soft: linear-gradient(110deg, #F8FAFF 0%, #E9EEFF 100%);
 }
 
 /* ==========================================================================
@@ -105,10 +152,12 @@
     -webkit-text-size-adjust: 100%;
     scrollbar-gutter: stable;
     font-size: 15px;
+    scroll-behavior: smooth;
   }
 
   *, ::before, ::after {
     font-family: var(--font-sans);
+    box-sizing: border-box;
   }
 
   body, button, input, select, textarea, optgroup, option {
@@ -116,10 +165,11 @@
   }
 
   body {
-    @apply text-slate-900 antialiased;
+    @apply antialiased;
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    background-color: #F8FAFC;
+    background-color: #F8FAFF;
+    color: #10192E;
     font-size: 0.875rem;
     line-height: 1.5;
   }
@@ -129,25 +179,28 @@
   h3,
   h4 {
     @apply tracking-tight;
+    color: #10192E;
   }
 
   ::selection {
-    @apply bg-slate-200/70 text-slate-950;
+    background-color: #D7E1FF;
+    color: #14234B;
   }
 
   :focus-visible {
-    @apply outline-slate-600 outline-2 outline-offset-2;
+    outline: 2.5px solid #88A1FA;
+    outline-offset: 2px;
   }
 
   /* Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-slate-300) transparent;
+    scrollbar-color: var(--color-neutral-300) transparent;
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -155,11 +208,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full border-[3px] border-transparent bg-slate-300 bg-clip-content;
+    @apply rounded-full border-[2px] border-transparent bg-neutral-300 bg-clip-content;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400 bg-clip-content;
+    @apply bg-neutral-400 bg-clip-content;
   }
 }
 
@@ -167,9 +220,9 @@
    Utilities
    ========================================================================== */
 
-/* White panel used for every card, table shell and modal. */
+/* White panel used for cards, tables and dialogs. */
 @utility surface {
-  @apply rounded-2xl bg-white shadow-2xs border border-slate-200/80;
+  @apply rounded-2xl bg-white shadow-2xs border border-[#E5EAF3];
 }
 
 /* Page canvas block, one per section. */
@@ -184,34 +237,49 @@
 }
 
 @utility label-xs {
-  @apply text-xs font-semibold tracking-[0.06em] text-slate-500 uppercase;
+  @apply text-xs font-semibold tracking-[0.06em] text-neutral-600 uppercase;
 }
 
 /* Vertical rhythm for definition lists and summary rows. */
 @utility rows {
-  @apply divide-y divide-slate-100;
+  @apply divide-y divide-[#E5EAF3];
 }
 
 @utility row-item {
   @apply flex items-center justify-between gap-4 px-4 py-2.5;
 }
 
-/* Professional sidebar - clean, solid navy */
+/* Professional sidebar - Royal Cobalt Deep Navy */
 @utility brand-canvas {
-  background-color: #0f172a;
-  background-image: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  background-color: #10192E;
+  background-image: linear-gradient(180deg, #10192E 0%, #17213A 100%);
+}
+
+/* Royal Cobalt Signature Gradients */
+@utility bg-gradient-brand {
+  background-image: linear-gradient(135deg, #1E368D 0%, #3154D9 55%, #6995FF 100%);
+}
+
+@utility bg-gradient-signature {
+  background-image: linear-gradient(135deg, #2445A8 0%, #3458F5 52%, #8862EC 100%);
+}
+
+@utility bg-gradient-soft {
+  background-image: linear-gradient(110deg, #F8FAFF 0%, #E9EEFF 100%);
 }
 
 /* Gradient text for hero numbers and wordmark. */
 @utility text-gradient {
-  @apply text-slate-800;
+  background: linear-gradient(135deg, #1E368D 0%, #3154D9 60%, #6995FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-/* Animated gradient border for the focus spotlight on primary panels. */
+/* Animated focus spotlight on primary panels. */
 @utility ring-glow {
   box-shadow:
-    0 0 0 1px rgb(99 102 241 / 0.35),
-    0 12px 40px -12px rgb(99 102 241 / 0.45);
+    0 0 0 1px rgb(49 84 217 / 0.35),
+    0 12px 40px -12px rgb(49 84 217 / 0.40);
 }
 
 @utility scroll-fade-x {
@@ -281,7 +349,7 @@
 
 .animate-progress {
   transform-origin: left;
-  animation: progress-bar 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: progress-bar 1.2s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
 @keyframes float-slow {
