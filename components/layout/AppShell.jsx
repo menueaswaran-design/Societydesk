@@ -357,6 +357,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
             </div>
 
             <div className="ml-auto flex items-center gap-2">
+              <LanguageSwitcher />
               <NotificationBellToggle user={user} compact />
 
               <div className="relative">

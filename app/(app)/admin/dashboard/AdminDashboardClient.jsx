@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  CalendarDays,
   CreditCard,
   Plus,
   Wallet,
@@ -51,24 +52,20 @@ export default function AdminDashboardClient({ data }) {
 
   return (
     <div className="space-y-6">
-      {/* ── TOP HEADER (CLEAN, NO HEAVY COLOR, NO DUPLICATE PG NAME) ────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-1">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
-              Operations Dashboard
-            </h1>
-            <span className="hidden sm:inline-block text-xs font-medium text-neutral-400">
-              · {today}
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-neutral-500 mt-1">
-            Track pending & overdue rent collections, monitor live bed availability, and record payments.
-          </p>
+      {/* ── TOP HEADER (CLEAN, SLEEK DASHBOARD TITLE & TIME) ───────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-1">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-black tracking-tight text-neutral-950 sm:text-3xl">
+            Dashboard
+          </h1>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1 text-xs font-semibold text-neutral-600 shadow-2xs">
+            <CalendarDays className="size-3.5 text-brand-600" />
+            {today}
+          </span>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             as="a"
             href="/admin/residents"
@@ -84,7 +81,7 @@ export default function AdminDashboardClient({ data }) {
             href="/admin/billing/payments"
             variant="secondary"
             size="md"
-            className="font-bold border border-neutral-200"
+            className="font-bold border border-neutral-200 bg-white hover:bg-neutral-50"
           >
             <Wallet className="size-4" />
             Record Payment
@@ -235,8 +232,14 @@ export default function AdminDashboardClient({ data }) {
           </p>
           <div className="mt-2 flex items-center justify-between text-xs">
             <span className="text-neutral-500">
-              <strong className="font-bold text-neutral-800">{collection.collectionRate}%</strong> of{" "}
-              {formatMoney(collection.billed)} billed
+              {collection.billed > 0 ? (
+                <>
+                  <strong className="font-bold text-neutral-800">{collection.collectionRate}%</strong> of{" "}
+                  {formatMoney(collection.billed)} billed
+                </>
+              ) : (
+                `${cards.collectedThisMonthCount} payments recorded this month`
+              )}
             </span>
             <ArrowUpRight className="size-3.5 text-neutral-400 group-hover:text-success-600 transition" />
           </div>
@@ -274,17 +277,11 @@ export default function AdminDashboardClient({ data }) {
         {/* ── LEFT COLUMN (7 COLS): RENT DUES & OVERDUES TRACKER ──────────── */}
         <div className="lg:col-span-7 space-y-6">
           <Card className="overflow-hidden">
-            {/* Header & Collection Progress */}
-            <div className="border-b border-neutral-100 bg-neutral-50/60 p-4 sm:p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm sm:text-base font-bold text-neutral-900">
-                    Rent Collection & Outstanding Dues
-                  </h2>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    Live tracker for pending and overdue resident payments
-                  </p>
-                </div>
+            <CardHeader
+              title="Priority Dues Awaiting Payment"
+              subtitle={`${pendingInvoices.length} active bills awaiting collection`}
+              icon={Clock}
+              action={
                 <Link
                   href="/admin/billing/invoices"
                   className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
@@ -292,39 +289,11 @@ export default function AdminDashboardClient({ data }) {
                   All Invoices
                   <ArrowRight className="size-3.5" />
                 </Link>
-              </div>
-
-              {/* Collection Progress Bar (Exact from Design System Section 11) */}
-              <div className="mt-4 space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-neutral-800">
-                    {formatMoney(collection.collected)} collected
-                  </span>
-                  <span className="font-bold text-brand-700">
-                    {collection.collectionRate}% achieved
-                  </span>
-                </div>
-                <div className="h-2.5 w-full rounded-full bg-brand-100 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-brand-600 transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.max(0, collection.collectionRate))}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-neutral-500">
-                  <span>Target: {formatMoney(collection.billed)}</span>
-                  <span>Uncollected: {formatMoney(collection.outstanding)}</span>
-                </div>
-              </div>
-            </div>
+              }
+            />
 
             {/* Invoices List / Defaulters Actions */}
             <div className="p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3 text-xs font-bold text-neutral-700">
-                <span>Priority Dues Awaiting Payment</span>
-                <span className="text-[11px] font-normal text-neutral-500">
-                  {pendingInvoices.length} active bills
-                </span>
-              </div>
 
               {pendingInvoices.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-neutral-200 p-8 text-center bg-neutral-50/50">
