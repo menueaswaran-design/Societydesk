@@ -19,6 +19,9 @@ export default async function AdminInvoicesPage({ searchParams }) {
   if (status) where.status = status;
   if (period) where.billingPeriod = period;
 
+  const summaryWhere = { societyId: user.societyId, status: { not: "CANCELLED" } };
+  if (period) summaryWhere.billingPeriod = period;
+
   const [invoices, summary, rawUnits, occupancies, meterLogs] = await Promise.all([
     prisma.invoice.findMany({
       where,
@@ -51,7 +54,7 @@ export default async function AdminInvoicesPage({ searchParams }) {
       take: 200,
     }),
     prisma.invoice.aggregate({
-      where: { societyId: user.societyId, status: { not: "CANCELLED" } },
+      where: summaryWhere,
       _sum: { totalAmount: true, paidAmount: true, penalty: true, previousDue: true },
     }),
     prisma.unit.findMany({
