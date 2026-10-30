@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 /* ==========================================================================
    Bedy Design System v1.0 | Royal Cobalt #3154D9 + Manrope
@@ -102,7 +103,7 @@
 
   /* Type */
   --font-sans:
-    var(--font-manrope), "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    "Manrope", var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Depth - subtle, modern, layered */
@@ -126,7 +127,7 @@
 }
 
 :root {
-  --font-family: var(--font-manrope), 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-family: 'Manrope', var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --surface-page: #F8FAFF;
   --surface-card: #FFFFFF;
   --surface-subtle: #F3F6FC;

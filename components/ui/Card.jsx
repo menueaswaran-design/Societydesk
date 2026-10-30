@@ -1,7 +1,7 @@
 export function Card({ className = "", hover = false, children, ...props }) {
   return (
     <div
-      className={`rounded-2xl border border-slate-200/80 bg-white shadow-2xs overflow-hidden ${hover ? "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs hover:border-slate-300" : ""} ${className}`}
+      className={`rounded-2xl border border-neutral-200 bg-white shadow-2xs overflow-hidden ${hover ? "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs hover:border-neutral-300" : ""} ${className}`}
       {...props}
     >
       {children}
@@ -12,18 +12,18 @@ export function Card({ className = "", hover = false, children, ...props }) {
 export function CardHeader({ title, subtitle, action, icon: Icon, className = "" }) {
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100/90 bg-slate-50/50 px-5 py-3.5 sm:py-4 ${className}`}
+      className={`flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 bg-neutral-50/50 px-5 py-3.5 sm:py-4 ${className}`}
     >
       <div className="flex min-w-0 items-center gap-2.5">
         {Icon ? (
-          <span className="flex size-8.5 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200/80 text-slate-700 shadow-2xs [&_svg]:size-4">
+          <span className="flex size-8.5 shrink-0 items-center justify-center rounded-xl bg-white border border-neutral-200 text-neutral-700 shadow-2xs [&_svg]:size-4">
             <Icon />
           </span>
         ) : null}
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-bold text-slate-900 sm:text-[15px]">{title}</h2>
+          <h2 className="truncate text-sm font-bold text-neutral-900 sm:text-[15px]">{title}</h2>
           {subtitle ? (
-            <p className="mt-0.5 truncate text-xs text-slate-500 font-medium">{subtitle}</p>
+            <p className="mt-0.5 truncate text-xs text-neutral-500 font-medium">{subtitle}</p>
           ) : null}
         </div>
       </div>

@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   MessageCircle,
   X,
+  Wrench,
 } from "lucide-react";
 import { formatMoney, formatDate, formatPeriod, titleCase } from "@/lib/format";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -30,6 +31,8 @@ import {
 
 export default function AdminDashboardClient({ data }) {
   const { cards, collection, society, pendingInvoices = [], bedsGrid = [] } = data;
+  const recentComplaints = data.recentComplaints || [];
+  const recentPayments = data.recentPayments || [];
 
   const [dismissNoticeBanner, setDismissNoticeBanner] = useState(false);
 
@@ -55,7 +58,7 @@ export default function AdminDashboardClient({ data }) {
       {/* ── TOP HEADER (CLEAN, SLEEK DASHBOARD TITLE & TIME) ───────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-1">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black tracking-tight text-neutral-950 sm:text-3xl">
+          <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
             Dashboard
           </h1>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/90 bg-white px-3 py-1 text-xs font-semibold text-neutral-600 shadow-2xs">
@@ -81,7 +84,7 @@ export default function AdminDashboardClient({ data }) {
             href="/admin/billing/payments"
             variant="secondary"
             size="md"
-            className="font-bold border border-neutral-200 bg-white hover:bg-neutral-50"
+            className="font-bold shadow-2xs"
           >
             <Wallet className="size-4" />
             Record Payment
@@ -91,7 +94,7 @@ export default function AdminDashboardClient({ data }) {
             href="/admin/billing/invoices"
             variant="outline"
             size="md"
-            className="font-semibold text-neutral-700 hover:bg-neutral-50"
+            className="font-bold text-neutral-700 border-neutral-200 hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50/50 shadow-2xs"
           >
             <FileText className="size-4" />
             Invoices
@@ -166,17 +169,17 @@ export default function AdminDashboardClient({ data }) {
             </span>
           </div>
           <p
-            className={`mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight ${
+            className={`mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums ${
               cards.overdue > 0 ? "text-error-600" : "text-neutral-900"
             }`}
           >
             {formatMoney(cards.overdue)}
           </p>
-          <div className="mt-2 flex items-center justify-between text-xs">
+          <div className="mt-2 flex items-center justify-between text-xs font-medium">
             <span
               className={
                 cards.overdue > 0
-                  ? "font-semibold text-error-700"
+                  ? "font-bold text-error-700"
                   : "text-neutral-500"
               }
             >
@@ -201,10 +204,10 @@ export default function AdminDashboardClient({ data }) {
               <Clock className="size-4" />
             </span>
           </div>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900">
             {formatMoney(cards.pending)}
           </p>
-          <div className="mt-2 flex items-center justify-between text-xs">
+          <div className="mt-2 flex items-center justify-between text-xs font-medium">
             <span className="text-neutral-500">
               {collection.outstanding > 0
                 ? `${formatMoney(collection.outstanding)} uncollected`
@@ -227,10 +230,10 @@ export default function AdminDashboardClient({ data }) {
               <Wallet className="size-4" />
             </span>
           </div>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-success-700">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success-700">
             {formatMoney(collection.collected)}
           </p>
-          <div className="mt-2 flex items-center justify-between text-xs">
+          <div className="mt-2 flex items-center justify-between text-xs font-medium">
             <span className="text-neutral-500">
               {collection.billed > 0 ? (
                 <>
@@ -258,10 +261,10 @@ export default function AdminDashboardClient({ data }) {
               <BedSingle className="size-4" />
             </span>
           </div>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-brand-700">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-brand-700">
             {cards.occupancyRate}%
           </p>
-          <div className="mt-2 flex items-center justify-between text-xs">
+          <div className="mt-2 flex items-center justify-between text-xs font-medium">
             <span className="text-neutral-500">
               <strong className="font-bold text-success-700">{cards.vacantBeds} vacant</strong>{" "}
               · {cards.occupiedBeds} occupied
@@ -294,7 +297,6 @@ export default function AdminDashboardClient({ data }) {
 
             {/* Invoices List / Defaulters Actions */}
             <div className="p-4 sm:p-5">
-
               {pendingInvoices.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-neutral-200 p-8 text-center bg-neutral-50/50">
                   <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-success-50 text-success-600 mb-2">
@@ -307,7 +309,7 @@ export default function AdminDashboardClient({ data }) {
                 </div>
               ) : (
                 <div className="divide-y divide-neutral-100">
-                  {pendingInvoices.map((inv) => {
+                  {pendingInvoices.slice(0, 5).map((inv) => {
                     const resident = inv.occupancy?.user;
                     const phone = resident?.phone;
                     const roomLabel = inv.occupancy?.unit?.unitNumber
@@ -351,7 +353,7 @@ export default function AdminDashboardClient({ data }) {
                               {resident?.name || "Unassigned Tenant"}
                             </p>
                             <span
-                              className={`rounded-full px-2 py-0.2 text-[10px] font-bold ${
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                                 isOverdue
                                   ? "bg-error-50 text-error-700 ring-1 ring-error-600/20"
                                   : "bg-warning-50 text-warning-700 ring-1 ring-warning-600/20"
@@ -360,7 +362,7 @@ export default function AdminDashboardClient({ data }) {
                               {isOverdue ? "OVERDUE" : "PENDING"}
                             </span>
                           </div>
-                          <p className="text-[11px] text-neutral-500 mt-0.5">
+                          <p className="text-[11px] font-medium text-neutral-500 mt-0.5">
                             {roomLabel} · Due {formatDate(inv.dueDate)}
                           </p>
                         </div>
@@ -420,6 +422,91 @@ export default function AdminDashboardClient({ data }) {
               </div>
             </div>
           </Card>
+
+          {/* ── ACTIVE COMPLAINTS CARD (MATCHES HEIGHT WITH RECENT PAYMENTS) ── */}
+          <Card className="overflow-hidden">
+            <CardHeader
+              title="Active Complaints"
+              subtitle={`${cards.openComplaints || 0} unresolved · ${cards.urgentComplaints || 0} urgent`}
+              icon={Wrench}
+              action={
+                <Link
+                  href="/admin/complaints"
+                  className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
+                >
+                  View all ({cards.openComplaints || 0})
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              }
+            />
+
+            <div className="p-4 sm:p-5">
+              {recentComplaints.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-neutral-200 p-6 text-center bg-neutral-50/50">
+                  <span className="mx-auto flex size-8 items-center justify-center rounded-full bg-success-50 text-success-600 mb-1.5">
+                    <CheckCircle2 className="size-4.5" />
+                  </span>
+                  <p className="text-xs sm:text-sm font-bold text-neutral-900">Zero Open Complaints</p>
+                  <p className="text-[11px] font-medium text-neutral-500 mt-0.5">
+                    All resident maintenance requests and issues have been resolved.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-neutral-100">
+                  {recentComplaints.slice(0, 4).map((c) => {
+                    const locationLabel = c.unit?.unitNumber
+                      ? `Room ${c.unit.unitNumber}${c.bed?.bedLabel ? ` (${c.bed.bedLabel})` : ""}`
+                      : c.flat?.flatNumber
+                      ? `Flat ${c.flat.flatNumber}`
+                      : "PG Resident";
+                    const isUrgent = c.priority === "URGENT";
+
+                    return (
+                      <div
+                        key={c.id}
+                        className="py-3 flex items-center justify-between gap-3 hover:bg-neutral-50/50 rounded-xl px-2 transition"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs sm:text-sm font-bold text-neutral-900 truncate">
+                              {c.title}
+                            </p>
+                            {isUrgent && (
+                              <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold bg-error-50 text-error-700 ring-1 ring-error-600/20">
+                                URGENT
+                              </span>
+                            )}
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                c.status === "RESOLVED"
+                                  ? "bg-success-50 text-success-700 ring-1 ring-success-600/20"
+                                  : c.status === "IN_PROGRESS"
+                                  ? "bg-info-50 text-info-700 ring-1 ring-info-600/20"
+                                  : "bg-warning-50 text-warning-700 ring-1 ring-warning-600/20"
+                              }`}
+                            >
+                              {c.status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-medium text-neutral-500 mt-0.5 truncate">
+                            {locationLabel} · {c.createdBy?.name || "Resident"} · {formatDate(c.createdAt)}
+                          </p>
+                        </div>
+
+                        <Link
+                          href={`/admin/complaints?id=${c.id}`}
+                          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-neutral-100 hover:bg-neutral-200/80 px-2.5 py-1 text-[11px] font-bold text-neutral-700 transition"
+                        >
+                          <span>Review</span>
+                          <ArrowRight className="size-3" />
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
 
         {/* ── RIGHT COLUMN (5 COLS): LIVE BED AVAILABILITY & ACTIVITY ────── */}
@@ -429,7 +516,7 @@ export default function AdminDashboardClient({ data }) {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-sm font-bold text-neutral-900">Bed Availability Grid</h3>
-                <p className="text-[11px] text-neutral-500">Live room allocation snapshot</p>
+                <p className="text-[11px] font-medium text-neutral-500">Live room allocation snapshot</p>
               </div>
               <Link
                 href="/admin/rooms"
@@ -512,22 +599,28 @@ export default function AdminDashboardClient({ data }) {
               action={
                 <Link
                   href="/admin/billing/payments"
-                  className="text-xs font-bold text-brand-600 hover:text-brand-700"
+                  className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
                 >
-                  View all →
+                  View all
+                  <ArrowRight className="size-3.5" />
                 </Link>
               }
             />
-            {data.recentPayments.length === 0 ? (
-              <EmptyState
-                icon={CreditCard}
-                title="No payments recorded"
-                description="Payments recorded will appear here instantly."
-                compact
-              />
+            {recentPayments.length === 0 ? (
+              <div className="p-4 sm:p-5">
+                <div className="rounded-xl border border-dashed border-neutral-200 p-6 text-center bg-neutral-50/50">
+                  <span className="mx-auto flex size-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 mb-1.5">
+                    <CreditCard className="size-4.5" />
+                  </span>
+                  <p className="text-xs sm:text-sm font-bold text-neutral-900">No Payments Recorded</p>
+                  <p className="text-[11px] font-medium text-neutral-500 mt-0.5">
+                    Payments recorded will appear here instantly.
+                  </p>
+                </div>
+              </div>
             ) : (
-              <ul className="divide-y divide-neutral-100 text-xs">
-                {data.recentPayments.slice(0, 5).map((p) => {
+              <ul className="divide-y divide-neutral-100 text-xs p-3 sm:p-4">
+                {recentPayments.slice(0, 4).map((p) => {
                   const targetLabel = p.occupancy
                     ? `Room ${p.occupancy.unit?.unitNumber || "-"}${p.occupancy.bed ? ` (${p.occupancy.bed.bedLabel})` : ""}`
                     : p.flat?.flatNumber || "Tenant";
@@ -536,17 +629,17 @@ export default function AdminDashboardClient({ data }) {
                   return (
                     <li
                       key={p.id}
-                      className="flex items-center justify-between p-3.5 hover:bg-neutral-50/50 transition"
+                      className="flex items-center justify-between p-3 hover:bg-neutral-50/50 rounded-xl transition"
                     >
                       <div className="min-w-0">
-                        <p className="font-bold text-neutral-900 truncate">
+                        <p className="font-bold text-neutral-900 truncate text-xs sm:text-sm">
                           {residentName || targetLabel}
                         </p>
-                        <p className="text-[11px] text-neutral-500">
+                        <p className="text-[11px] font-medium text-neutral-500 mt-0.5">
                           {targetLabel} · {titleCase(p.paymentMethod)} · {formatDate(p.paymentDate)}
                         </p>
                       </div>
-                      <span className="font-extrabold text-success-700 tabular-nums shrink-0 ml-2">
+                      <span className="font-extrabold text-success-700 tabular-nums shrink-0 ml-2 text-xs sm:text-sm">
                         +{formatMoney(p.amount)}
                       </span>
                     </li>
