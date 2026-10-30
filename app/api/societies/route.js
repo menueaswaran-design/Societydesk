@@ -39,6 +39,12 @@ const POSTImpl = handler(async (req) => {
 
   const body = societyCreateSchema.parse(await readJson(req));
 
+  const generatedCode =
+    (body.code || "").trim() ||
+    (body.name.replace(/[^A-Za-z0-9]/g, "").slice(0, 4) +
+      Math.floor(100 + Math.random() * 900)
+    ).toUpperCase();
+
   let adminIdentity = null;
   if (body.adminName && body.adminEmail && body.adminPassword) {
     const adminEmail = body.adminEmail.toLowerCase();
@@ -57,53 +63,35 @@ const POSTImpl = handler(async (req) => {
       const created = await tx.society.create({
         data: {
           name: body.name,
-          code: body.code,
+          code: generatedCode,
+          type: "PG",
           address: body.address ?? null,
           city: body.city ?? null,
           state: body.state ?? null,
           pincode: body.pincode ?? null,
           phone: body.phone ?? null,
           email: body.email || null,
+          bankName: body.bankName ?? null,
+          bankAccountNo: body.bankAccountNo ?? null,
+          bankIfsc: body.bankIfsc ?? null,
+          bankHolderName: body.bankHolderName ?? null,
+          upiId: body.upiId ?? null,
           status: "ACTIVE",
         },
       });
 
-      let adminUser = null;
       if (adminIdentity) {
-        adminUser = await tx.user.create({
+        await tx.user.create({
           data: {
             societyId: created.id,
             name: body.adminName,
             email: body.adminEmail.toLowerCase(),
+            phone: body.adminPhone || null,
             authUid: adminIdentity.uid,
-            role: "SOCIETY_ADMIN",
+            role: body.adminRole || "MANAGER",
             status: "ACTIVE",
           },
         });
-      }
-
-      // If single-flat setup is selected, combine society + flat without multi-tier complexity
-      if (body.setupType === "SINGLE_FLAT") {
-        const flatNumber = body.singleFlatNumber?.trim() || "101";
-        const flat = await tx.flat.create({
-          data: {
-            societyId: created.id,
-            flatNumber,
-            status: "OCCUPIED",
-          },
-        });
-
-        if (adminUser) {
-          await tx.flatResident.create({
-            data: {
-              societyId: created.id,
-              flatId: flat.id,
-              userId: adminUser.id,
-              residentType: "OWNER",
-              isPrimary: true,
-            },
-          });
-        }
       }
 
       return created;

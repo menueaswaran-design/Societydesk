@@ -1,6 +1,6 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireSuperAdmin, requireSocietyAdmin, isSocietyAdmin, isSuperAdmin, resolveSocietyScope } from "@/lib/auth/permissions";
+import { requireSuperAdmin, requireSocietyAdmin, isSocietyAdmin, isSuperAdmin, isStaff, resolveSocietyScope } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { notFound, forbidden } from "@/lib/errors";
@@ -24,9 +24,9 @@ const GETImpl = handler(async (req, { params }) => {
   });
   if (!society) throw notFound("Society");
 
-  // Finance totals are only exposed to that society's own admins.
+  // Finance totals are only exposed to staff (Owner, Manager, Society Admin, Super Admin).
   let finance = null;
-  if (isSocietyAdmin(user) || user.role === "SUPER_ADMIN") {
+  if (isStaff(user)) {
     const [agg, pending] = await Promise.all([
       prisma.invoice.aggregate({
         where: { societyId },
@@ -78,6 +78,11 @@ const PATCHImpl = handler(async (req, { params }) => {
     pincode: body.pincode ?? undefined,
     phone: body.phone ?? undefined,
     email: body.email === "" ? null : (body.email ?? undefined),
+    bankName: body.bankName ?? undefined,
+    bankAccountNo: body.bankAccountNo ?? undefined,
+    bankIfsc: body.bankIfsc ?? undefined,
+    bankHolderName: body.bankHolderName ?? undefined,
+    upiId: body.upiId ?? undefined,
   };
 
   if (platformAdmin) {

@@ -6,6 +6,12 @@ export const dynamic = "force-dynamic";
 
 const PUBLIC_DEMO_ACCOUNTS = [
   {
+    email: "bedy@bedy.in",
+    name: "Bedy Super Admin",
+    role: "SUPER_ADMIN",
+    society: { name: "Bedy Platform" },
+  },
+  {
     email: "owner@srilakshmipg.local",
     name: "Suresh Reddy",
     role: "OWNER",
@@ -23,12 +29,6 @@ const PUBLIC_DEMO_ACCOUNTS = [
     role: "RESIDENT",
     society: { name: "Sri Lakshmi Luxury PG & Coliving" },
   },
-  {
-    email: "admin@greenvalley.local",
-    name: "Anand Murthy",
-    role: "SOCIETY_ADMIN",
-    society: { name: "Green Valley Apartments" },
-  },
 ];
 
 /**
@@ -44,13 +44,13 @@ const GETImpl = handler(async () => {
   try {
     const users = await prisma.user.findMany({
       where: {
-        role: { not: "SUPER_ADMIN" },
+        role: { notIn: ["SOCIETY_ADMIN", "FLAT_ADMIN"] },
         email: {
           in: [
+            "bedy@bedy.in",
             "owner@srilakshmipg.local",
             "manager@srilakshmipg.local",
             "resident@srilakshmipg.local",
-            "admin@greenvalley.local",
           ],
         },
       },

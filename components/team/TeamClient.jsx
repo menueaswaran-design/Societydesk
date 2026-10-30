@@ -20,14 +20,16 @@ import { titleCase } from "@/lib/format";
 
 const ROLE_TONE = {
   SUPER_ADMIN: "violet",
-  SOCIETY_ADMIN: "brand",
+  OWNER: "brand",
+  MANAGER: "blue",
+  SOCIETY_ADMIN: "indigo",
   SECURITY_ADMIN: "amber",
   FLAT_ADMIN: "blue",
   RESIDENT: "slate",
 };
 
 const ROLE_OPTIONS = {
-  super: [ROLES.SOCIETY_ADMIN],
+  super: [ROLES.MANAGER, ROLES.OWNER, ROLES.SUPER_ADMIN],
   society: [ROLES.FLAT_ADMIN],
 };
 
@@ -36,7 +38,7 @@ const EMPTY = {
   email: "",
   phone: "",
   password: "",
-  role: ROLES.SOCIETY_ADMIN,
+  role: ROLES.MANAGER,
   societyId: "",
   flatId: "",
 };
@@ -71,7 +73,7 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
   function openNew() {
     setForm({
       ...EMPTY,
-      role: roleOptions[0],
+      role: isSuper ? ROLES.MANAGER : ROLES.FLAT_ADMIN,
       societyId: isSuper ? (societies[0]?.id ?? "") : "",
       flatId: isSuper ? "" : (flats[0]?.id ?? ""),
     });
@@ -95,7 +97,7 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
         phone: form.phone || null,
         password: form.password,
         role: form.role,
-        societyId: isSuper ? form.societyId : null,
+        societyId: isSuper && form.role !== ROLES.SUPER_ADMIN ? form.societyId : null,
         flatId: isSuper ? null : form.flatId,
       };
       await api.post("/api/staff", payload);
@@ -124,23 +126,23 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
   return (
     <div className="stack">
       <PageHeader
-        title={isSuper ? "Society Admins" : "Flat Admins"}
+        title={isSuper ? "PG Managers & Admins" : "Flat Admins"}
         description={
           isSuper
-            ? "Manage and add society admins across societies. Super admins only manage society admins."
+            ? "Manage PG Managers, property owners, and platform super administrators."
             : "Flat admins manage the residents of their assigned flat. Each gets their own sign-in."
         }
         meta={
           isSuper ? (
             <span className="text-[11px] font-semibold text-slate-500">
-              <span className="text-brand-700">{staff.length} society admin{staff.length === 1 ? "" : "s"}</span> total
+              <span className="text-brand-700">{staff.length} admin / manager{staff.length === 1 ? "" : "s"}</span> total
             </span>
           ) : null
         }
         actions={
           <Button onClick={openNew}>
             <Plus />
-            {isSuper ? "Add society admin" : "Add flat admin"}
+            {isSuper ? "Add Manager / Admin" : "Add flat admin"}
           </Button>
         }
       />
@@ -181,7 +183,7 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
             head={[
               { label: "Admin" },
               { label: "Role" },
-              isSuper ? { label: "Society" } : { label: "Flat" },
+              isSuper ? { label: "Assigned Property" } : { label: "Flat" },
               { label: "Status" },
               { label: "", align: "right" },
             ]}
@@ -204,8 +206,12 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
                   </Td>
                   <Td>
                     {isSuper ? (
-                      s.society ? (
-                        <span className="inline-flex items-center gap-1.5 text-slate-700">
+                      s.role === "SUPER_ADMIN" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-semibold text-violet-700 ring-1 ring-violet-500/20">
+                          👑 All Properties (Platform)
+                        </span>
+                      ) : s.society ? (
+                        <span className="inline-flex items-center gap-1.5 text-slate-800 font-medium text-xs">
                           <Building2 className="size-3.5 text-slate-400" />
                           {s.society.name}
                         </span>
@@ -246,15 +252,21 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={isSuper ? "Add society admin" : "Add flat admin"}
-        description="They sign in with this email and password. The account is linked to Firebase immediately."
+        title={isSuper ? (form.role === ROLES.SUPER_ADMIN ? "Add Super Admin" : "Add PG Manager / Owner") : "Add flat admin"}
+        description={
+          isSuper
+            ? (form.role === ROLES.SUPER_ADMIN
+                ? "Create a new Super Admin account with full platform-level privileges."
+                : "Create a login account for a PG Manager or Owner to manage their property.")
+            : "They sign in with this email and password. The account is linked to Firebase immediately."
+        }
         footer={
           <>
             <Button variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button onClick={save} loading={saving}>
-              {isSuper ? "Add society admin" : "Add flat admin"}
+              {isSuper ? (form.role === ROLES.SUPER_ADMIN ? "Create Super Admin" : "Create PG Manager") : "Add flat admin"}
             </Button>
           </>
         }
@@ -269,21 +281,23 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
             onChange={set("name")}
             error={errors.name}
             required
+            placeholder="e.g. Ramesh Kumar"
           />
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input
               id="email"
-              label="Email"
+              label="Email address"
               type="email"
               value={form.email}
               onChange={set("email")}
               error={errors.email}
               required
+              placeholder="manager@pgname.com"
             />
             <Input
               id="phone"
-              label="Phone"
+              label="Phone number (optional)"
               value={form.phone}
               onChange={set("phone")}
               error={errors.phone}
@@ -293,28 +307,41 @@ export default function TeamClient({ mode = "super", staff = [], societies = [],
 
           {isSuper ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Input
-                id="role"
-                label="Role"
-                value="Society Admin"
-                readOnly
-                disabled
-              />
               <Select
-                id="societyId"
-                label="Society"
-                value={form.societyId}
-                onChange={set("societyId")}
-                error={errors.societyId}
+                id="role"
+                label="Account Role"
+                value={form.role}
+                onChange={set("role")}
+                error={errors.role}
                 required
               >
-                <option value="">Select a society</option>
-                {societies.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
+                <option value={ROLES.MANAGER}>PG Manager (Property Staff)</option>
+                <option value={ROLES.OWNER}>PG Owner (Property Owner)</option>
+                <option value={ROLES.SUPER_ADMIN}>Super Admin (Platform Administrator)</option>
               </Select>
+              {form.role !== ROLES.SUPER_ADMIN ? (
+                <Select
+                  id="societyId"
+                  label="Assigned PG Property"
+                  value={form.societyId}
+                  onChange={set("societyId")}
+                  error={errors.societyId}
+                  required
+                >
+                  <option value="">Select a PG property</option>
+                  {societies.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <div className="flex flex-col justify-end">
+                  <div className="text-[11px] text-violet-800 bg-violet-50/80 p-2.5 rounded-lg border border-violet-200">
+                    👑 Platform-wide administrator with access to all properties & analytics.
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <Select

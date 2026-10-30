@@ -14,6 +14,23 @@ const AUTH_COOKIES = ["sd_dev_user"];
 export function middleware(req) {
   const { pathname } = req.nextUrl;
 
+  // Canonical redirects for bare section roots
+  if (pathname === "/super-admin" || pathname === "/super-admin/") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/super-admin/dashboard";
+    return NextResponse.redirect(url);
+  }
+  if (pathname === "/admin" || pathname === "/admin/") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/admin/dashboard";
+    return NextResponse.redirect(url);
+  }
+  if (pathname === "/resident" || pathname === "/resident/") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/resident/dashboard";
+    return NextResponse.redirect(url);
+  }
+
   const isProtected = PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   if (!isProtected) return NextResponse.next();
 

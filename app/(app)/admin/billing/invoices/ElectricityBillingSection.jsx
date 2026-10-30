@@ -12,6 +12,7 @@ import {
   Check,
   Building2,
   Users,
+  UserCheck,
   RotateCcw,
   Sparkles,
 } from "lucide-react";
@@ -32,10 +33,10 @@ export default function ElectricityBillingSection({
   onToggleEnabled,
   onConfigChange,
 }) {
-  // Method selection: "ROOM_WISE" | "COMMON" | "FIXED" | "INCLUDED"
+  // Method selection: "COMMON" | "ROOM_WISE" | "INDIVIDUAL"
   const [method, setMethod] = useState("ROOM_WISE");
 
-  // Option B: Split Total Bill Config
+  // Option 1: Split Total Bill Config (Common for all split)
   const [splitConfig, setSplitConfig] = useState({
     type: "TOTAL", // "TOTAL" | "UNITS" | "PER_PERSON"
     totalBill: "",
@@ -44,7 +45,7 @@ export default function ElectricityBillingSection({
     fixedPerPerson: "",
   });
 
-  // Option C: Room-Wise Sub-Meter Config
+  // Option 2: Room-Wise Sub-Meter Config (Room-wise split)
   const [roomWiseConfig, setRoomWiseConfig] = useState({
     defaultRate: 10,
     saveMeterReadings: true,
@@ -78,11 +79,11 @@ export default function ElectricityBillingSection({
     return initial;
   });
 
-  // Option D: Fixed Electricity Charge Config
-  const [fixedConfig, setFixedConfig] = useState({
-    basis: "PER_RESIDENT", // "PER_RESIDENT" | "PER_ROOM"
-    residentAmount: "",
-    roomAmount: "",
+  // Option 3: Individual Resident Electricity Config
+  const [individualConfig, setIndividualConfig] = useState({
+    defaultAmount: "500",
+    useCustomPerResident: false,
+    residentAmounts: {},
   });
 
   // Occupancy metrics
@@ -228,28 +229,21 @@ export default function ElectricityBillingSection({
       };
     }
 
-    if (method === "FIXED") {
-      if (fixedConfig.basis === "PER_RESIDENT") {
-        const amt = Number(fixedConfig.residentAmount) || 0;
-        const total = amt * activeResidentsCount;
-        return {
-          totalUnits: 0,
-          totalRoomCharges: total,
-          commonCharges: 0,
-          totalResidentBilled: total,
-          discrepancy: 0,
-        };
-      } else {
-        const amt = Number(fixedConfig.roomAmount) || 0;
-        const total = amt * occupiedRoomsCount;
-        return {
-          totalUnits: 0,
-          totalRoomCharges: total,
-          commonCharges: 0,
-          totalResidentBilled: total,
-          discrepancy: 0,
-        };
+    if (method === "INDIVIDUAL") {
+      const def = Number(individualConfig.defaultAmount) || 0;
+      let total = 0;
+      for (const occ of occupancies) {
+        const custom = individualConfig.residentAmounts[occ.id];
+        const val = custom !== undefined && custom !== "" ? Number(custom) : def;
+        total += Math.max(0, val);
       }
+      return {
+        totalUnits: 0,
+        totalRoomCharges: total,
+        commonCharges: 0,
+        totalResidentBilled: total,
+        discrepancy: 0,
+      };
     }
 
     return {
@@ -268,7 +262,8 @@ export default function ElectricityBillingSection({
     commonAreaTotal,
     commonPerResidentShare,
     roomWiseConfig,
-    fixedConfig,
+    individualConfig,
+    occupancies,
     occupiedRoomsCount,
   ]);
 
@@ -276,7 +271,7 @@ export default function ElectricityBillingSection({
   useEffect(() => {
     if (!onConfigChange) return;
 
-    if (!enabled || method === "INCLUDED") {
+    if (!enabled) {
       onConfigChange(undefined);
       return;
     }
@@ -346,29 +341,23 @@ export default function ElectricityBillingSection({
       return;
     }
 
-    if (method === "FIXED") {
-      if (fixedConfig.basis === "PER_RESIDENT") {
-        const payload = {
-          mode: "COMMON",
-          commonPerPerson: Number(fixedConfig.residentAmount) || 0,
+    if (method === "INDIVIDUAL") {
+      const def = Number(individualConfig.defaultAmount) || 0;
+      const individuals = occupancies.map((occ) => {
+        const custom = individualConfig.residentAmounts[occ.id];
+        const val = custom !== undefined && custom !== "" ? Number(custom) : def;
+        return {
+          occupancyId: occ.id,
+          amount: Math.max(0, val),
         };
-        onConfigChange(payload);
-      } else {
-        // Fixed charge per occupied room
-        const rooms = allRooms
-          .filter((r) => occupiedRoomKeys.has(r.id || r.unitNumber))
-          .map((r) => ({
-            unitId: r.id,
-            unitNumber: r.unitNumber,
-            mode: "AMOUNT",
-            amount: Number(fixedConfig.roomAmount) || 0,
-          }));
-        const payload = {
-          mode: "ROOM_WISE",
-          rooms,
-        };
-        onConfigChange(payload);
-      }
+      });
+      const payload = {
+        mode: "INDIVIDUAL",
+        commonPerPerson: def > 0 ? def : undefined,
+        individuals,
+      };
+      onConfigChange(payload);
+      return;
     }
   }, [
     enabled,
@@ -376,7 +365,8 @@ export default function ElectricityBillingSection({
     splitConfig,
     roomWiseConfig,
     roomReadings,
-    fixedConfig,
+    individualConfig,
+    occupancies,
     allRooms,
     occupiedRoomKeys,
     commonAreaTotal,
@@ -430,7 +420,7 @@ export default function ElectricityBillingSection({
 
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all space-y-4">
-      {/* 1. Header & Master Enable Switch */}
+      {/* 1. Header & Master Skip / Add Switch */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
         <div className="flex items-start gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20">
@@ -446,190 +436,134 @@ export default function ElectricityBillingSection({
                     : "bg-slate-100 text-slate-500 ring-1 ring-slate-200"
                 }`}
               >
-                {enabled ? "Active" : "Disabled (Rent Only)"}
+                {enabled ? "Active" : "Skipped (Rent Only)"}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Configure how electricity charges are calculated and allocated to residents.
+              Skip electricity billing or add it to invoices via one of the 3 calculation methods.
             </p>
           </div>
         </div>
 
-        {/* Master Toggle */}
-        <label
-          htmlFor="electricity-toggle"
-          className="inline-flex items-center gap-3 cursor-pointer self-start sm:self-center select-none"
-        >
-          <span className="text-xs font-semibold text-slate-700">
-            {enabled ? "Enabled" : "Enable Billing"}
-          </span>
-          <span className="relative inline-flex shrink-0">
-            <input
-              id="electricity-toggle"
-              type="checkbox"
-              role="switch"
-              checked={enabled}
-              onChange={(e) => onToggleEnabled(e.target.checked)}
-              className="peer sr-only"
-            />
-            <span className="h-6 w-11 rounded-full bg-slate-200 ring-1 ring-slate-300 transition-colors duration-200 peer-checked:bg-brand-600 peer-checked:ring-brand-600 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500" />
-            <span className="absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
-          </span>
-        </label>
+        {/* Master Skip vs Add Buttons */}
+        <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/80 self-start sm:self-center">
+          <button
+            type="button"
+            onClick={() => onToggleEnabled(false)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              !enabled
+                ? "bg-white text-slate-900 shadow-2xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            🚫 Skip Electricity
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleEnabled(true)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              enabled
+                ? "bg-brand-600 text-white shadow-2xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            ⚡ Add Electricity
+          </button>
+        </div>
       </div>
 
-      {/* When Disabled: Zero Clutter Notice */}
+      {/* When Skipped: Clean Notice */}
       {!enabled ? (
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-center">
-          <p className="text-xs text-slate-600">
-            Electricity billing is currently disabled. Invoices will be generated for room rent only.
+          <p className="text-xs text-slate-600 font-medium">
+            Electricity billing is skipped for this cycle. Invoices will be generated for room rent &amp; any extra charges only.
           </p>
           <button
             type="button"
             onClick={() => onToggleEnabled(true)}
             className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 underline underline-offset-2"
           >
-            <Zap className="size-3.5" /> Enable electricity charges for this period
+            <Zap className="size-3.5" /> Click here to add electricity charges
           </button>
         </div>
       ) : (
-        /* When Enabled: Billing Configuration */
+        /* When Enabled: 3 Electricity Billing Methods */
         <div className="space-y-4">
-          {/* 2. Billing Method Selection Grid (4 Options) */}
+          {/* 2. Billing Method Selection Grid (3 Clear Options) */}
           <div>
             <label className="text-xs font-bold text-slate-800 block mb-2">
-              Select Billing Method:
+              Select Electricity Method (3 Options):
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {/* Option A: Included in Rent */}
-              <button
-                type="button"
-                onClick={() => setMethod("INCLUDED")}
-                className={`relative flex flex-col p-3 rounded-xl border text-left transition-all duration-150 ${
-                  method === "INCLUDED"
-                    ? "border-brand-600 bg-brand-50/20 ring-2 ring-brand-500/20 shadow-2xs"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2
-                      className={`size-4 ${
-                        method === "INCLUDED" ? "text-brand-600" : "text-slate-400"
-                      }`}
-                    />
-                    <span className="text-xs font-bold text-slate-900">Included in Rent</span>
-                  </div>
-                  {method === "INCLUDED" && (
-                    <span className="size-2 rounded-full bg-brand-600" />
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Charges are already included in monthly rent. No separate line item.
-                </p>
-              </button>
-
-              {/* Option B: Split Total Bill */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Option 1: Common for all split */}
               <button
                 type="button"
                 onClick={() => setMethod("COMMON")}
-                className={`relative flex flex-col p-3 rounded-xl border text-left transition-all duration-150 ${
+                className={`relative flex flex-col p-3.5 rounded-xl border text-left transition-all duration-150 ${
                   method === "COMMON"
                     ? "border-brand-600 bg-brand-50/20 ring-2 ring-brand-500/20 shadow-2xs"
                     : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <Split
-                      className={`size-4 ${
-                        method === "COMMON" ? "text-brand-600" : "text-slate-400"
-                      }`}
-                    />
-                    <span className="text-xs font-bold text-slate-900">Split Total Bill</span>
+                <div className="flex items-center justify-between w-full mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Split className={`size-4 ${method === "COMMON" ? "text-brand-600" : "text-slate-400"}`} />
+                    <span className="text-xs font-bold text-slate-900">1. Common for All Split</span>
                   </div>
-                  {method === "COMMON" && (
-                    <span className="size-2 rounded-full bg-brand-600" />
-                  )}
+                  {method === "COMMON" && <span className="size-2 rounded-full bg-brand-600" />}
                 </div>
                 <p className="text-[11px] text-slate-500 leading-snug">
-                  Divide total property electricity bill among active residents.
+                  Split total property bill or units equally across all active residents.
                 </p>
               </button>
 
-              {/* Option C: Room-Wise Sub-Meter */}
+              {/* Option 2: Room-wise split */}
               <button
                 type="button"
                 onClick={() => setMethod("ROOM_WISE")}
-                className={`relative flex flex-col p-3 rounded-xl border text-left transition-all duration-150 ${
+                className={`relative flex flex-col p-3.5 rounded-xl border text-left transition-all duration-150 ${
                   method === "ROOM_WISE"
                     ? "border-brand-600 bg-brand-50/20 ring-2 ring-brand-500/20 shadow-2xs"
                     : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <Gauge
-                      className={`size-4 ${
-                        method === "ROOM_WISE" ? "text-brand-600" : "text-slate-400"
-                      }`}
-                    />
-                    <span className="text-xs font-bold text-slate-900">Room-Wise Sub-Meter</span>
+                <div className="flex items-center justify-between w-full mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Gauge className={`size-4 ${method === "ROOM_WISE" ? "text-brand-600" : "text-slate-400"}`} />
+                    <span className="text-xs font-bold text-slate-900">2. Room-Wise Split</span>
                   </div>
-                  {method === "ROOM_WISE" && (
-                    <span className="size-2 rounded-full bg-brand-600" />
-                  )}
+                  {method === "ROOM_WISE" && <span className="size-2 rounded-full bg-brand-600" />}
                 </div>
                 <p className="text-[11px] text-slate-500 leading-snug">
-                  Calculate per room using sub-meter readings and rate per unit.
+                  Sub-meter readings per room, divided among that room&apos;s occupants.
                 </p>
               </button>
 
-              {/* Option D: Fixed Electricity Charge */}
+              {/* Option 3: Individual */}
               <button
                 type="button"
-                onClick={() => setMethod("FIXED")}
-                className={`relative flex flex-col p-3 rounded-xl border text-left transition-all duration-150 ${
-                  method === "FIXED"
+                onClick={() => setMethod("INDIVIDUAL")}
+                className={`relative flex flex-col p-3.5 rounded-xl border text-left transition-all duration-150 ${
+                  method === "INDIVIDUAL"
                     ? "border-brand-600 bg-brand-50/20 ring-2 ring-brand-500/20 shadow-2xs"
                     : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <Receipt
-                      className={`size-4 ${
-                        method === "FIXED" ? "text-brand-600" : "text-slate-400"
-                      }`}
-                    />
-                    <span className="text-xs font-bold text-slate-900">Fixed Charge</span>
+                <div className="flex items-center justify-between w-full mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className={`size-4 ${method === "INDIVIDUAL" ? "text-brand-600" : "text-slate-400"}`} />
+                    <span className="text-xs font-bold text-slate-900">3. Individual</span>
                   </div>
-                  {method === "FIXED" && (
-                    <span className="size-2 rounded-full bg-brand-600" />
-                  )}
+                  {method === "INDIVIDUAL" && <span className="size-2 rounded-full bg-brand-600" />}
                 </div>
                 <p className="text-[11px] text-slate-500 leading-snug">
-                  Flat monthly electricity amount per resident or occupied room.
+                  Direct electricity charge per resident (flat fee or custom per person).
                 </p>
               </button>
             </div>
           </div>
 
           {/* 3. Conditional Detail Panel */}
-
-          {/* OPTION A: INCLUDED IN RENT */}
-          {method === "INCLUDED" && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-xs text-slate-700 flex items-start gap-3">
-              <CheckCircle2 className="size-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-slate-900 text-sm">Electricity is Included in Rent</p>
-                <p className="text-slate-600 mt-1 leading-relaxed">
-                  Monthly rent already covers resident electricity usage. Invoices for this billing cycle
-                  will contain only room rent without any separate electricity line item or meter reading requirement.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* OPTION B: SPLIT TOTAL BILL */}
           {method === "COMMON" && (
@@ -1290,113 +1224,136 @@ export default function ElectricityBillingSection({
             </div>
           )}
 
-          {/* OPTION D: FIXED CHARGE */}
-          {method === "FIXED" && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3.5 shadow-2xs">
-              <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-2.5">
-                <span className="text-xs font-bold text-slate-800">Charging Basis:</span>
-                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setFixedConfig({ ...fixedConfig, basis: "PER_RESIDENT" })}
-                    className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                      fixedConfig.basis === "PER_RESIDENT"
-                        ? "bg-white text-slate-900 shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Per Resident per Month
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFixedConfig({ ...fixedConfig, basis: "PER_ROOM" })}
-                    className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                      fixedConfig.basis === "PER_ROOM"
-                        ? "bg-white text-slate-900 shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Per Occupied Room per Month
-                  </button>
+          {/* OPTION 3: INDIVIDUAL */}
+          {method === "INDIVIDUAL" && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Individual Resident Electricity Charge</h4>
+                  <p className="text-[11px] text-slate-500">
+                    Set a standard electricity amount for all residents or customize individual amounts.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setIndividualConfig((prev) => ({
+                      ...prev,
+                      useCustomPerResident: !prev.useCustomPerResident,
+                    }))
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold self-start sm:self-auto transition-colors"
+                >
+                  <Users className="size-3.5 text-slate-500" />
+                  {individualConfig.useCustomPerResident
+                    ? "Hide Resident List"
+                    : "Customize Per Resident"}
+                </button>
+              </div>
+
+              {/* Standard Amount Input */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                    Standard Amount per Resident (₹) <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-xs">
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={individualConfig.defaultAmount}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setIndividualConfig((prev) => ({
+                          ...prev,
+                          defaultAmount: val,
+                        }));
+                      }}
+                      placeholder="e.g. 500"
+                      className="w-full h-9.5 pl-8 pr-3 text-xs font-bold rounded-xl border border-slate-200 bg-white focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 flex flex-col justify-center text-xs">
+                  <div className="flex justify-between items-center text-slate-600 mb-1">
+                    <span>Active Residents:</span>
+                    <span className="font-bold text-slate-900">{activeResidentsCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center font-bold text-slate-900">
+                    <span>Total Electricity Collection:</span>
+                    <span className="text-brand-700 font-extrabold text-sm">
+                      ₹{summaryMetrics.totalResidentBilled.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {fixedConfig.basis === "PER_RESIDENT" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Fixed Charge per Resident (₹) <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-xs">
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={fixedConfig.residentAmount}
-                        onChange={(e) =>
-                          setFixedConfig({ ...fixedConfig, residentAmount: e.target.value })
-                        }
-                        placeholder="e.g. 500"
-                        className="w-full h-9.5 pl-8 pr-3 text-xs font-bold rounded-xl border border-slate-200 bg-white focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15"
-                      />
-                    </div>
+              {/* Per-Resident Customization List */}
+              {individualConfig.useCustomPerResident && (
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-800">Customize Specific Residents:</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIndividualConfig((prev) => ({
+                          ...prev,
+                          residentAmounts: {},
+                        }))
+                      }
+                      className="text-[11px] font-semibold text-brand-600 hover:text-brand-700"
+                    >
+                      Reset all to ₹{individualConfig.defaultAmount || 0}
+                    </button>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 flex flex-col justify-center text-xs">
-                    <div className="flex justify-between items-center text-slate-600 mb-1">
-                      <span>Eligible Active Residents:</span>
-                      <span className="font-bold text-slate-900">{activeResidentsCount}</span>
-                    </div>
-                    <div className="flex justify-between items-center font-bold text-slate-900">
-                      <span>Total Collection:</span>
-                      <span className="text-brand-700 font-extrabold text-sm">
-                        ₹
-                        {(
-                          (Number(fixedConfig.residentAmount) || 0) * activeResidentsCount
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Fixed Charge per Occupied Room (₹) <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-xs">
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={fixedConfig.roomAmount}
-                        onChange={(e) =>
-                          setFixedConfig({ ...fixedConfig, roomAmount: e.target.value })
-                        }
-                        placeholder="e.g. 1200"
-                        className="w-full h-9.5 pl-8 pr-3 text-xs font-bold rounded-xl border border-slate-200 bg-white focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 flex flex-col justify-center text-xs">
-                    <div className="flex justify-between items-center text-slate-600 mb-1">
-                      <span>Occupied Rooms:</span>
-                      <span className="font-bold text-slate-900">{occupiedRoomsCount}</span>
-                    </div>
-                    <div className="flex justify-between items-center font-bold text-slate-900">
-                      <span>Total Collection:</span>
-                      <span className="text-brand-700 font-extrabold text-sm">
-                        ₹
-                        {(
-                          (Number(fixedConfig.roomAmount) || 0) * occupiedRoomsCount
-                        ).toLocaleString()}
-                      </span>
-                    </div>
+                  <div className="rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                    {occupancies.map((occ) => {
+                      const occVal =
+                        individualConfig.residentAmounts[occ.id] !== undefined
+                          ? individualConfig.residentAmounts[occ.id]
+                          : individualConfig.defaultAmount;
+                      const roomNum = occ.unit?.unitNumber || "-";
+                      const bedLabel = occ.bed?.bedLabel || "";
+                      return (
+                        <div
+                          key={occ.id}
+                          className="flex items-center justify-between p-2.5 bg-white hover:bg-slate-50/50 text-xs gap-3"
+                        >
+                          <div className="min-w-0">
+                            <span className="font-bold text-slate-900 block truncate">
+                              {occ.user?.name || "Resident"}
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              Room {roomNum} {bedLabel ? `· Bed ${bedLabel}` : ""}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-slate-400 font-bold text-xs">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={occVal}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setIndividualConfig((prev) => ({
+                                  ...prev,
+                                  residentAmounts: {
+                                    ...prev.residentAmounts,
+                                    [occ.id]: val,
+                                  },
+                                }));
+                              }}
+                              className="w-24 h-8 text-xs font-bold text-right rounded-lg border border-slate-300 bg-white px-2 focus:border-brand-500"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1404,8 +1361,7 @@ export default function ElectricityBillingSection({
               <div className="rounded-lg bg-slate-50 p-2.5 text-[11px] text-slate-500 flex items-start gap-2">
                 <Info className="size-4 text-slate-400 shrink-0 mt-0.5" />
                 <p>
-                  <strong>Vacant rooms policy:</strong> Vacant rooms are not charged. If charging per occupied room,
-                  the room amount is split equally among that room&apos;s occupants.
+                  Each resident will see their exact electricity charge itemized on their dashboard, invoices list, and payment link.
                 </p>
               </div>
             </div>

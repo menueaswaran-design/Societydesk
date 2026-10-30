@@ -31,7 +31,9 @@ export async function GET(req, { params }) {
       include: {
         payment: {
           include: {
-            invoice: true,
+            invoice: {
+              include: { items: true },
+            },
             occupancy: {
               include: {
                 unit: true,

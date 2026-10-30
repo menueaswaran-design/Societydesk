@@ -1,21 +1,21 @@
 const TONES = {
-  slate: "bg-slate-100 text-slate-700 ring-slate-900/10",
-  green: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  amber: "bg-amber-50 text-amber-700 ring-amber-600/25",
-  red: "bg-rose-50 text-rose-700 ring-rose-600/20",
-  blue: "bg-sky-50 text-sky-700 ring-sky-600/20",
+  slate: "bg-neutral-100 text-neutral-700 ring-neutral-900/10",
+  green: "bg-success-50 text-success-700 ring-success-600/20",
+  amber: "bg-warning-50 text-warning-700 ring-warning-600/25",
+  red: "bg-error-50 text-error-700 ring-error-600/20",
+  blue: "bg-info-50 text-info-700 ring-info-600/20",
   violet: "bg-violet-50 text-violet-700 ring-violet-600/20",
-  brand: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  brand: "bg-brand-50 text-brand-700 ring-brand-600/20",
 };
 
 const DOTS = {
-  slate: "bg-slate-400",
-  green: "bg-emerald-500",
-  amber: "bg-amber-500",
-  red: "bg-rose-500",
-  blue: "bg-sky-500",
+  slate: "bg-neutral-400",
+  green: "bg-success-500",
+  amber: "bg-warning-500",
+  red: "bg-error-500",
+  blue: "bg-info-500",
   violet: "bg-violet-500",
-  brand: "bg-emerald-500",
+  brand: "bg-brand-600",
 };
 
 export default function Badge({ tone = "slate", dot = false, className = "", children }) {

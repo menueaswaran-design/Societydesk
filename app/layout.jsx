@@ -94,19 +94,19 @@ const jsonLd = {
         "@type": "ImageObject",
         "url": "https://bedy.in/logo.png",
         "width": 1024,
-        "height": 1024
+        "height": 1024,
       },
       "sameAs": [],
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Live Showcase",
-      "url": "https://bedy.in/#showcase",
+      "name": "About Us",
+      "url": "https://bedy.in/about",
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Features",
-      "url": "https://bedy.in/#features",
+      "name": "Services & Products",
+      "url": "https://bedy.in/services",
     },
     {
       "@type": "SiteNavigationElement",
@@ -115,17 +115,12 @@ const jsonLd = {
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Test Drive Demo",
-      "url": "https://bedy.in/#demo-portals",
+      "name": "Contact Us",
+      "url": "https://bedy.in/contact",
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Sign In",
-      "url": "https://bedy.in/login",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Refund & Cancellation Policy",
+      "name": "Refund Policy",
       "url": "https://bedy.in/refund-policy",
     },
     {
@@ -133,11 +128,16 @@ const jsonLd = {
       "name": "Terms of Service",
       "url": "https://bedy.in/terms",
     },
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Privacy Policy",
+      "url": "https://bedy.in/privacy",
+    },
   ],
 };
 
 export const viewport = {
-  themeColor: "#2563eb",
+  themeColor: "#3154D9",
   width: "device-width",
   initialScale: 1,
 };
@@ -146,6 +146,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={manrope.variable}>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
         <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
         <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
@@ -155,7 +161,7 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${manrope.className} min-h-screen text-slate-900 bg-[#F8FAFC] antialiased`}>
+      <body className={`${manrope.className} min-h-screen text-[#10192E] bg-[#F8FAFF] antialiased`}>
         <FirebaseBootstrap />
         <LanguageProvider>
           {children}
