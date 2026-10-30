@@ -281,7 +281,7 @@ export default function AdminDashboardClient({ data }) {
         <div className="lg:col-span-7 space-y-6">
           <Card className="overflow-hidden">
             <CardHeader
-              title="Priority Dues Awaiting Payment"
+              title="Priority Dues Awaiting Payments"
               subtitle={`${pendingInvoices.length} active bills awaiting collection`}
               icon={Clock}
               action={
