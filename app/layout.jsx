@@ -94,19 +94,19 @@ const jsonLd = {
         "@type": "ImageObject",
         "url": "https://bedy.in/logo.png",
         "width": 1024,
-        "height": 1024
+        "height": 1024,
       },
       "sameAs": [],
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Live Showcase",
-      "url": "https://bedy.in/#showcase",
+      "name": "About Us",
+      "url": "https://bedy.in/about",
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Features",
-      "url": "https://bedy.in/#features",
+      "name": "Services & Products",
+      "url": "https://bedy.in/services",
     },
     {
       "@type": "SiteNavigationElement",
@@ -115,23 +115,23 @@ const jsonLd = {
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Test Drive Demo",
-      "url": "https://bedy.in/#demo-portals",
+      "name": "Contact Us",
+      "url": "https://bedy.in/contact",
     },
     {
       "@type": "SiteNavigationElement",
-      "name": "Sign In",
-      "url": "https://bedy.in/login",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Refund & Cancellation Policy",
+      "name": "Refund Policy",
       "url": "https://bedy.in/refund-policy",
     },
     {
       "@type": "SiteNavigationElement",
       "name": "Terms of Service",
       "url": "https://bedy.in/terms",
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Privacy Policy",
+      "url": "https://bedy.in/privacy",
     },
   ],
 };

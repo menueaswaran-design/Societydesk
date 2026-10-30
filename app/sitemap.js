@@ -1,42 +1,35 @@
 export default function sitemap() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bedy.in";
+  const lastModified = new Date("2026-10-30T10:13:00.000Z");
 
   return [
     {
       url: `${baseUrl}`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 1.0,
+      lastModified,
+    },
+    {
+      url: `${baseUrl}/about`,
+      lastModified,
+    },
+    {
+      url: `${baseUrl}/services`,
+      lastModified,
     },
     {
       url: `${baseUrl}/contact`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/login`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
+      lastModified,
     },
     {
       url: `${baseUrl}/refund-policy`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.6,
+      lastModified,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.5,
+      lastModified,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.5,
+      lastModified,
     },
   ];
 }
