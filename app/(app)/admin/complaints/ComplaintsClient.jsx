@@ -20,6 +20,7 @@ import { EmptyState, ErrorBanner, Loading } from "@/components/ui/Feedback";
 import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
 import FilterPills from "@/components/ui/FilterPills";
+import Pagination from "@/components/ui/Pagination";
 import { api, fieldErrors } from "@/lib/client/api";
 import {
   COMPLAINT_CATEGORY,
@@ -34,6 +35,8 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -46,6 +49,14 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
   }, [complaints, query]);
 
   const openComplaint = openId ? complaints.find((c) => c.id === openId) : null;
+
+  const totalItems = visible.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedComplaints = useMemo(() => {
+    return visible.slice(startIndex, startIndex + pageSize);
+  }, [visible, startIndex, pageSize]);
 
   return (
     <div className="stack">
@@ -73,7 +84,7 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
         <div className="border-b border-slate-100 p-4">
           <SearchInput
             value={query}
-            onChange={setQuery}
+            onChange={(val) => { setQuery(val); setPage(1); }}
             placeholder="Search title, flat or resident"
             className="w-full sm:max-w-sm"
           />
@@ -89,7 +100,7 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
           <>
             {/* Mobile Cards for Admin Complaints */}
             <div className="divide-y divide-slate-100 sm:hidden">
-              {visible.map((c) => (
+              {paginatedComplaints.map((c) => (
                 <div
                   key={c.id}
                   onClick={() => setOpenId(c.id)}
@@ -154,7 +165,7 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
                   { label: "", align: "right" },
                 ]}
               >
-                {visible.map((c) => (
+                {paginatedComplaints.map((c) => (
                   <Tr key={c.id}>
                     <Td>
                       <button

@@ -2,24 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, CreditCard, FileDown, Search, Receipt, Undo2, Info, Landmark, Plus } from "lucide-react";
+import { CreditCard, FileDown, Receipt, Undo2, Info, Landmark, Plus, User, BedDouble } from "lucide-react";
 import Button, { IconButton, TextAction } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
 import Badge from "@/components/ui/Badge";
 import { StatCard } from "@/components/ui/StatCard";
-import { Card, CardNote } from "@/components/ui/Card";
+import { CardNote } from "@/components/ui/Card";
 import { Input, Textarea } from "@/components/ui/Input";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
 import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
 import { FilterChips } from "@/components/ui/FilterPills";
-import CollectPaymentButton from "@/components/billing/CollectPaymentButton";
+import Pagination from "@/components/ui/Pagination";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { api, fieldErrors, openDocument } from "@/lib/client/api";
 import { formatDate, formatMoney, formatPeriod, titleCase } from "@/lib/format";
 
-export default function PaymentsClient({ payments, pendingOrders = [], summary }) {
+export default function PaymentsClient({ payments, summary }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState("");
@@ -27,6 +27,10 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
   const [reversing, setReversing] = useState(null);
   const [recordingOpen, setRecordingOpen] = useState(false);
   const [docError, setDocError] = useState(null);
+
+  // Pagination State - 20 items per page by default
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const methods = useMemo(
     () => Object.entries(summary.byMethod).filter(([, v]) => v.count > 0),
@@ -39,11 +43,10 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
       if (method && p.paymentMethod !== method) return false;
       if (!q) return true;
       return [
-        p.invoice?.invoiceNumber,
-        p.flat?.flatNumber,
-        p.flat?.block,
-        p.transactionReference,
-        p.receiptNumber,
+        p.residentName,
+        p.residentPhone,
+        p.unitLabel,
+        p.notes,
         p.recordedBy?.name,
       ]
         .filter(Boolean)
@@ -51,15 +54,14 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
     });
   }, [payments, query, method]);
 
-  const visiblePending = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return pendingOrders;
-    return pendingOrders.filter((o) =>
-      [o.invoice?.invoiceNumber, o.flat?.flatNumber, o.flat?.block, o.initiatedBy?.name]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [pendingOrders, query]);
+  // Derived Pagination
+  const totalItems = visible.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedPayments = useMemo(() => {
+    return visible.slice(startIndex, startIndex + pageSize);
+  }, [visible, startIndex, pageSize]);
 
   async function openReceipt(payment) {
     setDocError(null);
@@ -74,10 +76,12 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
     <div className="stack">
       <PageHeader
         title="Payments"
-        description="Every rupee received, with its receipt and the gateway reference behind it."
+        description="Every rupee received, with its resident details, room allocation, and digital receipt."
         meta={
           <span className="text-[11px] font-semibold text-slate-500">
-            {visible.length} of {payments.length} shown
+            {totalItems === 0
+              ? "0 payments"
+              : `${startIndex + 1}–${Math.min(startIndex + pageSize, totalItems)} of ${totalItems} shown`}
           </span>
         }
         actions={
@@ -89,115 +93,6 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
       />
 
       <ErrorBanner error={docError} />
-
-      {visiblePending.length > 0 ? (
-        <Card className="overflow-hidden">
-          <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-amber-50/50 px-5 py-3.5">
-            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-              <Clock className="size-4" />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-slate-900">Awaiting online payment</h2>
-              <p className="text-xs text-slate-500">
-                Payment links issued but not yet completed. Not included in collected totals.
-              </p>
-            </div>
-            <p className="tabular ml-auto text-sm font-semibold text-amber-700">
-              {formatMoney(visiblePending.reduce((s, o) => s + o.amount, 0))}
-            </p>
-          </div>
-          {/* Mobile Cards for Pending Payments */}
-          <div className="divide-y divide-amber-200/50 sm:hidden">
-            {visiblePending.map((o) => (
-              <div key={o.id} className="p-4 space-y-2.5 bg-amber-50/25">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
-                      {o.invoice?.invoiceNumber ?? "Invoice"}
-                    </div>
-                    <div className="mt-0.5 text-xs text-slate-600">
-                      Flat {o.flat?.block ? `${o.flat.block}-` : ""}{o.flat?.flatNumber} · Expires {formatDate(o.expiresAt)}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="tabular text-sm font-bold text-amber-700">
-                      {formatMoney(o.amount)}
-                    </div>
-                    <Badge tone="violet" size="xs" className="mt-0.5">
-                      {titleCase(o.gateway)}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-amber-200/40 flex items-center justify-between text-xs text-slate-500">
-                  <span>By {o.initiatedBy?.name ?? "System"}</span>
-                  <CollectPaymentButton
-                    invoiceId={o.invoiceId}
-                    invoiceNumber={o.invoice?.invoiceNumber}
-                    amount={o.amount}
-                    size="xs"
-                    label="Reissue link"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop Table for Pending Payments */}
-          <div className="hidden sm:block">
-            <Table
-              dense
-              head={[
-                { label: "Invoice" },
-                { label: "Room / Flat" },
-                { label: "Issued by", className: "hidden md:table-cell" },
-                { label: "Started", className: "hidden lg:table-cell" },
-                { label: "Expires" },
-                { label: "Channel", className: "hidden sm:table-cell" },
-                { label: "Amount", align: "right" },
-                { label: "", align: "right" },
-              ]}
-            >
-              {visiblePending.map((o) => (
-                <Tr key={o.id} className="bg-amber-50/25 hover:bg-amber-50/50">
-                  <Td className="font-mono font-semibold text-slate-900 whitespace-nowrap">{o.invoice?.invoiceNumber ?? "-"}</Td>
-                  <Td className="tabular whitespace-nowrap font-medium text-slate-800">
-                    {o.unitLabel || (o.flat?.flatNumber ? (o.flat.block ? `${o.flat.block}-${o.flat.flatNumber}` : `Flat ${o.flat.flatNumber}`) : "—")}
-                  </Td>
-                  <Td className="hidden md:table-cell">{o.initiatedBy?.name ?? "-"}</Td>
-                  <Td className="hidden whitespace-nowrap lg:table-cell">
-                    {formatDate(o.createdAt)}
-                  </Td>
-                  <Td className="whitespace-nowrap">
-                    {new Date(o.expiresAt) < new Date() ? (
-                      <Badge tone="slate">expired</Badge>
-                    ) : (
-                      formatDate(o.expiresAt)
-                    )}
-                  </Td>
-                  <Td className="hidden sm:table-cell">
-                    <Badge tone="violet">{titleCase(o.gateway)}</Badge>
-                  </Td>
-                  <Td align="right" className="tabular font-semibold text-amber-700">
-                    {formatMoney(o.amount)}
-                  </Td>
-                  <Td align="right">
-                    <RowActions>
-                      <CollectPaymentButton
-                        invoiceId={o.invoiceId}
-                        invoiceNumber={o.invoice?.invoiceNumber}
-                        amount={o.amount}
-                        size="xs"
-                        label="Reissue link"
-                      />
-                    </RowActions>
-                  </Td>
-                </Tr>
-              ))}
-            </Table>
-          </div>
-        </Card>
-      ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -235,13 +130,19 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center">
           <SearchInput
             value={query}
-            onChange={setQuery}
-            placeholder="Search invoice, flat, reference or receipt"
+            onChange={(val) => {
+              setQuery(val);
+              setPage(1);
+            }}
+            placeholder="Search resident name or room number..."
             className="w-full lg:max-w-sm"
           />
           <FilterChips
             value={method}
-            onChange={setMethod}
+            onChange={(val) => {
+              setMethod(val);
+              setPage(1);
+            }}
             options={[
               { value: "", label: "All" },
               ...methods.map(([m]) => ({ value: m, label: titleCase(m) })),
@@ -252,60 +153,54 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
         {visible.length === 0 ? (
           <EmptyState
             icon={CreditCard}
-            title="No payments"
-            description="Payments recorded against an invoice show up here."
+            title="No payments found"
+            description="Payments recorded against residents show up here."
           />
         ) : (
           <>
             {/* Mobile Cards for Recorded Payments */}
             <div className="divide-y divide-slate-100 sm:hidden">
-              {visible.map((p) => (
+              {paginatedPayments.map((p) => (
                 <div key={p.id} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
-                        {p.receiptNumber ?? <span className="text-slate-400 font-sans">No receipt #</span>}
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-slate-900 truncate">
+                          {p.residentName || "Resident"}
+                        </span>
+                        <Badge tone={p.paymentMethod === "UPI" ? "brand" : p.paymentMethod === "CASH" ? "green" : "violet"} size="xs">
+                          {titleCase(p.paymentMethod)}
+                        </Badge>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
+                        <span className="font-medium text-slate-700">{p.unitLabel || "—"}</span>
+                        <span>•</span>
+                        <span>{formatPeriod(p.invoice?.billingPeriod)}</span>
+                        <span>•</span>
                         <span>{formatDate(p.paymentDate)}</span>
-                        {(() => {
-                          const loc = p.unitLabel || (p.flat?.flatNumber ? (p.flat.block ? `${p.flat.block}-${p.flat.flatNumber}` : `Flat ${p.flat.flatNumber}`) : null);
-                          return loc && loc !== "—" ? (
-                            <>
-                              <span>•</span>
-                              <span className="font-medium text-slate-700">{loc}</span>
-                            </>
-                          ) : null;
-                        })()}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="tabular text-sm font-bold text-emerald-600">
+                      <div className="tabular text-base font-black text-emerald-600">
                         {formatMoney(p.amount)}
                       </div>
-                      <Badge tone="brand" size="xs" className="mt-0.5">
-                        {titleCase(p.paymentMethod)}
-                      </Badge>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
-                    <div className="text-slate-600 truncate text-[11px]">
-                      <span className="text-slate-400">Inv: </span>
-                      <span className="font-mono font-medium text-slate-700 whitespace-nowrap">
-                        {p.invoice?.invoiceNumber || "—"}
-                      </span>
+                    <div className="text-slate-500 text-[11px]">
+                      By {p.recordedBy?.name || "System"}
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {p.receiptUrl ? (
-                        <IconButton
-                          variant="brand"
-                          size="xs"
-                          label={`View receipt ${p.receiptNumber}`}
+                        <button
+                          type="button"
                           onClick={() => openReceipt(p)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold transition"
                         >
                           <FileDown className="size-3.5" />
-                        </IconButton>
+                          <span>Receipt</span>
+                        </button>
                       ) : null}
                       <Button
                         variant="secondary"
@@ -329,74 +224,112 @@ export default function PaymentsClient({ payments, pendingOrders = [], summary }
               ))}
             </div>
 
-            {/* Desktop Table for Recorded Payments */}
+            {/* Desktop Table - Clean, Human-Centric (No raw IDs) */}
             <div className="hidden sm:block">
               <Table
                 dense
                 head={[
+                  { label: "Resident" },
+                  { label: "Room / Bed" },
+                  { label: "Period", className: "hidden md:table-cell" },
                   { label: "Date" },
-                  { label: "Receipt" },
-                  { label: "Invoice", className: "hidden sm:table-cell" },
-                  { label: "Room / Flat" },
-                  { label: "Period", className: "hidden lg:table-cell" },
                   { label: "Method" },
-                  { label: "Reference", className: "hidden xl:table-cell" },
-                  { label: "By", className: "hidden xl:table-cell" },
                   { label: "Amount", align: "right" },
-                  { label: "", align: "right" },
+                  { label: "Receipt / Actions", align: "right" },
                 ]}
               >
-                {visible.map((p) => (
+                {paginatedPayments.map((p) => (
                   <Tr key={p.id}>
-                    <Td className="whitespace-nowrap">{formatDate(p.paymentDate)}</Td>
-                    <Td className="font-mono font-semibold text-slate-900 whitespace-nowrap">
-                      {p.receiptNumber ?? <span className="text-slate-400 font-sans">-</span>}
-                    </Td>
-                    <Td className="font-mono hidden sm:table-cell whitespace-nowrap">{p.invoice?.invoiceNumber}</Td>
-                    <Td className="tabular whitespace-nowrap font-medium text-slate-800">
-                      {p.unitLabel || (p.flat?.flatNumber ? (p.flat.block ? `${p.flat.block}-${p.flat.flatNumber}` : `Flat ${p.flat.flatNumber}`) : "—")}
-                    </Td>
-                    <Td className="hidden lg:table-cell">{formatPeriod(p.invoice?.billingPeriod)}</Td>
+                    {/* 1. Resident Column */}
                     <Td>
-                      <Badge tone="brand">{titleCase(p.paymentMethod)}</Badge>
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-8 rounded-full bg-brand-50 border border-brand-200/80 flex items-center justify-center text-xs font-bold text-brand-700 shrink-0">
+                          {(p.residentName || "R")[0].toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-900 block truncate text-xs">
+                            {p.residentName || "Resident"}
+                          </span>
+                          {p.residentPhone && (
+                            <span className="text-[11px] text-slate-400 block font-mono">
+                              {p.residentPhone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </Td>
-                    <Td className="hidden truncate text-xs text-slate-500 xl:table-cell">
-                      {p.transactionReference ?? "-"}
+
+                    {/* 2. Room & Bed */}
+                    <Td className="whitespace-nowrap font-semibold text-slate-800 text-xs">
+                      {p.unitLabel || "—"}
                     </Td>
-                    <Td className="hidden truncate xl:table-cell">
-                      {p.recordedBy?.name ?? "System"}
+
+                    {/* 3. Billing Period */}
+                    <Td className="hidden md:table-cell whitespace-nowrap text-slate-600 text-xs">
+                      {formatPeriod(p.invoice?.billingPeriod)}
                     </Td>
-                    <Td align="right" className="tabular font-semibold text-emerald-600">
+
+                    {/* 4. Payment Date */}
+                    <Td className="whitespace-nowrap text-slate-600 text-xs">
+                      {formatDate(p.paymentDate)}
+                    </Td>
+
+                    {/* 5. Payment Method */}
+                    <Td>
+                      <Badge tone={p.paymentMethod === "UPI" ? "brand" : p.paymentMethod === "CASH" ? "green" : "violet"}>
+                        {titleCase(p.paymentMethod)}
+                      </Badge>
+                    </Td>
+
+                    {/* 6. Amount */}
+                    <Td align="right" className="tabular font-black text-sm text-emerald-600">
                       {formatMoney(p.amount)}
                     </Td>
+
+                    {/* 7. Action / View Receipt */}
                     <Td align="right">
-                      <RowActions>
+                      <div className="flex items-center justify-end gap-1.5">
                         {p.receiptUrl ? (
-                          <IconButton
-                            variant="brand"
-                            label={`View receipt ${p.receiptNumber}`}
+                          <button
+                            type="button"
                             onClick={() => openReceipt(p)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold transition"
+                            title="Download or view payment receipt"
                           >
-                            <FileDown />
-                          </IconButton>
+                            <FileDown className="size-3.5" />
+                            <span>Receipt</span>
+                          </button>
                         ) : null}
                         <TextAction onClick={() => setEditing(p)}>Edit</TextAction>
                         <IconButton variant="danger" label="Reverse payment" onClick={() => setReversing(p)}>
-                          <Undo2 />
+                          <Undo2 className="size-3.5" />
                         </IconButton>
-                      </RowActions>
+                      </div>
                     </Td>
                   </Tr>
                 ))}
               </Table>
             </div>
+
+            {/* Modern Pagination UI (20 items per page default) */}
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={(newPage) => setPage(newPage)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemName="payments"
+            />
           </>
         )}
       </div>
 
       <CardNote tone="slate" icon={Info}>
-        Amounts cannot be edited. To correct a payment, reverse it with a reason and record a new one
-        against the invoice.
+        Amounts cannot be edited once recorded. To correct an entry, reverse it with a reason and record a new payment.
       </CardNote>
 
       <EditModal payment={editing} onClose={() => setEditing(null)} />
@@ -453,6 +386,8 @@ function EditModal({ payment, onClose }) {
 
   function close() {
     setLastId(null);
+    setError(null);
+    setErrors({});
     onClose();
   }
 
@@ -460,50 +395,49 @@ function EditModal({ payment, onClose }) {
     <Modal
       open={Boolean(payment)}
       onClose={close}
-      title="Edit payment details"
-      description={payment ? `${formatMoney(payment.amount)} · ${payment.invoice?.invoiceNumber}` : ""}
-      footer={
-        <>
-          <Button variant="secondary" onClick={close}>
+      title="Edit payment notes"
+      description="Update payment date or internal notes. Amount cannot be changed."
+      size="md"
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        className="stack"
+      >
+        <ErrorBanner error={error} />
+        <Input
+          label="Payment date"
+          type="date"
+          value={form.paymentDate}
+          onChange={set("paymentDate")}
+          error={errors.paymentDate}
+        />
+        <Input
+          label="Reference / Cheque # (optional)"
+          value={form.transactionReference}
+          onChange={set("transactionReference")}
+          placeholder="e.g. UPI ref or cheque #"
+          error={errors.transactionReference}
+        />
+        <Textarea
+          label="Notes"
+          value={form.notes}
+          onChange={set("notes")}
+          placeholder="Any notes about this payment"
+          rows={3}
+          error={errors.notes}
+        />
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="secondary" onClick={close}>
             Cancel
           </Button>
-          <Button onClick={submit} loading={saving}>
+          <Button type="submit" loading={saving}>
             Save changes
           </Button>
-        </>
-      }
-    >
-      {payment ? (
-        <div className="flex flex-col gap-4">
-          <ErrorBanner error={error} />
-          <Input
-            id="transactionReference"
-            label="Transaction reference"
-            value={form.transactionReference}
-            onChange={set("transactionReference")}
-            error={errors.transactionReference}
-          />
-          <Input
-            id="paymentDate"
-            label="Payment date"
-            type="date"
-            value={form.paymentDate}
-            onChange={set("paymentDate")}
-            error={errors.paymentDate}
-          />
-          <Textarea
-            id="notes"
-            label="Notes"
-            rows={3}
-            value={form.notes}
-            onChange={set("notes")}
-            error={errors.notes}
-          />
-          <CardNote tone="slate">
-            The recorded amount of {formatMoney(payment.amount)} cannot be changed here.
-          </CardNote>
         </div>
-      ) : null}
+      </form>
     </Modal>
   );
 }
@@ -514,31 +448,25 @@ function ReverseModal({ payment, onClose }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [lastId, setLastId] = useState(null);
-
-  if (payment && payment.id !== lastId) {
-    setLastId(payment.id);
-    setReason("");
-    setError(null);
-  }
+  const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
-    setSaving(true);
+    setSubmitting(true);
     setError(null);
     try {
-      await api.del(`/api/payments/${payment.id}`, { reason });
+      await api.post(`/api/payments/${payment.id}/reverse`, { reason });
       router.refresh();
       close();
     } catch (err) {
       setError(err.message);
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   }
 
   function close() {
-    setLastId(null);
+    setReason("");
+    setError(null);
     onClose();
   }
 
@@ -547,41 +475,38 @@ function ReverseModal({ payment, onClose }) {
       open={Boolean(payment)}
       onClose={close}
       title="Reverse payment"
-      description={payment ? `${formatMoney(payment.amount)} · ${payment.invoice?.invoiceNumber}` : ""}
-      footer={
-        <>
-          <Button variant="secondary" onClick={close}>
+      description="Reversing voids the receipt and restores the outstanding amount on the invoice."
+      size="md"
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        className="stack"
+      >
+        <ErrorBanner error={error} />
+        <p className="text-xs text-slate-600">
+          Reversing payment of <strong className="text-slate-900">{formatMoney(payment?.amount ?? 0)}</strong> for{" "}
+          <strong className="text-slate-900">{payment?.residentName || "Resident"}</strong> ({payment?.unitLabel}).
+        </p>
+        <Textarea
+          label="Reason for reversal"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="e.g. Duplicate entry, bounced cheque, wrong account"
+          rows={3}
+          required
+        />
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="secondary" onClick={close}>
             Cancel
           </Button>
-          <Button
-            variant="danger"
-            onClick={submit}
-            disabled={reason.trim().length < 3}
-            loading={saving}
-          >
-            Reverse payment
+          <Button type="submit" variant="danger" loading={submitting}>
+            Confirm reversal
           </Button>
-        </>
-      }
-    >
-      {payment ? (
-        <div className="flex flex-col gap-4">
-          <ErrorBanner error={error} />
-          <Textarea
-            id="reason"
-            label="Reason"
-            rows={3}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Cheque bounced, entered against the wrong flat, ..."
-            hint="Stored on the audit trail. At least 3 characters."
-          />
-          <CardNote tone="amber" icon={Undo2}>
-            The invoice balance goes back up and its status is recalculated. The payment record is
-            kept for audit.
-          </CardNote>
         </div>
-      ) : null}
+      </form>
     </Modal>
   );
 }

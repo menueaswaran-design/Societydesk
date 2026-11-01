@@ -8,6 +8,31 @@ export const metadata = {
   alternates: {
     canonical: "/services",
   },
+  openGraph: {
+    title: "Services & Products | Bedy – PG & Hostel Management OS",
+    description:
+      "Explore Bedy products and services: Automated rent billing, live bed availability matrix, WhatsApp rent reminders, security deposit manager, and maintenance tracking.",
+    url: "https://bedy.in/services",
+  },
+};
+
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://bedy.in",
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Services",
+      "item": "https://bedy.in/services",
+    },
+  ],
 };
 
 export default function ServicesPage() {
@@ -58,6 +83,10 @@ export default function ServicesPage() {
 
   return (
     <div className="w-full py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <div className="mx-auto max-w-5xl space-y-12">
         {/* Navigation back */}
         <div>

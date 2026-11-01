@@ -245,13 +245,13 @@ export default function AppShell({ user, society, flats, occupancies, children }
   }
 
   const nav = (
-    <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+    <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-white/40 uppercase">
+          <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
             {group.label}
           </p>
-          <ul className="space-y-0.5">
+          <ul className="space-y-1">
             {group.items.map((item) => (
               <li key={item.href}>
                 <NavLink
@@ -269,23 +269,23 @@ export default function AppShell({ user, society, flats, occupancies, children }
   );
 
   const identity = (
-    <div className="flex items-center gap-3 px-4 py-3.5">
-      <span className="relative inline-flex">
+    <div className="flex items-center gap-3 px-4 py-3 w-full">
+      <span className="relative inline-flex shrink-0">
         <img
           src="/logo.png"
           alt="Bedy"
-          className="size-8.5 rounded-lg object-contain bg-white p-0.5 shadow-sm"
+          className="size-8.5 rounded-xl object-contain bg-white p-0.5 shadow-2xs border border-[#E5EAF3]"
         />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-white">
+        <p className="truncate text-sm font-bold text-slate-900 tracking-tight leading-tight">
           {society?.name ?? (user.role === "SUPER_ADMIN" ? "Bedy Platform" : isPgWorkspace ? "Bedy PG" : "Bedy")}
         </p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="rounded bg-white/10 px-1.5 py-0.2 text-[9.5px] font-semibold text-white/80">
+        <div className="flex items-center gap-1.5 mt-1">
+          <span className="rounded-md bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 text-[9.5px] font-bold text-brand-700 uppercase tracking-wide">
             {user.role === "SUPER_ADMIN" ? "SUPER ADMIN" : isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
           </span>
-          <p className="truncate text-[11px] text-white/50">
+          <p className="truncate text-[11px] font-medium text-slate-500">
             {titleCase(user.role)}
           </p>
         </div>
@@ -302,8 +302,8 @@ export default function AppShell({ user, society, flats, occupancies, children }
       ) : null}
 
       {/* Sidebar */}
-      <aside className="brand-canvas sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start lg:flex">
-        <div className="border-b border-white/10">{identity}</div>
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start border-r border-[#E5EAF3] bg-white lg:flex">
+        <div className="flex h-14 items-center border-b border-[#E5EAF3] bg-white">{identity}</div>
         {nav}
         <UserPanel user={user} roomLabel={roomLabel} onSignOut={signOut} />
       </aside>
@@ -316,13 +316,13 @@ export default function AppShell({ user, society, flats, occupancies, children }
             onClick={() => setDrawer(false)}
             className="animate-fade-in absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
           />
-          <div className="animate-slide-left brand-canvas relative z-10 flex h-full w-64 max-w-[85vw] flex-col shadow-pop">
-            <div className="flex items-center justify-between border-b border-white/10 pr-2">
+          <div className="animate-slide-left relative z-10 flex h-full w-64 max-w-[85vw] flex-col bg-white border-r border-[#E5EAF3] shadow-pop">
+            <div className="flex h-14 items-center justify-between border-b border-[#E5EAF3] pr-2">
               <div className="min-w-0 flex-1">{identity}</div>
               <button
                 onClick={() => setDrawer(false)}
                 aria-label="Close menu"
-                className="inline-flex size-9 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                className="inline-flex size-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
               >
                 <X className="size-5" />
               </button>
@@ -423,22 +423,22 @@ function NavLink({ item, label, pathname, onNavigate }) {
           onNavigate?.();
         }
       }}
-      className={`group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
+      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
         active
-          ? "bg-white/10 text-white font-semibold shadow-2xs"
-          : "text-white/70 hover:bg-white/5 hover:text-white"
+          ? "bg-brand-50 text-brand-700 font-bold shadow-2xs border border-brand-200/80"
+          : "text-slate-700 hover:bg-brand-50/60 hover:text-brand-700 border border-transparent"
       }`}
     >
       {active ? (
         <span
           aria-hidden="true"
-          className="absolute top-1/2 -left-2.5 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-400"
+          className="absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-600"
         />
       ) : null}
       <Icon
-        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-400" : "text-white/45 group-hover:text-white/80"}`}
+        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-600" : "text-slate-400 group-hover:text-brand-600"}`}
       />
-      {label ?? item.label}
+      <span className="truncate">{label ?? item.label}</span>
     </Link>
   );
 }
@@ -446,23 +446,23 @@ function NavLink({ item, label, pathname, onNavigate }) {
 function UserPanel({ user, roomLabel, onSignOut }) {
   const { t } = useTranslation();
   return (
-    <div className="border-t border-white/10 p-3">
-      <div className="flex items-center gap-2.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/8">
-        <Avatar name={user.name} size="sm" ring />
+    <div className="border-t border-[#E5EAF3] p-3 bg-white">
+      <div className="flex items-center gap-2.5 rounded-xl bg-slate-50/80 px-2.5 py-2 border border-[#E5EAF3] transition-colors hover:bg-slate-100/70">
+        <Avatar name={user.name} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-white">{user.name}</p>
-          <p className="truncate text-[11px] text-white/45">{titleCase(user.role)}</p>
+          <p className="truncate text-xs font-bold text-slate-900">{user.name}</p>
+          <p className="truncate text-[11px] font-medium text-slate-500">{titleCase(user.role)}</p>
         </div>
         <button
           onClick={onSignOut}
           aria-label={t("common.signOut", "Sign out")}
           title={t("common.signOut", "Sign out")}
-          className="inline-flex size-7.5 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
+          className="inline-flex size-7.5 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
         >
           <LogOut className="size-3.5" />
         </button>
       </div>
-      {roomLabel ? <p className="mt-2 truncate px-2.5 text-[11px] text-white/35">{roomLabel}</p> : null}
+      {roomLabel ? <p className="mt-2 truncate px-2 text-[11px] font-medium text-slate-500">{roomLabel}</p> : null}
     </div>
   );
 }

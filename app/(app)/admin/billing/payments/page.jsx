@@ -21,16 +21,27 @@ export default async function AdminPaymentsPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [payments, totals, monthTotals, methodTotals, pendingOrders] = await Promise.all([
+  const [payments, totals, monthTotals, methodTotals] = await Promise.all([
     prisma.payment.findMany({
       where,
       include: {
-        flat: { select: { id: true, flatNumber: true, block: true } },
+        flat: {
+          select: {
+            id: true,
+            flatNumber: true,
+            block: true,
+            residents: {
+              where: { endDate: null },
+              select: { user: { select: { name: true, phone: true } } },
+              take: 1,
+            },
+          },
+        },
         occupancy: {
           include: {
             unit: { select: { unitNumber: true } },
             bed: { select: { bedLabel: true } },
-            user: { select: { name: true } },
+            user: { select: { name: true, phone: true } },
           },
         },
         invoice: {
@@ -42,7 +53,16 @@ export default async function AdminPaymentsPage() {
               include: {
                 unit: { select: { unitNumber: true } },
                 bed: { select: { bedLabel: true } },
-                user: { select: { name: true } },
+                user: { select: { name: true, phone: true } },
+              },
+            },
+            flat: {
+              select: {
+                residents: {
+                  where: { endDate: null },
+                  select: { user: { select: { name: true, phone: true } } },
+                  take: 1,
+                },
               },
             },
           },
@@ -51,7 +71,7 @@ export default async function AdminPaymentsPage() {
         recordedBy: { select: { name: true } },
       },
       orderBy: { paymentDate: "desc" },
-      take: 300,
+      take: 500,
     }),
     prisma.payment.aggregate({
       where,
@@ -69,26 +89,9 @@ export default async function AdminPaymentsPage() {
       _sum: { amount: true },
       _count: { _all: true },
     }),
-    prisma.paymentOrder.findMany({
-      where: { ...where, status: { in: ["CREATED", "EXPIRED"] } },
-      include: {
-        flat: { select: { id: true, flatNumber: true, block: true } },
-        occupancy: {
-          include: {
-            unit: { select: { unitNumber: true } },
-            bed: { select: { bedLabel: true } },
-            user: { select: { name: true } },
-          },
-        },
-        invoice: { select: { id: true, invoiceNumber: true } },
-        initiatedBy: { select: { name: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
   ]);
 
-  // Flatten the receipt relation and derive clean Room / Flat labels
+  // Flatten the receipt relation and derive clean Resident & Room labels
   const rows = payments.map(({ receipts, ...p }) => {
     const occ = p.occupancy || p.invoice?.occupancy;
     let unitLabel = "";
@@ -100,9 +103,23 @@ export default async function AdminPaymentsPage() {
       unitLabel = "—";
     }
 
+    const residentName =
+      occ?.user?.name ||
+      p.flat?.residents?.[0]?.user?.name ||
+      p.invoice?.flat?.residents?.[0]?.user?.name ||
+      "Resident";
+
+    const residentPhone =
+      occ?.user?.phone ||
+      p.flat?.residents?.[0]?.user?.phone ||
+      p.invoice?.flat?.residents?.[0]?.user?.phone ||
+      null;
+
     return {
       ...p,
       unitLabel,
+      residentName,
+      residentPhone,
       paymentDate: p.paymentDate?.toISOString() ?? null,
       receiptNumber: receipts[0]?.receiptNumber ?? null,
       receiptUrl: receipts[0]?.pdfUrl ?? null,
@@ -119,23 +136,6 @@ export default async function AdminPaymentsPage() {
   return (
     <PaymentsClient
       payments={rows}
-      pendingOrders={pendingOrders.map((o) => {
-        let unitLabel = "";
-        if (o.occupancy?.unit?.unitNumber) {
-          unitLabel = `Room ${o.occupancy.unit.unitNumber}${o.occupancy.bed?.bedLabel ? ` (${o.occupancy.bed.bedLabel})` : ""}`;
-        } else if (o.flat?.flatNumber) {
-          unitLabel = o.flat.block ? `${o.flat.block}-${o.flat.flatNumber}` : `Flat ${o.flat.flatNumber}`;
-        } else {
-          unitLabel = "—";
-        }
-
-        return {
-          ...o,
-          unitLabel,
-          createdAt: o.createdAt?.toISOString() ?? null,
-          expiresAt: o.expiresAt?.toISOString() ?? null,
-        };
-      })}
       summary={{
         total: totals._sum.amount ?? 0,
         count: totals._count._all,

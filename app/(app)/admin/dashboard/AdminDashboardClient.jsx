@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { api } from "@/lib/client/api";
+import Pagination from "@/components/ui/Pagination";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -35,6 +37,29 @@ export default function AdminDashboardClient({ data }) {
   const recentPayments = data.recentPayments || [];
 
   const [dismissNoticeBanner, setDismissNoticeBanner] = useState(false);
+
+  const [bedRows, setBedRows] = useState(bedsGrid);
+  const [bedPage, setBedPage] = useState(1);
+  const [bedPageSize, setBedPageSize] = useState(36);
+  const [bedTotal, setBedTotal] = useState(cards.totalBeds ?? bedsGrid.length);
+  const [bedLoading, setBedLoading] = useState(false);
+  const [bedGridError, setBedGridError] = useState(null);
+
+  async function loadBedPage(page, pageSize = bedPageSize) {
+    setBedLoading(true);
+    setBedGridError(null);
+    try {
+      const result = await api.get(`/api/dashboard/admin/beds?page=${page}&pageSize=${pageSize}`);
+      setBedRows(result.beds);
+      setBedTotal(result.total);
+      setBedPage(page);
+      setBedPageSize(pageSize);
+    } catch (error) {
+      setBedGridError(error?.message || "Could not load beds.");
+    } finally {
+      setBedLoading(false);
+    }
+  }
 
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
@@ -275,11 +300,11 @@ export default function AdminDashboardClient({ data }) {
         </Link>
       </div>
 
-      {/* ── MAIN 2-COLUMN OPERATIONAL LAYOUT (DESIGN SYSTEM SECTION 11) ─── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* ── LEFT COLUMN (7 COLS): RENT DUES & OVERDUES TRACKER ──────────── */}
-        <div className="lg:col-span-7 space-y-6">
-          <Card className="overflow-hidden">
+      {/* ── ROW 1: PRIORITY DUES & LIVE BED MATRIX (MATCHING HEIGHT) ─── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-stretch">
+        {/* Left Column (7 cols): Priority Dues Awaiting Payments (Showing only 4 items) */}
+        <div className="lg:col-span-7 flex flex-col">
+          <Card className="h-full flex flex-col justify-between overflow-hidden">
             <CardHeader
               title="Priority Dues Awaiting Payments"
               subtitle={`${pendingInvoices.length} active bills awaiting collection`}
@@ -295,8 +320,8 @@ export default function AdminDashboardClient({ data }) {
               }
             />
 
-            {/* Invoices List / Defaulters Actions */}
-            <div className="p-4 sm:p-5">
+            {/* Invoices List / Defaulters Actions (exactly 4 rows) */}
+            <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
               {pendingInvoices.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-neutral-200 p-8 text-center bg-neutral-50/50">
                   <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-success-50 text-success-600 mb-2">
@@ -309,7 +334,7 @@ export default function AdminDashboardClient({ data }) {
                 </div>
               ) : (
                 <div className="divide-y divide-neutral-100">
-                  {pendingInvoices.slice(0, 5).map((inv) => {
+                  {pendingInvoices.slice(0, 4).map((inv) => {
                     const resident = inv.occupancy?.user;
                     const phone = resident?.phone;
                     const roomLabel = inv.occupancy?.unit?.unitNumber
@@ -422,9 +447,97 @@ export default function AdminDashboardClient({ data }) {
               </div>
             </div>
           </Card>
+        </div>
 
-          {/* ── ACTIVE COMPLAINTS CARD (MATCHES HEIGHT WITH RECENT PAYMENTS) ── */}
-          <Card className="overflow-hidden">
+        {/* Right Column (5 cols): Bed Availability Grid (Matching Height & Scrollable Grid) */}
+        <div className="lg:col-span-5 flex flex-col">
+          <Card className="h-full min-h-0 flex flex-col p-0">
+            <CardHeader
+              title="Bed Availability Grid"
+              subtitle="Live room allocation snapshot"
+              action={
+                <Link
+                  href="/admin/rooms"
+                  className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
+                >
+                  Rooms
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              }
+            />
+            <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+              {/* Visual Bed Grid - Scrollable when there are more rooms/beds */}
+              <div
+                aria-busy={bedLoading}
+                className={`my-2 min-h-0 flex-1 overflow-y-auto pr-1 transition-opacity ${bedLoading ? "opacity-50" : "opacity-100"}`}
+              >
+                <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
+                  {bedRows.length > 0
+                    ? bedRows.map((b) => {
+                        const isNotice = b.occupancies?.[0]?.status === "NOTICE";
+                        const isOccupied = b.status === "OCCUPIED" || b.occupancies?.length > 0;
+                        const occupantName = b.occupancies?.[0]?.user?.name;
+
+                        const colorClass = isNotice
+                          ? "bg-warning-50 text-warning-800 border-warning-200"
+                          : isOccupied
+                          ? "bg-info-50 text-info-700 border-info-200"
+                          : "bg-success-50 text-success-700 border-success-200";
+
+                        return (
+                          <div
+                            key={b.id}
+                            title={`Room ${b.unit?.unitNumber || "-"} · Bed ${b.bedLabel}${
+                              occupantName ? ` (${occupantName}${isNotice ? " - On Notice" : ""})` : " (Vacant)"
+                            }`}
+                            className={`text-center font-bold text-[10px] sm:text-xs py-2 rounded-lg border shadow-2xs transition-transform hover:scale-105 cursor-pointer ${colorClass}`}
+                          >
+                            {b.bedLabel}
+                          </div>
+                        );
+                      })
+                    : <p className="col-span-6 rounded-xl border border-dashed border-neutral-200 p-6 text-center text-xs text-neutral-500">No beds to display yet.</p>}
+                </div>
+              </div>
+            </div>
+            {bedGridError ? <p role="alert" className="px-4 text-xs font-medium text-error-600 sm:px-5">{bedGridError}</p> : null}
+
+            {/* Visual Key per Design System */}
+            <div className="mx-4 mb-4 mt-2 flex items-center justify-between border-t border-neutral-100 pt-3 text-[11px] font-semibold text-neutral-600 sm:mx-5 sm:mb-5">
+              <span className="flex items-center gap-1">
+                <span className="size-2 rounded-full bg-success-500" />
+                Vacant ({cards.vacantBeds})
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="size-2 rounded-full bg-info-500" />
+                Occupied ({cards.occupiedBeds})
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="size-2 rounded-full bg-warning-500" />
+                Notice ({noticeCount})
+              </span>
+            </div>
+            {bedTotal > 0 ? (
+              <Pagination
+                page={bedPage}
+                pageSize={bedPageSize}
+                totalItems={bedTotal}
+                itemName="beds"
+                onPageChange={(page) => loadBedPage(page)}
+                onPageSizeChange={(pageSize) => loadBedPage(1, pageSize)}
+                pageSizeOptions={[18, 36, 72]}
+                className="mt-auto"
+              />
+            ) : null}
+          </Card>
+        </div>
+      </div>
+
+      {/* ── ROW 2: ACTIVE COMPLAINTS & RECENT PAYMENTS (MATCHING HEIGHT) ─── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-stretch">
+        {/* Left Column (7 cols): Active Complaints */}
+        <div className="lg:col-span-7 flex flex-col">
+          <Card className="h-full flex flex-col justify-between overflow-hidden">
             <CardHeader
               title="Active Complaints"
               subtitle={`${cards.openComplaints || 0} unresolved · ${cards.urgentComplaints || 0} urgent`}
@@ -440,7 +553,7 @@ export default function AdminDashboardClient({ data }) {
               }
             />
 
-            <div className="p-4 sm:p-5">
+            <div className="p-4 sm:p-5 flex-1">
               {recentComplaints.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-neutral-200 p-6 text-center bg-neutral-50/50">
                   <span className="mx-auto flex size-8 items-center justify-center rounded-full bg-success-50 text-success-600 mb-1.5">
@@ -509,89 +622,9 @@ export default function AdminDashboardClient({ data }) {
           </Card>
         </div>
 
-        {/* ── RIGHT COLUMN (5 COLS): LIVE BED AVAILABILITY & ACTIVITY ────── */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Bed Availability Matrix (Exact from Design System Section 11) */}
-          <Card className="p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-sm font-bold text-neutral-900">Bed Availability Grid</h3>
-                <p className="text-[11px] font-medium text-neutral-500">Live room allocation snapshot</p>
-              </div>
-              <Link
-                href="/admin/rooms"
-                className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
-              >
-                Rooms
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
-
-            {/* Visual Bed Grid (Section 11 #beds) */}
-            <div className="grid grid-cols-6 gap-1.5 sm:gap-2 my-3">
-              {bedsGrid.length > 0
-                ? bedsGrid.map((b) => {
-                    const isNotice = b.occupancies?.[0]?.status === "NOTICE";
-                    const isOccupied = b.status === "OCCUPIED" || b.occupancies?.length > 0;
-                    const occupantName = b.occupancies?.[0]?.user?.name;
-
-                    const colorClass = isNotice
-                      ? "bg-warning-50 text-warning-800 border-warning-200"
-                      : isOccupied
-                      ? "bg-info-50 text-info-700 border-info-200"
-                      : "bg-success-50 text-success-700 border-success-200";
-
-                    return (
-                      <div
-                        key={b.id}
-                        title={`Room ${b.unit?.unitNumber || "-"} · Bed ${b.bedLabel}${
-                          occupantName ? ` (${occupantName}${isNotice ? " - On Notice" : ""})` : " (Vacant)"
-                        }`}
-                        className={`text-center font-bold text-[10px] sm:text-xs py-2 rounded-lg border shadow-2xs transition-transform hover:scale-105 cursor-pointer ${colorClass}`}
-                      >
-                        {b.bedLabel}
-                      </div>
-                    );
-                  })
-                : Array.from({ length: 18 }, (_, i) => {
-                    const isNotice = i % 7 === 0;
-                    const isVacant = i % 4 === 0;
-                    const colorClass = isNotice
-                      ? "bg-warning-50 text-warning-800 border-warning-200"
-                      : isVacant
-                      ? "bg-success-50 text-success-700 border-success-200"
-                      : "bg-info-50 text-info-700 border-info-200";
-
-                    return (
-                      <div
-                        key={i}
-                        className={`text-center font-bold text-[10px] sm:text-xs py-2 rounded-lg border shadow-2xs ${colorClass}`}
-                      >
-                        B{i + 1}
-                      </div>
-                    );
-                  })}
-            </div>
-
-            {/* Visual Key per Design System */}
-            <div className="pt-3 border-t border-neutral-100 flex items-center justify-between text-[11px] font-semibold text-neutral-600">
-              <span className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-success-500" />
-                Vacant ({cards.vacantBeds})
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-info-500" />
-                Occupied ({cards.occupiedBeds})
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-warning-500" />
-                Notice ({noticeCount})
-              </span>
-            </div>
-          </Card>
-
-          {/* Recent Payments Feed */}
-          <Card>
+        {/* Right Column (5 cols): Recent Payments */}
+        <div className="lg:col-span-5 flex flex-col">
+          <Card className="h-full flex flex-col justify-between overflow-hidden">
             <CardHeader
               title="Recent Payments"
               subtitle="Latest recorded receipts"
@@ -607,7 +640,7 @@ export default function AdminDashboardClient({ data }) {
               }
             />
             {recentPayments.length === 0 ? (
-              <div className="p-4 sm:p-5">
+              <div className="p-4 sm:p-5 flex-1">
                 <div className="rounded-xl border border-dashed border-neutral-200 p-6 text-center bg-neutral-50/50">
                   <span className="mx-auto flex size-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 mb-1.5">
                     <CreditCard className="size-4.5" />
@@ -619,7 +652,7 @@ export default function AdminDashboardClient({ data }) {
                 </div>
               </div>
             ) : (
-              <ul className="divide-y divide-neutral-100 text-xs p-3 sm:p-4">
+              <ul className="divide-y divide-neutral-100 text-xs p-3 sm:p-4 flex-1">
                 {recentPayments.slice(0, 4).map((p) => {
                   const targetLabel = p.occupancy
                     ? `Room ${p.occupancy.unit?.unitNumber || "-"}${p.occupancy.bed ? ` (${p.occupancy.bed.bedLabel})` : ""}`

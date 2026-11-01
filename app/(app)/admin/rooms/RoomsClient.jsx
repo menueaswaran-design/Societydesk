@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BedSingle,
+  BedDouble,
   Plus,
   Search,
   Building2,
@@ -253,21 +254,23 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
       {/* Page Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Rooms & Beds</h1>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950">
+            Rooms & Beds
+          </h1>
+          <p className="mt-0.5 text-xs text-neutral-500 font-medium">
             Real-time occupancy matrix, room pricing, and bed availability.
           </p>
         </div>
         <div className="flex items-center gap-2">
           {/* Grid / List View Toggle */}
-          <div className="flex items-center rounded-xl border border-slate-200 bg-white p-0.5 shadow-2xs">
+          <div className="flex items-center rounded-xl border border-neutral-200 bg-white p-0.5 shadow-2xs">
             <button
               type="button"
               onClick={() => setViewMode("GRID")}
               className={`p-1.5 rounded-lg transition-colors ${
                 viewMode === "GRID"
-                  ? "bg-slate-900 text-white shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-neutral-950 text-white shadow-2xs"
+                  : "text-neutral-500 hover:text-neutral-800"
               }`}
               title="Grid view"
               aria-label="Grid view"
@@ -279,8 +282,8 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
               onClick={() => setViewMode("LIST")}
               className={`p-1.5 rounded-lg transition-colors ${
                 viewMode === "LIST"
-                  ? "bg-slate-900 text-white shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-neutral-950 text-white shadow-2xs"
+                  : "text-neutral-500 hover:text-neutral-800"
               }`}
               title="List view"
               aria-label="List view"
@@ -296,99 +299,156 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
         </div>
       </div>
 
-      {/* Flat Editorial Stat Strip (Saves ~120px height) */}
-      <div className="bg-white rounded-2xl border border-[#E5EAF3] shadow-2xs overflow-hidden">
-        <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 p-3.5 sm:px-5 sm:py-3.5">
-          {/* Total Rooms */}
-          <button
-            type="button"
-            onClick={() => {
-              setFilterStatus("ALL");
-              setFilterFloor("ALL");
-            }}
-            className="text-left pr-4 hover:opacity-80 transition cursor-pointer"
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+      {/* ── SEPARATE KPI STAT BOXES (PER BEDY DESIGN SYSTEM) ── */}
+      <div className="grid grid-cols-2 gap-3.5 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {/* Card 1: Total Rooms */}
+        <button
+          type="button"
+          onClick={() => {
+            setFilterStatus("ALL");
+            setFilterFloor("ALL");
+          }}
+          className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs hover:border-brand-300 hover:shadow-xs cursor-pointer ${
+            filterStatus === "ALL" && filterFloor === "ALL"
+              ? "border-neutral-300 ring-1 ring-neutral-300/50"
+              : "border-neutral-200"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
               Total Rooms
             </span>
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 font-mono tabular-nums mt-0.5 block">
-              {units.length}
+            <span className="flex size-8 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+              <Building2 className="size-4" />
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">In property</span>
-          </button>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900">
+            {units.length}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500">
+            <span>In property</span>
+            <span className="text-[11px] text-neutral-400 group-hover:text-brand-600 transition-colors">
+              Reset filter
+            </span>
+          </div>
+        </button>
 
-          {/* Total Beds */}
-          <button
-            type="button"
-            onClick={() => setFilterStatus("ALL")}
-            className="text-left pt-2.5 sm:pt-0 sm:px-4 hover:opacity-80 transition cursor-pointer"
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+        {/* Card 2: Total Beds */}
+        <button
+          type="button"
+          onClick={() => setFilterStatus("ALL")}
+          className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs hover:border-brand-300 hover:shadow-xs cursor-pointer ${
+            filterStatus === "ALL"
+              ? "border-neutral-300 ring-1 ring-neutral-300/50"
+              : "border-neutral-200"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
               Total Beds
             </span>
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 font-mono tabular-nums mt-0.5 block">
-              {totalBeds}
+            <span className="flex size-8 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+              <BedDouble className="size-4" />
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">Capacity</span>
-          </button>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900">
+            {totalBeds}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500">
+            <span>Total capacity</span>
+            <span className="text-[11px] text-neutral-400 group-hover:text-brand-600 transition-colors">
+              Show all
+            </span>
+          </div>
+        </button>
 
-          {/* Vacant Beds (Click to filter) */}
-          <button
-            type="button"
-            onClick={() => setFilterStatus("VACANT")}
-            className={`text-left pt-2.5 sm:pt-0 sm:px-4 transition cursor-pointer ${
-              filterStatus === "VACANT" ? "bg-emerald-50/70 -m-1 p-2.5 sm:p-2 rounded-xl" : "hover:opacity-80"
-            }`}
-          >
+        {/* Card 3: Vacant Beds (Click to filter) */}
+        <button
+          type="button"
+          onClick={() => setFilterStatus((prev) => (prev === "VACANT" ? "ALL" : "VACANT"))}
+          className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
+            filterStatus === "VACANT"
+              ? "border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-500/20 shadow-xs"
+              : "border-neutral-200 bg-white hover:border-emerald-300 hover:shadow-xs"
+          }`}
+        >
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
                 Vacant Beds
               </span>
               <span className="size-1.5 rounded-full bg-emerald-500" />
             </div>
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-emerald-600 font-mono tabular-nums mt-0.5 block">
-              {vacantBeds}
-            </span>
-            <span className="text-[10px] text-emerald-700 font-medium">Available to book</span>
-          </button>
-
-          {/* Occupied Beds (Click to filter) */}
-          <button
-            type="button"
-            onClick={() => setFilterStatus("OCCUPIED")}
-            className={`text-left pt-2.5 sm:pt-0 sm:px-4 transition cursor-pointer ${
-              filterStatus === "OCCUPIED" ? "bg-blue-50/70 -m-1 p-2.5 sm:p-2 rounded-xl" : "hover:opacity-80"
-            }`}
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">
-              Occupied Beds
-            </span>
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-blue-700 font-mono tabular-nums mt-0.5 block">
-              {occupiedBeds}
-            </span>
-            <span className="text-[10px] text-blue-600 font-medium">Active residents</span>
-          </button>
-
-          {/* Occupancy Rate */}
-          <div className="text-left pt-2.5 sm:pt-0 sm:pl-4 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Occupancy Rate
-            </span>
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-indigo-600 font-mono tabular-nums mt-0.5 block">
-              {occupancyRate}%
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">
-              {occupiedBeds} of {totalBeds} filled
+            <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-600/20">
+              <Sparkles className="size-4" />
             </span>
           </div>
-        </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-emerald-600">
+            {vacantBeds}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-emerald-700">
+            <span>Available to book</span>
+            <span className="text-[11px] font-bold text-emerald-600">
+              {filterStatus === "VACANT" ? "Active filter" : "Filter →"}
+            </span>
+          </div>
+        </button>
 
-        {/* Thin 2px Occupancy Progress Line Underneath */}
-        <div className="h-0.5 w-full bg-slate-100 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-brand-600 to-indigo-600 transition-all duration-500"
-            style={{ width: `${occupancyRate}%` }}
-          />
+        {/* Card 4: Occupied Beds (Click to filter) */}
+        <button
+          type="button"
+          onClick={() => setFilterStatus((prev) => (prev === "OCCUPIED" ? "ALL" : "OCCUPIED"))}
+          className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
+            filterStatus === "OCCUPIED"
+              ? "border-brand-500 bg-brand-50/40 ring-2 ring-brand-500/20 shadow-xs"
+              : "border-neutral-200 bg-white hover:border-brand-300 hover:shadow-xs"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-700">
+              Occupied Beds
+            </span>
+            <span className="flex size-8 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-600/20">
+              <Users className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-brand-700">
+            {occupiedBeds}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-brand-600">
+            <span>Active residents</span>
+            <span className="text-[11px] font-bold text-brand-700">
+              {filterStatus === "OCCUPIED" ? "Active filter" : "Filter →"}
+            </span>
+          </div>
+        </button>
+
+        {/* Card 5: Occupancy Rate */}
+        <div className="relative flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+              Occupancy Rate
+            </span>
+            <span className="flex size-8 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+              <CheckCircle2 className="size-4" />
+            </span>
+          </div>
+          <div>
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900">
+              {occupancyRate}%
+            </p>
+            <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500">
+              <span>{occupiedBeds} of {totalBeds} filled</span>
+              <span className="text-[11px] font-bold text-neutral-600">{totalBeds - occupiedBeds} left</span>
+            </div>
+          </div>
+          {/* Progress bar indicator */}
+          <div className="mt-2.5 h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-brand-600 to-indigo-600 transition-all duration-500"
+              style={{ width: `${occupancyRate}%` }}
+            />
+          </div>
         </div>
       </div>
 
@@ -410,14 +470,14 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 onClick={() => setFilterStatus(tab.id)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   active
-                    ? "bg-slate-900 text-white shadow-2xs"
-                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                    ? "bg-neutral-950 text-white shadow-2xs"
+                    : "bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-50 hover:border-neutral-300"
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums ${
-                    active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                    active ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-600"
                   }`}
                 >
                   {tab.count}
@@ -438,7 +498,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                   filterFloor === "ALL"
                     ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200"
-                    : "text-slate-500 hover:bg-slate-100"
+                    : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                 }`}
               >
                 All Floors
@@ -451,7 +511,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                   className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                     filterFloor === floor
                       ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200"
-                      : "text-slate-500 hover:bg-slate-100"
+                      : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                   }`}
                 >
                   Floor {floor} ({count})
@@ -462,25 +522,25 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
 
           {/* Search Input with "/" shortcut */}
           <div className="relative w-full sm:w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-slate-400 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-neutral-400 pointer-events-none" />
             <input
               ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search room or tenant..."
-              className="w-full pl-8.5 pr-7 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:border-brand-500 focus:outline-none shadow-2xs"
+              className="w-full pl-8.5 pr-7 py-1.5 text-xs rounded-xl border border-neutral-200 bg-white placeholder:text-neutral-400 text-neutral-900 focus:border-brand-500 focus:outline-none shadow-2xs"
             />
             {search ? (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
               >
                 <X className="size-3.5" />
               </button>
             ) : (
-              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-slate-50 border border-slate-200 rounded px-1.5 py-0.2 text-slate-400 font-mono pointer-events-none">
+              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-neutral-50 border border-neutral-200 rounded px-1.5 py-0.2 text-neutral-400 font-sans pointer-events-none">
                 /
               </kbd>
             )}
@@ -515,14 +575,14 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             <div key={floor} className="space-y-3">
               {/* Floor Section Header */}
               <div className="flex items-center gap-2 px-1">
-                <span className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400 whitespace-nowrap">
+                <span className="text-[11px] font-extrabold tracking-wider uppercase text-neutral-400 whitespace-nowrap">
                   Floor {floor}
                 </span>
-                <span className="text-slate-300">·</span>
-                <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">
+                <span className="text-neutral-300">·</span>
+                <span className="text-xs font-semibold text-neutral-500 whitespace-nowrap">
                   {floorRooms.length} {floorRooms.length === 1 ? "room" : "rooms"}
                 </span>
-                <div className="h-px flex-1 bg-slate-200/80 ml-2" />
+                <div className="h-px flex-1 bg-neutral-200 ml-2" />
               </div>
 
               {/* Room Cards Grid */}
@@ -531,7 +591,6 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                   const unitBeds = unit.beds || [];
                   const vacantCount = unitBeds.filter((b) => b.status === "VACANT").length;
                   const occupiedCount = unitBeds.filter((b) => b.status === "OCCUPIED").length;
-                  const isFull = vacantCount === 0 && unitBeds.length > 0;
 
                   const noticeBeds = unitBeds.filter((b) =>
                     b.occupancies?.some((o) => o.status === "NOTICE")
@@ -550,15 +609,15 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                     <div
                       key={unit.id}
                       onClick={() => setSelectedRoom(unit)}
-                      className="group relative flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-4 transition-all hover:border-brand-500/60 hover:shadow-sm cursor-pointer select-none"
+                      className="group relative flex flex-col justify-between rounded-2xl border border-neutral-200/90 bg-white p-4 transition-all hover:border-brand-500/60 hover:shadow-xs cursor-pointer select-none"
                     >
                       {/* Top Row: Room Number & Single Status Slot */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-brand-600 transition-colors whitespace-nowrap truncate">
+                          <h3 className="text-lg font-extrabold text-neutral-950 group-hover:text-brand-600 transition-colors whitespace-nowrap truncate">
                             Room {unit.unitNumber}
                           </h3>
-                          <p className="text-xs text-slate-500 font-medium whitespace-nowrap truncate mt-0.5">
+                          <p className="text-xs text-neutral-500 font-medium whitespace-nowrap truncate mt-0.5">
                             Floor {unit.floor} · {formatRoomType(unit.unitType, unitBeds.length)}
                           </p>
                         </div>
@@ -567,7 +626,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                         <div className="shrink-0">
                           {hasNotice ? (
                             <span
-                              className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-600/25 whitespace-nowrap"
+                              className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-600/25 whitespace-nowrap"
                               title={`Vacating soon: ${nearestLeaveDateStr ? formatDate(nearestLeaveDateStr) : "On notice"}`}
                             >
                               <span className="size-1.5 rounded-full bg-amber-500" />
@@ -579,7 +638,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                               {vacantCount} Vacant
                             </span>
                           ) : (
-                            <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
+                            <span className="text-xs font-semibold text-neutral-400 whitespace-nowrap">
                               Occupied
                             </span>
                           )}
@@ -587,23 +646,23 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                       </div>
 
                       {/* Middle Row: Price & Differentiating Amenities */}
-                      <div className="my-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+                      <div className="my-3 flex items-center justify-between gap-2 border-t border-neutral-100 pt-2.5">
                         <div className="flex items-baseline gap-1">
-                          <span className="text-base sm:text-lg font-bold font-mono text-slate-900 tabular-nums">
+                          <span className="text-base sm:text-lg font-extrabold text-neutral-950 tabular-nums">
                             {formatMoney(unit.rentAmount)}
                           </span>
-                          <span className="text-xs text-slate-400 font-medium">/bed</span>
+                          <span className="text-xs text-neutral-400 font-medium">/bed</span>
                         </div>
 
                         {/* Differentiating Amenities (Quiet text) */}
                         <div className="flex items-center gap-1.5 text-xs">
                           {unit.ac && (
-                            <span className="text-[11px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">
+                            <span className="text-[11px] font-bold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded">
                               AC
                             </span>
                           )}
                           {unit.attachedBathroom && (
-                            <span className="text-[11px] font-medium text-slate-400">
+                            <span className="text-[11px] font-medium text-neutral-400">
                               {unit.ac ? "· Bath" : "Attached bath"}
                             </span>
                           )}
@@ -611,7 +670,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                       </div>
 
                       {/* Bottom Row: Bed Dots (●●○) & Primary Check-in Action */}
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-neutral-100 text-xs">
                         {/* Bed Dots ●●○ */}
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1">
@@ -633,13 +692,13 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                                       ? "bg-amber-500 ring-1 ring-amber-600/30"
                                       : isBedVacant
                                       ? "bg-emerald-500 ring-1 ring-emerald-600/30"
-                                      : "bg-slate-300"
+                                      : "bg-neutral-300"
                                   }`}
                                 />
                               );
                             })}
                           </div>
-                          <span className="text-xs text-slate-500 font-medium">
+                          <span className="text-xs text-neutral-500 font-medium">
                             {formatBedCount(occupiedCount, unitBeds.length)}
                           </span>
                         </div>
@@ -667,11 +726,11 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
         </div>
       ) : (
         /* LIST VIEW: Dense Table */
-        <div className="surface overflow-hidden border border-[#E5EAF3] rounded-2xl shadow-2xs bg-white">
+        <div className="surface overflow-hidden border border-neutral-200 rounded-2xl shadow-2xs bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+                <tr className="border-b border-neutral-200 bg-neutral-50 text-neutral-500 font-bold text-[11px] uppercase tracking-wider">
                   <th className="py-3 px-4">Room</th>
                   <th className="py-3 px-3">Floor</th>
                   <th className="py-3 px-3">Type</th>
@@ -682,7 +741,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                   <th className="py-3 pr-4 pl-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-neutral-100">
                 {filteredUnits.map((unit) => {
                   const unitBeds = unit.beds || [];
                   const vacantCount = unitBeds.filter((b) => b.status === "VACANT").length;
@@ -702,15 +761,15 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                     <tr
                       key={unit.id}
                       onClick={() => setSelectedRoom(unit)}
-                      className="group hover:bg-slate-50/70 cursor-pointer transition-colors"
+                      className="group hover:bg-neutral-50/70 cursor-pointer transition-colors"
                     >
-                      <td className="py-2.5 px-4 font-bold text-slate-900 group-hover:text-brand-600 whitespace-nowrap">
+                      <td className="py-2.5 px-4 font-bold text-neutral-950 group-hover:text-brand-600 whitespace-nowrap">
                         Room {unit.unitNumber}
                       </td>
-                      <td className="py-2.5 px-3 text-slate-600 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-neutral-600 font-medium whitespace-nowrap">
                         Floor {unit.floor}
                       </td>
-                      <td className="py-2.5 px-3 text-slate-600 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-neutral-600 font-medium whitespace-nowrap">
                         {formatRoomType(unit.unitType, unitBeds.length)}
                       </td>
                       <td className="py-2.5 px-3 whitespace-nowrap">
@@ -731,62 +790,68 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                                       ? "bg-amber-500"
                                       : isBedVacant
                                       ? "bg-emerald-500"
-                                      : "bg-slate-300"
+                                      : "bg-neutral-300"
                                   }`}
                                 />
                               );
                             })}
                           </div>
-                          <span className="text-slate-500 font-medium">
-                            {formatBedCount(occupiedCount, unitBeds.length)}
+                          <span className="text-[11px] text-neutral-500 font-medium">
+                            {occupiedCount}/{unitBeds.length}
                           </span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap text-slate-500">
+                      <td className="py-2.5 px-3 whitespace-nowrap text-neutral-500 text-[11px]">
                         {unit.ac ? (
-                          <span className="font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded text-[11px]">
+                          <span className="text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded font-bold">
                             AC
                           </span>
                         ) : null}
                         {unit.attachedBathroom ? (
-                          <span className="text-[11px] text-slate-400 ml-1">Bath</span>
+                          <span className={unit.ac ? "ml-1.5" : ""}>Attached Bath</span>
                         ) : null}
+                        {!unit.ac && !unit.attachedBathroom ? "Standard" : ""}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 tabular-nums whitespace-nowrap">
-                        {formatMoney(unit.rentAmount)}
-                        <span className="text-[10px] text-slate-400 font-normal">/mo</span>
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                        <span className="font-extrabold text-neutral-950 tabular-nums">
+                          {formatMoney(unit.rentAmount)}
+                        </span>
+                        <span className="text-neutral-400 text-[11px] ml-0.5">/bed</span>
                       </td>
                       <td className="py-2.5 px-3 whitespace-nowrap">
                         {hasNotice ? (
-                          <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-600/25">
+                            <span className="size-1 rounded-full bg-amber-500" />
                             Vacating {nearestLeaveDateStr ? formatDateShort(nearestLeaveDateStr) : ""}
                           </span>
                         ) : vacantCount > 0 ? (
-                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-600/20">
+                            <span className="size-1 rounded-full bg-emerald-500" />
                             {vacantCount} Vacant
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400 font-medium">Occupied</span>
+                          <span className="text-neutral-400 text-[11px] font-semibold">
+                            Full
+                          </span>
                         )}
                       </td>
-                      <td
-                        className="py-2.5 pr-4 pl-3 text-right whitespace-nowrap"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <td className="py-2.5 pr-4 pl-3 text-right whitespace-nowrap">
                         {vacantCount > 0 ? (
                           <Button
                             as="a"
                             href={`/admin/residents?room=${unit.unitNumber}`}
                             size="xs"
                             variant="primary"
+                            onClick={(e) => e.stopPropagation()}
+                            className="!text-[11px] !py-0.5 !px-2"
                           >
-                            + Check in
+                            + Check-in
                           </Button>
                         ) : (
                           <button
                             type="button"
                             onClick={() => setSelectedRoom(unit)}
-                            className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                            className="text-[11px] font-bold text-brand-600 hover:text-brand-700 hover:underline"
                           >
                             Manage →
                           </button>
@@ -803,10 +868,10 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
 
       {/* Enlarged Room Detail Modal */}
       {selectedRoom ? (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 p-2 sm:p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-neutral-950/60 p-2 sm:p-4 backdrop-blur-xs">
           <div className="w-full max-w-2xl rounded-t-3xl sm:rounded-2xl bg-white shadow-2xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Top Header */}
-            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-5 sm:p-6">
+            <div className="bg-gradient-to-r from-neutral-950 via-neutral-900 to-brand-950 text-white p-5 sm:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md font-black text-xl text-white border border-white/20">
@@ -814,7 +879,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-bold tracking-tight text-white">
+                      <h2 className="text-xl font-extrabold tracking-tight text-white">
                         Room {selectedRoom.unitNumber}
                       </h2>
                       {selectedRoom.floor ? (
@@ -836,7 +901,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                             } Available`}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-300">
+                    <p className="mt-1 text-xs text-neutral-300">
                       {selectedRoom.unitType} Sharing · Base Rent{" "}
                       {formatMoney(selectedRoom.rentAmount)}/bed/mo
                     </p>
@@ -854,26 +919,26 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
               {/* Quick Stats */}
               <div className="mt-4 pt-3 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <div className="rounded-xl bg-white/5 p-2.5 border border-white/10">
-                  <p className="text-[10.5px] text-slate-400 font-medium">Capacity</p>
-                  <p className="font-bold text-white mt-0.5">
+                  <p className="text-[10.5px] text-neutral-400 font-medium">Capacity</p>
+                  <p className="font-extrabold text-white mt-0.5">
                     {selectedRoom.beds?.length || 0} Beds
                   </p>
                 </div>
                 <div className="rounded-xl bg-white/5 p-2.5 border border-white/10">
-                  <p className="text-[10.5px] text-slate-400 font-medium">Occupied</p>
-                  <p className="font-bold text-white mt-0.5">
+                  <p className="text-[10.5px] text-neutral-400 font-medium">Occupied</p>
+                  <p className="font-extrabold text-white mt-0.5">
                     {selectedRoom.beds?.filter((b) => b.status === "OCCUPIED").length || 0} Beds
                   </p>
                 </div>
                 <div className="rounded-xl bg-white/5 p-2.5 border border-white/10">
-                  <p className="text-[10.5px] text-slate-400 font-medium">Available</p>
-                  <p className="font-bold text-emerald-400 mt-0.5">
+                  <p className="text-[10.5px] text-neutral-400 font-medium">Available</p>
+                  <p className="font-extrabold text-emerald-400 mt-0.5">
                     {selectedRoom.beds?.filter((b) => b.status === "VACANT").length || 0} Vacant
                   </p>
                 </div>
                 <div className="rounded-xl bg-white/5 p-2.5 border border-white/10">
-                  <p className="text-[10.5px] text-slate-400 font-medium">Total Rent</p>
-                  <p className="font-bold text-white mt-0.5">
+                  <p className="text-[10.5px] text-neutral-400 font-medium">Total Rent</p>
+                  <p className="font-extrabold text-white mt-0.5">
                     {formatMoney(
                       (selectedRoom.rentAmount || 0) * (selectedRoom.beds?.length || 1)
                     )}
@@ -886,7 +951,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             {/* Beds List */}
             <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                   Beds & Current Residents
                 </h3>
                 <Button
@@ -924,7 +989,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                         isNotice
                           ? "border-amber-300 bg-amber-50/40 ring-1 ring-amber-500/20 shadow-2xs"
                           : isOcc
-                          ? "border-slate-200 bg-white shadow-2xs"
+                          ? "border-neutral-200 bg-white shadow-2xs"
                           : isMaint
                           ? "border-amber-200 bg-amber-50/30"
                           : "border-emerald-200 bg-emerald-50/30 ring-1 ring-emerald-500/10"
@@ -937,7 +1002,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                               isNotice
                                 ? "bg-amber-100 text-amber-900 border-amber-300"
                                 : isOcc
-                                ? "bg-slate-100 text-slate-800 border-slate-200"
+                                ? "bg-neutral-100 text-neutral-800 border-neutral-200"
                                 : isMaint
                                 ? "bg-amber-100 text-amber-900 border-amber-200"
                                 : "bg-emerald-100 text-emerald-900 border-emerald-300"
@@ -950,7 +1015,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                             {isOcc && occupant ? (
                               <div>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h4 className="font-bold text-sm text-slate-900">
+                                  <h4 className="font-bold text-sm text-neutral-900">
                                     {occupant.name}
                                   </h4>
                                   {isNotice ? (
@@ -966,14 +1031,14 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                                     </span>
                                   )}
                                 </div>
-                                <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-neutral-500">
                                   {occupant.phone && (
                                     <span className="flex items-center gap-1 font-medium">
-                                      <Phone className="size-3 text-slate-400" />
+                                      <Phone className="size-3 text-neutral-400" />
                                       {occupant.phone}
                                     </span>
                                   )}
-                                  <span className="font-bold text-slate-700 font-mono">
+                                  <span className="font-extrabold text-neutral-800 tabular-nums">
                                     Rent: {formatMoney(bed.rentAmount || selectedRoom.rentAmount)}
                                     /mo
                                   </span>
@@ -988,7 +1053,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                             ) : (
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <h4 className="font-bold text-sm text-slate-900">
+                                  <h4 className="font-bold text-sm text-neutral-900">
                                     Bed {bed.bedLabel}{" "}
                                     {isMaint ? "(Under Maintenance)" : "(Available)"}
                                   </h4>
@@ -1002,9 +1067,9 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                                     {isMaint ? "Maintenance" : "Vacant"}
                                   </span>
                                 </div>
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-neutral-500">
                                   Booking Rent:{" "}
-                                  <span className="font-bold text-slate-700 font-mono">
+                                  <span className="font-extrabold text-neutral-800 tabular-nums">
                                     {formatMoney(bed.rentAmount || selectedRoom.rentAmount)}/mo
                                   </span>
                                 </p>
@@ -1049,7 +1114,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                                     ),
                                   }));
                                 }}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+                                className="rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 shadow-2xs"
                               >
                                 {bed.status === "MAINTENANCE" ? "Mark Vacant" : "Set Maint."}
                               </button>
@@ -1075,8 +1140,8 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             </div>
 
             {/* Modal Bottom Footer */}
-            <div className="bg-slate-50 p-4 border-t border-slate-200/80 flex items-center justify-between">
-              <p className="text-xs text-slate-500">
+            <div className="bg-neutral-50 p-4 border-t border-neutral-200 flex items-center justify-between">
+              <p className="text-xs text-neutral-500 font-medium">
                 Click Check-in to onboard a resident directly into this room.
               </p>
               <Button variant="secondary" onClick={() => setSelectedRoom(null)}>
@@ -1089,13 +1154,13 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
 
       {/* Modal: Add Room */}
       {isAddOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 p-2 sm:p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-neutral-950/50 p-2 sm:p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-base font-bold text-slate-900">Add New Room</h2>
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+              <h2 className="text-base font-extrabold text-neutral-950">Add New Room</h2>
               <button
                 onClick={() => setIsAddOpen(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
               >
                 <X className="size-5" />
               </button>
@@ -1174,28 +1239,28 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
               />
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 pt-1">
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs font-medium text-neutral-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.ac}
                     onChange={(e) => setForm({ ...form, ac: e.target.checked })}
-                    className="size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    className="size-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
                   />
                   Air Conditioned (AC)
                 </label>
 
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs font-medium text-neutral-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.attachedBathroom}
                     onChange={(e) => setForm({ ...form, attachedBathroom: e.target.checked })}
-                    className="size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    className="size-4 rounded border-neutral-300 text-brand-600 focus:ring-brand-500"
                   />
                   Attached Bathroom
                 </label>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-neutral-100">
                 <Button
                   type="button"
                   variant="secondary"

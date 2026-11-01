@@ -17,7 +17,7 @@ const GETImpl = handler(async (req) => {
   const sp = req.nextUrl.searchParams;
   const societyId = resolveSocietyScope(user, sp.get("societyId"));
   const page = Number(sp.get("page") || 1);
-  const pageSize = Math.min(200, Number(sp.get("pageSize") || 25));
+  const pageSize = Math.min(200, Number(sp.get("pageSize") || 20));
 
   const where = { societyId };
   if (!isStaff(user)) {

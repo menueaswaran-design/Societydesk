@@ -18,6 +18,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
+import Pagination from "@/components/ui/Pagination";
 import { formatMoney, formatDate } from "@/lib/format";
 import { api } from "@/lib/client/api";
 
@@ -26,6 +27,8 @@ export default function DepositsClient({ initialDeposits = [] }) {
   const [deposits, setDeposits] = useState(initialDeposits);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const [activeDeposit, setActiveDeposit] = useState(null);
   const [deductionModalOpen, setDeductionModalOpen] = useState(false);
@@ -59,6 +62,12 @@ export default function DepositsClient({ initialDeposits = [] }) {
     }
     return true;
   });
+
+  const totalItems = filteredDeposits.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedDeposits = filteredDeposits.slice(startIndex, startIndex + pageSize);
 
   async function handleAddDeduction(e) {
     e.preventDefault();
@@ -151,7 +160,7 @@ export default function DepositsClient({ initialDeposits = [] }) {
             type="text"
             placeholder="Search resident or room..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-xl border border-slate-200/90 bg-white py-2 pl-9.5 pr-3 text-xs text-slate-800 shadow-2xs placeholder:text-slate-400 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
           />
         </div>
@@ -181,7 +190,7 @@ export default function DepositsClient({ initialDeposits = [] }) {
         <>
           {/* Mobile Cards (< 640px) */}
           <div className="space-y-3 sm:hidden">
-            {filteredDeposits.map((d) => {
+            {paginatedDeposits.map((d) => {
               const resident = d.occupancy?.user;
               const unit = d.occupancy?.unit;
               const bed = d.occupancy?.bed;
@@ -332,7 +341,7 @@ export default function DepositsClient({ initialDeposits = [] }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredDeposits.map((d) => {
+                  {paginatedDeposits.map((d) => {
                     const resident = d.occupancy?.user;
                     const unit = d.occupancy?.unit;
                     const bed = d.occupancy?.bed;
@@ -445,6 +454,18 @@ export default function DepositsClient({ initialDeposits = [] }) {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={(newPage) => setPage(newPage)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemName="deposits"
+            />
           </div>
         </>
       )}

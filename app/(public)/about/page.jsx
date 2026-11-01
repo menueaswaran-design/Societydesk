@@ -8,11 +8,40 @@ export const metadata = {
   alternates: {
     canonical: "/about",
   },
+  openGraph: {
+    title: "About Us | Bedy – Modern PG & Hostel Management Software",
+    description:
+      "Learn about Bedy's mission to digitize PG and hostel operations across India with automated rent collection, bed management, and low-friction resident living.",
+    url: "https://bedy.in/about",
+  },
+};
+
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://bedy.in",
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "About Us",
+      "item": "https://bedy.in/about",
+    },
+  ],
 };
 
 export default function AboutPage() {
   return (
     <div className="w-full py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <div className="mx-auto max-w-4xl space-y-12">
         {/* Navigation back */}
         <div>

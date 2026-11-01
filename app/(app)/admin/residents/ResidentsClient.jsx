@@ -111,7 +111,9 @@ export default function ResidentsClient({
   const [filterStatus, setFilterStatus] = useState(initialStatus); // "ALL" | "ACTIVE" | "NOTICE" | "LEFT"
   const [filterRoom, setFilterRoom] = useState(initialRoom); // "ALL" | roomNumber
   const [filterKyc, setFilterKyc] = useState("ALL"); // "ALL" | "VERIFIED" | "MISSING"
-  const [filterDues, setFilterDues] = useState("ALL"); // "ALL" | "DUE" | "PAID"
+  const [filterDues, setFilterDues] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20); // "ALL" | "DUE" | "PAID"
 
   // Helper: check resident KYC status
   function getResidentKyc(userId) {
@@ -200,6 +202,10 @@ export default function ResidentsClient({
     setFilterDues("ALL");
   }
 
+  useEffect(() => {
+    setPage(1);
+  }, [query, filterStatus, filterRoom, filterKyc, filterDues]);
+
   // Filtered Occupancies
   const filteredOccupancies = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -231,6 +237,14 @@ export default function ResidentsClient({
       );
     });
   }, [occupancies, query, filterStatus, filterRoom, filterKyc, filterDues, occupancyDataMap]);
+
+  const totalItems = filteredOccupancies.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedOccupancies = useMemo(() => {
+    return filteredOccupancies.slice(startIndex, startIndex + pageSize);
+  }, [filteredOccupancies, startIndex, pageSize]);
 
   // Available beds for selected room in Check-in form
   const selectedUnit = units.find((u) => u.id === checkInForm.unitId);
@@ -658,7 +672,7 @@ export default function ResidentsClient({
         <>
           {/* Mobile Cards View (< 640px) */}
           <div className="space-y-3 sm:hidden">
-            {filteredOccupancies.map((occ) => {
+            {paginatedOccupancies.map((occ) => {
               const data = occupancyDataMap.get(occ.id) || {
                 outstandingBalance: 0,
                 isOverdue: false,
@@ -786,7 +800,7 @@ export default function ResidentsClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredOccupancies.map((occ) => {
+                  {paginatedOccupancies.map((occ) => {
                     const data = occupancyDataMap.get(occ.id) || {
                       outstandingBalance: 0,
                       isOverdue: false,
@@ -952,6 +966,18 @@ export default function ResidentsClient({
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={(newPage) => setPage(newPage)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemName="residents"
+            />
           </div>
         </>
       )}

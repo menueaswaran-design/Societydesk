@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 /* ==========================================================================
    Bedy Design System v1.0 | Royal Cobalt #3154D9 + Manrope
@@ -154,6 +153,7 @@
     scrollbar-gutter: stable;
     font-size: 15px;
     scroll-behavior: smooth;
+    scroll-padding-top: 88px;
   }
 
   *, ::before, ::after {
@@ -250,10 +250,18 @@
   @apply flex items-center justify-between gap-4 px-4 py-2.5;
 }
 
-/* Professional sidebar - Royal Cobalt Deep Navy */
+/* Professional sidebar - Clean light surface matching design system */
 @utility brand-canvas {
-  background-color: #10192E;
-  background-image: linear-gradient(180deg, #10192E 0%, #17213A 100%);
+  background-color: #FFFFFF;
+}
+
+/* Hide scrollbar utility */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Royal Cobalt Signature Gradients */
@@ -394,5 +402,60 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Landing page scroll storytelling */
+.resident-journey-surface {
+  background-color: #F5F4EF;
+  background-image:
+    radial-gradient(ellipse at 86% 8%, rgb(49 84 217 / 0.055), transparent 40%),
+    linear-gradient(to right, rgb(23 33 58 / 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(23 33 58 / 0.025) 1px, transparent 1px);
+  background-size: auto, 44px 44px, 44px 44px;
+}
+
+#page-scroll-progress {
+  transform: scaleX(var(--page-scroll-progress, 0));
+  transition: transform 90ms linear;
+  box-shadow: 0 0 12px rgb(49 84 217 / 0.36);
+}
+
+.motion-ready [data-scroll-reveal] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.motion-ready [data-scroll-reveal].is-visible {
+  animation: landing-scroll-reveal 780ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+@keyframes landing-scroll-reveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.985);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #page-scroll-progress {
+    display: none;
+  }
+
+  .motion-ready [data-scroll-reveal],
+  .motion-ready [data-scroll-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    animation: none;
+    transition: none;
   }
 }

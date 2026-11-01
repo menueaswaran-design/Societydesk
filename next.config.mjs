@@ -10,19 +10,12 @@ const nextConfig = {
   // Pinned so Next does not infer C:\Users\VIGNESH as the workspace root
   // (there is an unrelated package-lock.json in the user profile).
   outputFileTracingRoot: __dirname,
-  async redirects() {
-    return [
-      {
-        source: "/pricing",
-        destination: "/#pricing",
-        permanent: true,
-      },
-      {
-        source: "/features",
-        destination: "/#features",
-        permanent: true,
-      },
-    ];
+  webpack: (config, { dev }) => {
+    if (dev) {
+      // Disable disk pack cache in development to prevent OneDrive file locking and readlink EINVAL errors on Windows
+      config.cache = false;
+    }
+    return config;
   },
 };
 
