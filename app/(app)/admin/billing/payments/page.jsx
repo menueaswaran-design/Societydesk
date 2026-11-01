@@ -8,9 +8,12 @@ import PaymentsClient from "./PaymentsClient";
 export const metadata = { title: "Payments - Bedy" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({ searchParams }) {
+  const resolvedParams = searchParams ? await searchParams : {};
   const user = await getServerSession();
   requirePageRole(user, ["SOCIETY_ADMIN", "FLAT_ADMIN"]);
+
+  const initialRecordOpen = resolvedParams?.action === "record" || Boolean(resolvedParams?.invoiceId);
 
   const isFlatAdmin = user.role === "FLAT_ADMIN";
   const assignedFlatIds = isFlatAdmin ? await getResidentFlatIds(user.id) : null;
@@ -136,6 +139,8 @@ export default async function AdminPaymentsPage() {
   return (
     <PaymentsClient
       payments={rows}
+      initialRecordOpen={initialRecordOpen}
+      initialInvoiceId={resolvedParams?.invoiceId || null}
       summary={{
         total: totals._sum.amount ?? 0,
         count: totals._count._all,

@@ -457,14 +457,21 @@ export default function InvoicesClient({
   filters,
   units = [],
   occupancies = [],
+  initialGenerateOpen = false,
 }) {
   const router = useRouter();
   const searchInputRef = useRef(null);
 
-  const [generateOpen, setGenerateOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(initialGenerateOpen || false);
   const [payFor, setPayFor] = useState(null);
   const [drawerInvoice, setDrawerInvoice] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
+
+  useEffect(() => {
+    if (initialGenerateOpen) {
+      setGenerateOpen(true);
+    }
+  }, [initialGenerateOpen]);
 
   // Pagination state
   const [page, setPage] = useState(1);

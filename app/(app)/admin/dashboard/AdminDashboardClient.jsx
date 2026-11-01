@@ -96,7 +96,7 @@ export default function AdminDashboardClient({ data }) {
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             as="a"
-            href="/admin/residents"
+            href="/admin/residents?action=new"
             variant="primary"
             size="md"
             className="shadow-2xs font-bold"
@@ -106,7 +106,7 @@ export default function AdminDashboardClient({ data }) {
           </Button>
           <Button
             as="a"
-            href="/admin/billing/payments"
+            href="/admin/billing/payments?action=record"
             variant="secondary"
             size="md"
             className="font-bold shadow-2xs"
@@ -116,7 +116,7 @@ export default function AdminDashboardClient({ data }) {
           </Button>
           <Button
             as="a"
-            href="/admin/billing/invoices"
+            href="/admin/billing/invoices?action=generate"
             variant="outline"
             size="md"
             className="font-bold text-neutral-700 border-neutral-200 hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50/50 shadow-2xs"
@@ -415,8 +415,8 @@ export default function AdminDashboardClient({ data }) {
                               </a>
                             )}
                             <Link
-                              href={`/admin/billing/payments?invoiceId=${inv.id}`}
-                              className="inline-flex items-center gap-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 px-2.5 py-1.5 text-[11px] font-bold text-neutral-700 transition"
+                              href={`/admin/billing/payments?action=record&invoiceId=${inv.id}`}
+                              className="inline-flex items-center gap-1 rounded-lg bg-neutral-100 hover:bg-brand-50 hover:text-brand-700 px-2.5 py-1.5 text-[11px] font-bold text-neutral-700 transition"
                             >
                               <span>Record</span>
                             </Link>
@@ -438,7 +438,7 @@ export default function AdminDashboardClient({ data }) {
                   View All Defaulters ({cards.overdueInvoiceCount})
                 </Link>
                 <Link
-                  href="/admin/billing/invoices"
+                  href="/admin/billing/invoices?action=generate"
                   className="font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
                 >
                   <span>Batch Generate Next Month</span>
@@ -476,6 +476,7 @@ export default function AdminDashboardClient({ data }) {
                     ? bedRows.map((b) => {
                         const isNotice = b.occupancies?.[0]?.status === "NOTICE";
                         const isOccupied = b.status === "OCCUPIED" || b.occupancies?.length > 0;
+                        const isVacant = !isOccupied && !isNotice;
                         const occupantName = b.occupancies?.[0]?.user?.name;
 
                         const colorClass = isNotice
@@ -485,15 +486,30 @@ export default function AdminDashboardClient({ data }) {
                           : "bg-success-50 text-success-700 border-success-200";
 
                         return (
+                        if (isVacant) {
+                          return (
+                            <Link
+                              key={b.id}
+                              href={`/admin/residents?action=new&unitId=${b.unit?.id || b.unitId}&bedId=${b.id}`}
+                              title={`Room ${b.unit?.unitNumber || "-"} · Bed ${b.bedLabel} (Vacant - Click to Check-in)`}
+                              className={`text-center font-bold text-[10px] sm:text-xs py-2 rounded-lg border shadow-2xs transition-transform hover:scale-105 cursor-pointer block ${colorClass}`}
+                            >
+                              {b.bedLabel}
+                            </Link>
+                          );
+                        }
+
+                        return (
                           <div
                             key={b.id}
                             title={`Room ${b.unit?.unitNumber || "-"} · Bed ${b.bedLabel}${
-                              occupantName ? ` (${occupantName}${isNotice ? " - On Notice" : ""})` : " (Vacant)"
+                              occupantName ? ` (${occupantName}${isNotice ? " - On Notice" : ""})` : ""
                             }`}
-                            className={`text-center font-bold text-[10px] sm:text-xs py-2 rounded-lg border shadow-2xs transition-transform hover:scale-105 cursor-pointer ${colorClass}`}
+                            className={`text-center font-bold text-[10px] sm:text-xs py-2 rounded-lg border shadow-2xs ${colorClass}`}
                           >
                             {b.bedLabel}
                           </div>
+                        );
                         );
                       })
                     : <p className="col-span-6 rounded-xl border border-dashed border-neutral-200 p-6 text-center text-xs text-neutral-500">No beds to display yet.</p>}
@@ -683,6 +699,8 @@ export default function AdminDashboardClient({ data }) {
           </Card>
         </div>
       </div>
+
+      {/* Closed bottom grid */}
     </div>
   );
 }

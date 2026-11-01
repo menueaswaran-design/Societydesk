@@ -71,16 +71,11 @@ export function SuccessBanner({ title, children, icon: Icon, className = "" }) {
 export function Loading({ label = "Loading" }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-sm text-slate-500">
-      <span className="inline-flex gap-1">
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="size-1.5 animate-bounce rounded-full bg-slate-400"
-            style={{ animationDelay: `${i * 120}ms`, animationDuration: "900ms" }}
-          />
-        ))}
-      </span>
-      {label}
+      <div className="relative size-8">
+        <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-600 border-r-brand-500 animate-spin" />
+      </div>
+      {label ? <span className="text-xs font-medium text-slate-500">{label}</span> : null}
     </div>
   );
 }

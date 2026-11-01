@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CreditCard, FileDown, Receipt, Undo2, Info, Landmark, Plus, User, BedDouble } from "lucide-react";
 import Button, { IconButton, TextAction } from "@/components/ui/Button";
@@ -19,14 +19,31 @@ import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { api, fieldErrors, openDocument } from "@/lib/client/api";
 import { formatDate, formatMoney, formatPeriod, titleCase } from "@/lib/format";
 
-export default function PaymentsClient({ payments, summary }) {
+export default function PaymentsClient({
+  payments,
+  summary,
+  initialRecordOpen = false,
+  initialInvoiceId = null,
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState("");
   const [editing, setEditing] = useState(null);
   const [reversing, setReversing] = useState(null);
-  const [recordingOpen, setRecordingOpen] = useState(false);
+  const [recordingOpen, setRecordingOpen] = useState(initialRecordOpen || false);
+  const [preselectedInvoice, setPreselectedInvoice] = useState(
+    initialInvoiceId ? { id: initialInvoiceId } : null
+  );
   const [docError, setDocError] = useState(null);
+
+  useEffect(() => {
+    if (initialRecordOpen || initialInvoiceId) {
+      setRecordingOpen(true);
+      if (initialInvoiceId) {
+        setPreselectedInvoice({ id: initialInvoiceId });
+      }
+    }
+  }, [initialRecordOpen, initialInvoiceId]);
 
   // Pagination State - 20 items per page by default
   const [page, setPage] = useState(1);
@@ -334,7 +351,14 @@ export default function PaymentsClient({ payments, summary }) {
 
       <EditModal payment={editing} onClose={() => setEditing(null)} />
       <ReverseModal payment={reversing} onClose={() => setReversing(null)} />
-      <RecordPaymentModal open={recordingOpen} onClose={() => setRecordingOpen(false)} />
+      <RecordPaymentModal
+        open={recordingOpen}
+        onClose={() => {
+          setRecordingOpen(false);
+          setPreselectedInvoice(null);
+        }}
+        preselectedInvoice={preselectedInvoice}
+      />
     </div>
   );
 }

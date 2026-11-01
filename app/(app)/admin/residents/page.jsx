@@ -112,6 +112,9 @@ export default async function AdminResidentsPage({ searchParams }) {
       residents={residents}
       flats={flats}
       totalSocietyFlats={totalSocietyFlats}
+      initialCheckInOpen={resolvedParams?.action === "new" || resolvedParams?.checkin === "true" || Boolean(resolvedParams?.unitId) || Boolean(resolvedParams?.bedId)}
+      initialUnitId={resolvedParams?.unitId || ""}
+      initialBedId={resolvedParams?.bedId || ""}
       initialStatus={resolvedParams.status || "ACTIVE"}
       initialRoom={resolvedParams.room || "ALL"}
       initialDocuments={documents.map((d) => ({

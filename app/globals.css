@@ -250,9 +250,10 @@
   @apply flex items-center justify-between gap-4 px-4 py-2.5;
 }
 
-/* Professional sidebar - Clean light surface matching design system */
+/* Professional sidebar - Royal Cobalt Brand Blue from Design System */
 @utility brand-canvas {
-  background-color: #FFFFFF;
+  background-color: #1E398A;
+  background-image: linear-gradient(180deg, #1E398A 0%, #172B68 100%);
 }
 
 /* Hide scrollbar utility */
@@ -351,14 +352,32 @@
 }
 
 @keyframes progress-bar {
-  0% { transform: scaleX(0.05); }
-  50% { transform: scaleX(0.75); }
+  0% { transform: scaleX(0.06); }
+  25% { transform: scaleX(0.42); }
+  60% { transform: scaleX(0.76); }
+  85% { transform: scaleX(0.92); }
   100% { transform: scaleX(0.98); }
 }
 
 .animate-progress {
   transform-origin: left;
-  animation: progress-bar 1.2s cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: progress-bar 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes indeterminate-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(25%);
+  }
+  100% {
+    transform: translateX(110%);
+  }
+}
+
+.animate-indeterminate {
+  animation: indeterminate-slide 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes float-slow {

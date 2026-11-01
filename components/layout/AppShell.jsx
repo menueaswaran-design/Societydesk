@@ -248,7 +248,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
     <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
+          <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-blue-200 uppercase">
             {group.label}
           </p>
           <ul className="space-y-1">
@@ -274,18 +274,18 @@ export default function AppShell({ user, society, flats, occupancies, children }
         <img
           src="/logo.png"
           alt="Bedy"
-          className="size-8.5 rounded-xl object-contain bg-white p-0.5 shadow-2xs border border-[#E5EAF3]"
+          className="size-8.5 rounded-xl object-contain bg-white p-0.5 shadow-sm ring-1 ring-white/20"
         />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-slate-900 tracking-tight leading-tight">
+        <p className="truncate text-sm font-bold text-white tracking-tight leading-tight">
           {society?.name ?? (user.role === "SUPER_ADMIN" ? "Bedy Platform" : isPgWorkspace ? "Bedy PG" : "Bedy")}
         </p>
         <div className="flex items-center gap-1.5 mt-1">
-          <span className="rounded-md bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 text-[9.5px] font-bold text-brand-700 uppercase tracking-wide">
+          <span className="rounded-full bg-white/15 border border-white/20 px-2 py-0.5 text-[9.5px] font-bold text-white uppercase tracking-wide">
             {user.role === "SUPER_ADMIN" ? "SUPER ADMIN" : isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
           </span>
-          <p className="truncate text-[11px] font-medium text-slate-500">
+          <p className="truncate text-[11px] font-medium text-blue-200">
             {titleCase(user.role)}
           </p>
         </div>
@@ -296,14 +296,14 @@ export default function AppShell({ user, society, flats, occupancies, children }
   return (
     <div className="flex min-h-screen bg-[#F8FAFF]">
       {isNavigating ? (
-        <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10">
-          <div className="h-full w-full bg-gradient-to-r from-brand-600 via-brand-500 to-[#6995FF] animate-progress" />
+        <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10 pointer-events-none overflow-hidden">
+          <div className="h-full w-full bg-gradient-to-r from-brand-600 via-brand-500 to-[#6995FF] animate-progress shadow-[0_0_8px_rgba(49,84,217,0.5)]" />
         </div>
       ) : null}
 
-      {/* Sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start border-r border-[#E5EAF3] bg-white lg:flex">
-        <div className="flex h-14 items-center border-b border-[#E5EAF3] bg-white">{identity}</div>
+      {/* Sidebar - Royal Cobalt Brand Blue from HTML Design System */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start bg-gradient-to-b from-[#1E398A] to-[#172B68] text-white border-r border-[#1B326E] shadow-sm lg:flex">
+        <div className="flex h-14 items-center border-b border-white/10 bg-transparent">{identity}</div>
         {nav}
         <UserPanel user={user} roomLabel={roomLabel} onSignOut={signOut} />
       </aside>
@@ -316,13 +316,13 @@ export default function AppShell({ user, society, flats, occupancies, children }
             onClick={() => setDrawer(false)}
             className="animate-fade-in absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
           />
-          <div className="animate-slide-left relative z-10 flex h-full w-64 max-w-[85vw] flex-col bg-white border-r border-[#E5EAF3] shadow-pop">
-            <div className="flex h-14 items-center justify-between border-b border-[#E5EAF3] pr-2">
+          <div className="animate-slide-left relative z-10 flex h-full w-64 max-w-[85vw] flex-col bg-gradient-to-b from-[#1E398A] to-[#172B68] text-white border-r border-[#1B326E] shadow-pop">
+            <div className="flex h-14 items-center justify-between border-b border-white/10 pr-2">
               <div className="min-w-0 flex-1">{identity}</div>
               <button
                 onClick={() => setDrawer(false)}
                 aria-label="Close menu"
-                className="inline-flex size-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                className="inline-flex size-9 items-center justify-center rounded-lg text-blue-200 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <X className="size-5" />
               </button>
@@ -423,20 +423,20 @@ function NavLink({ item, label, pathname, onNavigate }) {
           onNavigate?.();
         }
       }}
-      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
+      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-all duration-150 ${
         active
-          ? "bg-brand-50 text-brand-700 font-bold shadow-2xs border border-brand-200/80"
-          : "text-slate-700 hover:bg-brand-50/60 hover:text-brand-700 border border-transparent"
+          ? "bg-white text-brand-700 shadow-md font-bold"
+          : "text-white/85 hover:bg-white/10 hover:text-white"
       }`}
     >
       {active ? (
         <span
           aria-hidden="true"
-          className="absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-600"
+          className="absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-white shadow-xs"
         />
       ) : null}
       <Icon
-        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-600" : "text-slate-400 group-hover:text-brand-600"}`}
+        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-600" : "text-blue-200 group-hover:text-white"}`}
       />
       <span className="truncate">{label ?? item.label}</span>
     </Link>
@@ -446,23 +446,23 @@ function NavLink({ item, label, pathname, onNavigate }) {
 function UserPanel({ user, roomLabel, onSignOut }) {
   const { t } = useTranslation();
   return (
-    <div className="border-t border-[#E5EAF3] p-3 bg-white">
-      <div className="flex items-center gap-2.5 rounded-xl bg-slate-50/80 px-2.5 py-2 border border-[#E5EAF3] transition-colors hover:bg-slate-100/70">
+    <div className="border-t border-white/10 p-3 bg-transparent">
+      <div className="flex items-center gap-2.5 rounded-xl bg-white/10 backdrop-blur-sm px-2.5 py-2 border border-white/15 transition-colors hover:bg-white/15">
         <Avatar name={user.name} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-bold text-slate-900">{user.name}</p>
-          <p className="truncate text-[11px] font-medium text-slate-500">{titleCase(user.role)}</p>
+          <p className="truncate text-xs font-bold text-white">{user.name}</p>
+          <p className="truncate text-[11px] font-medium text-blue-200">{titleCase(user.role)}</p>
         </div>
         <button
           onClick={onSignOut}
           aria-label={t("common.signOut", "Sign out")}
           title={t("common.signOut", "Sign out")}
-          className="inline-flex size-7.5 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+          className="inline-flex size-7.5 items-center justify-center rounded-lg text-blue-200 transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
         >
           <LogOut className="size-3.5" />
         </button>
       </div>
-      {roomLabel ? <p className="mt-2 truncate px-2 text-[11px] font-medium text-slate-500">{roomLabel}</p> : null}
+      {roomLabel ? <p className="mt-2 truncate px-2 text-[11px] font-medium text-blue-200/80">{roomLabel}</p> : null}
     </div>
   );
 }

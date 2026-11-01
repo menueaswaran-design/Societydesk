@@ -88,22 +88,40 @@ export default function RecordPaymentModal({
       return;
     }
 
-    if (preselectedInvoice) {
-      setInvoices([preselectedInvoice]);
+    const hasFullInvoiceData =
+      preselectedInvoice &&
+      (preselectedInvoice.totalAmount !== undefined || preselectedInvoice.outstanding !== undefined) &&
+      (preselectedInvoice.residentName || preselectedInvoice.occupancy || preselectedInvoice.flat);
+
+    if (hasFullInvoiceData) {
+      const calcOutstanding =
+        preselectedInvoice.outstanding ??
+        Math.max(0, (preselectedInvoice.totalAmount || 0) - (preselectedInvoice.paidAmount || 0));
+      const normalizedInv = {
+        ...preselectedInvoice,
+        outstanding: calcOutstanding,
+      };
+      setInvoices([normalizedInv]);
       setSelectedInvoiceId(preselectedInvoice.id);
-      setAmount(String(preselectedInvoice.outstanding));
+      setAmount(String(calcOutstanding));
       return;
     }
 
-    if (flatId || !preselectedInvoice) {
+    if (flatId || !hasFullInvoiceData) {
       setLoadingInvoices(true);
       const url = flatId ? `/api/billing/invoices?flatId=${flatId}&pageSize=100` : `/api/billing/invoices?pageSize=100`;
       api
         .get(url)
         .then((rows) => {
-          const unpaid = (rows || []).filter((i) => i.outstanding > 0);
+          const list = Array.isArray(rows) ? rows : rows?.invoices || rows?.data || [];
+          const unpaid = list.filter((i) => (i.outstanding ?? (i.totalAmount - (i.paidAmount || 0))) > 0);
           setInvoices(unpaid);
-          if (unpaid.length > 0) {
+          const targetId = preselectedInvoice?.id;
+          const match = targetId ? unpaid.find((i) => i.id === targetId) : null;
+          if (match) {
+            setSelectedInvoiceId(match.id);
+            setAmount(String(match.outstanding));
+          } else if (unpaid.length > 0) {
             setSelectedInvoiceId(unpaid[0].id);
             setAmount(String(unpaid[0].outstanding));
           }
