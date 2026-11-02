@@ -40,11 +40,17 @@ export default function PublicLayout({ children }) {
             <Link href="/" className="hover:text-brand-600 transition-colors">
               Home
             </Link>
-            <Link href="/#features" className="hover:text-brand-600 transition-colors">
+            <Link href="/features" className="hover:text-brand-600 transition-colors">
               Features
             </Link>
-            <Link href="/#pricing" className="hover:text-brand-600 transition-colors">
+            <Link href="/pricing" className="hover:text-brand-600 transition-colors">
               Pricing Plans
+            </Link>
+            <Link href="/services" className="hover:text-brand-600 transition-colors">
+              Services
+            </Link>
+            <Link href="/about" className="hover:text-brand-600 transition-colors">
+              About
             </Link>
             <Link href="/contact" className="hover:text-brand-600 transition-colors">
               Contact
@@ -94,6 +100,12 @@ export default function PublicLayout({ children }) {
               </Link>
               <Link href="/pricing" className="hover:text-brand-600 transition-colors">
                 Pricing
+              </Link>
+              <Link href="/services" className="hover:text-brand-600 transition-colors">
+                Services
+              </Link>
+              <Link href="/about" className="hover:text-brand-600 transition-colors">
+                About
               </Link>
               <Link href="/contact" className="hover:text-brand-600 transition-colors">
                 Contact

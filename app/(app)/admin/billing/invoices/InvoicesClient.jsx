@@ -20,6 +20,8 @@ import {
   Square,
   ArrowRight,
   Check,
+  Clock,
+  AlertTriangle,
   Copy,
   ExternalLink,
   ShieldCheck,
@@ -32,8 +34,8 @@ import { EmptyState, ErrorBanner, SuccessBanner } from "@/components/ui/Feedback
 import { CardNote, StatLine } from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
-import CollectPaymentButton from "@/components/billing/CollectPaymentButton";
 import ElectricityBillingSection from "./ElectricityBillingSection";
+import Pagination from "@/components/ui/Pagination";
 import { api, fieldErrors } from "@/lib/client/api";
 import { INVOICE_STATUS, PAYMENT_METHOD } from "@/lib/constants";
 import {
@@ -113,56 +115,46 @@ function WhatsAppReminderButton({ invoice, size = "xs", className = "" }) {
 }
 
 /** Row action ⋯ dropdown menu */
-function RowMoreMenu({ invoice, onRecordPayment, onOpenDrawer }) {
-  const [open, setOpen] = useState(false);
+function RowMoreMenu({ invoice, onRecordPayment, onOpenDrawer, isOpen, onToggle }) {
   const menuRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpen(false);
+        onToggle?.();
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
+  }, [isOpen, onToggle]);
 
   return (
     <div className="relative inline-block text-left" ref={menuRef} onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
-        onClick={() => setOpen(!open)}
-        className="inline-flex size-7.5 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition focus:outline-none"
+        onClick={onToggle}
+        className="inline-flex size-7.5 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition focus:outline-none"
         title="More options"
         aria-label="More options"
       >
         <MoreHorizontal className="size-4" />
       </button>
 
-      {open && (
-        <div className="absolute right-0 z-30 mt-1 w-48 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5 animate-pop">
+      {isOpen && (
+        <div className="absolute right-0 z-50 mt-1.5 w-48 origin-top-right rounded-xl border border-neutral-200 bg-white py-1.5 shadow-xl ring-1 ring-black/5 animate-pop">
           {invoice.outstanding > 0 && invoice.status !== "CANCELLED" && (
             <>
-              <div className="px-2 py-1 border-b border-slate-100">
-                <CollectPaymentButton
-                  invoiceId={invoice.id}
-                  invoiceNumber={invoice.invoiceNumber}
-                  amount={invoice.outstanding}
-                  size="xs"
-                  label="Send link"
-                />
-              </div>
-
+              
               <button
                 type="button"
                 onClick={() => {
-                  setOpen(false);
+                  onToggle?.();
                   onRecordPayment();
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 transition"
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-brand-600 transition"
               >
-                <Wallet className="size-3.5 text-slate-400" />
+                <Wallet className="size-3.5 text-neutral-400" />
                 Record payment
               </button>
             </>
@@ -171,12 +163,12 @@ function RowMoreMenu({ invoice, onRecordPayment, onOpenDrawer }) {
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              onToggle?.();
               onOpenDrawer();
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 transition"
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-brand-600 transition"
           >
-            <Eye className="size-3.5 text-slate-400" />
+            <Eye className="size-3.5 text-neutral-400" />
             View details
           </button>
         </div>
@@ -300,13 +292,6 @@ function InvoiceDrawer({ invoice, onClose, onRecordPayment }) {
               <>
                 <WhatsAppReminderButton invoice={invoice} size="sm" />
                 <div className="flex items-center gap-2">
-                  <CollectPaymentButton
-                    invoiceId={invoice.id}
-                    invoiceNumber={invoice.invoiceNumber}
-                    amount={invoice.outstanding}
-                    size="sm"
-                    label="Send link"
-                  />
                   <Button
                     size="sm"
                     variant="primary"
@@ -472,13 +457,25 @@ export default function InvoicesClient({
   filters,
   units = [],
   occupancies = [],
+  initialGenerateOpen = false,
 }) {
   const router = useRouter();
   const searchInputRef = useRef(null);
 
-  const [generateOpen, setGenerateOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(initialGenerateOpen || false);
   const [payFor, setPayFor] = useState(null);
   const [drawerInvoice, setDrawerInvoice] = useState(null);
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  useEffect(() => {
+    if (initialGenerateOpen) {
+      setGenerateOpen(true);
+    }
+  }, [initialGenerateOpen]);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Search & Filter state
   const [query, setQuery] = useState("");
@@ -613,14 +610,32 @@ export default function InvoicesClient({
     });
   }, [invoices, selectedStatusTab, selectedFloor, debouncedQuery]);
 
-  // Bulk selection toggles
-  const isAllSelected = visible.length > 0 && visible.every((i) => selectedIds.has(i.id));
+  // Reset page when search or status filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, selectedStatusTab, selectedFloor]);
+
+  const totalItems = visible.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedInvoices = useMemo(() => {
+    return visible.slice(startIndex, startIndex + pageSize);
+  }, [visible, startIndex, pageSize]);
+
+  // Bulk selection toggles (select current page)
+  const isAllSelected =
+    paginatedInvoices.length > 0 && paginatedInvoices.every((i) => selectedIds.has(i.id));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      setSelectedIds(new Set());
+      const next = new Set(selectedIds);
+      paginatedInvoices.forEach((i) => next.delete(i.id));
+      setSelectedIds(next);
     } else {
-      setSelectedIds(new Set(visible.map((i) => i.id)));
+      const next = new Set(selectedIds);
+      paginatedInvoices.forEach((i) => next.add(i.id));
+      setSelectedIds(next);
     }
   };
 
@@ -639,6 +654,14 @@ export default function InvoicesClient({
     return invoices.filter((i) => i.status === "OVERDUE" && i.outstanding > 0);
   }, [invoices]);
 
+  const totalOverdue = useMemo(() => {
+    return overdueInvoicesList.reduce((sum, i) => sum + (i.outstanding || 0), 0);
+  }, [overdueInvoicesList]);
+
+  const pendingAmount = Math.max(0, (summary.outstanding || 0) - totalOverdue);
+  const collectionRate =
+    summary.billed > 0 ? Math.min(100, Math.round((summary.collected / summary.billed) * 100)) : 0;
+
   return (
     <div className="space-y-5">
       {/* Page Header */}
@@ -646,8 +669,9 @@ export default function InvoicesClient({
         title="Invoices"
         description="One invoice per occupied room/bed, per billing period."
         meta={
-          <span className="text-[11px] font-semibold text-slate-500">
-            {visible.length} of {invoices.length} shown
+          <span className="text-[11px] font-semibold text-neutral-500">
+            {totalItems} {totalItems === 1 ? "invoice" : "invoices"}
+            {totalPages > 1 ? ` · Page ${safePage} of ${totalPages}` : ""}
           </span>
         }
         actions={
@@ -658,78 +682,149 @@ export default function InvoicesClient({
         }
       />
 
-      {/* Flat Editorial Stat Strip (Saves ~150px height, removes clutter) */}
-      <div className="bg-white rounded-2xl border border-[#E5EAF3] shadow-2xs p-4 sm:px-6 sm:py-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 gap-3 sm:gap-0">
-          {/* 1. Total Billed */}
-          <div className="sm:pr-6 flex flex-col justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      {/* Separate KPI Stat Boxes (Per Bedy Design System) */}
+      <div className="grid grid-cols-2 gap-3.5 sm:gap-4 lg:grid-cols-4">
+        {/* Card 1: Total Billed */}
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedStatusTab("ALL");
+            setSelectedFloor("");
+          }}
+          className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs hover:border-brand-300 hover:shadow-xs cursor-pointer ${
+            selectedStatusTab === "ALL" && !selectedFloor
+              ? "border-neutral-300 ring-1 ring-neutral-300/50"
+              : "border-neutral-200"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
               Total Billed
             </span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span
-                className="text-2xl font-extrabold text-slate-900 tracking-tight font-mono tabular-nums cursor-default"
-                title={formatMoney(summary.billed)}
-              >
-                {formatCompactMoney(summary.billed)}
-              </span>
-              <span className="text-xs text-slate-400">
-                {invoices.length} invoices
-              </span>
-            </div>
-          </div>
-
-          {/* 2. Collected */}
-          <div className="pt-3 sm:pt-0 sm:px-6 flex flex-col justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">
-              Collected
+            <span className="flex size-8 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+              <FileText className="size-4" />
             </span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span
-                className="text-2xl font-extrabold text-emerald-600 tracking-tight font-mono tabular-nums cursor-default"
-                title={formatMoney(summary.collected)}
-              >
-                {formatCompactMoney(summary.collected)}
-              </span>
-              {summary.billed > 0 ? (
-                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  {Math.min(100, Math.round((summary.collected / summary.billed) * 100))}%
-                </span>
-              ) : null}
-            </div>
           </div>
-
-          {/* 3. Outstanding */}
-          <div className="pt-3 sm:pt-0 sm:pl-6 flex flex-col justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600">
-              Outstanding Dues
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900">
+            {formatMoney(summary.billed)}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500">
+            <span>{invoices.length} invoices generated</span>
+            <span className="text-[11px] text-neutral-400 group-hover:text-brand-600 transition-colors">
+              {selectedStatusTab === "ALL" ? "All shown" : "Reset →"}
             </span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span
-                className="text-2xl font-extrabold text-amber-600 tracking-tight font-mono tabular-nums cursor-default"
-                title={formatMoney(summary.outstanding)}
-              >
-                {formatCompactMoney(summary.outstanding)}
+          </div>
+        </button>
+
+        {/* Card 2: Collected (Paid) */}
+        <button
+          type="button"
+          onClick={() => setSelectedStatusTab((prev) => (prev === "PAID" ? "ALL" : "PAID"))}
+          className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
+            selectedStatusTab === "PAID"
+              ? "border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-500/20 shadow-xs"
+              : "border-neutral-200 bg-white hover:border-emerald-300 hover:shadow-xs"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+              Collected Rent
+            </span>
+            <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-600/20">
+              <CheckCircle2 className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-emerald-600">
+            {formatMoney(summary.collected)}
+          </p>
+          <div>
+            <div className="mt-2 flex items-center justify-between text-xs font-medium text-emerald-700">
+              <span>{statusCounts.PAID} paid ({collectionRate}%)</span>
+              <span className="text-[11px] font-bold text-emerald-600">
+                {selectedStatusTab === "PAID" ? "Active filter" : "Filter →"}
               </span>
             </div>
-            {(summary.penalty > 0 || summary.carriedForward > 0) && (
-              <p className="mt-1 text-[11px] text-slate-500 font-medium truncate">
-                Includes{" "}
-                {summary.penalty > 0 ? (
-                  <span className="text-rose-600 font-semibold" title={formatMoney(summary.penalty)}>
-                    {formatCompactMoney(summary.penalty)} penalty
-                  </span>
-                ) : null}
-                {summary.penalty > 0 && summary.carriedForward > 0 ? " · " : ""}
-                {summary.carriedForward > 0 ? (
-                  <span className="text-amber-700 font-semibold" title={formatMoney(summary.carriedForward)}>
-                    {formatCompactMoney(summary.carriedForward)} arrears
-                  </span>
-                ) : null}
-              </p>
-            )}
+            {/* Mini progress line */}
+            <div className="mt-2.5 h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                style={{ width: `${collectionRate}%` }}
+              />
+            </div>
           </div>
-        </div>
+        </button>
+
+        {/* Card 3: Pending Dues */}
+        <button
+          type="button"
+          onClick={() => setSelectedStatusTab((prev) => (prev === "PENDING" ? "ALL" : "PENDING"))}
+          className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
+            selectedStatusTab === "PENDING"
+              ? "border-amber-500 bg-amber-50/40 ring-2 ring-amber-500/20 shadow-xs"
+              : "border-neutral-200 bg-white hover:border-amber-300 hover:shadow-xs"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
+              Pending Dues
+            </span>
+            <span className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-600/20">
+              <Clock className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-amber-700">
+            {formatMoney(pendingAmount)}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-amber-700">
+            <span>{statusCounts.PENDING} awaiting payment</span>
+            <span className="text-[11px] font-bold text-amber-700">
+              {selectedStatusTab === "PENDING" ? "Active filter" : "Filter →"}
+            </span>
+          </div>
+        </button>
+
+        {/* Card 4: Overdue Rent (MAIN MOTIVE / PRIORITY) */}
+        <button
+          type="button"
+          onClick={() => setSelectedStatusTab((prev) => (prev === "OVERDUE" ? "ALL" : "OVERDUE"))}
+          className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
+            selectedStatusTab === "OVERDUE"
+              ? "border-rose-500 bg-rose-50/40 ring-2 ring-rose-500/20 shadow-xs"
+              : "border-neutral-200 bg-white hover:border-rose-300 hover:shadow-xs"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600">
+              Overdue Rent
+            </span>
+            <span
+              className={`flex size-8 items-center justify-center rounded-xl ${
+                totalOverdue > 0
+                  ? "bg-rose-50 text-rose-600 ring-1 ring-rose-600/20"
+                  : "bg-neutral-100 text-neutral-500"
+              }`}
+            >
+              <AlertTriangle className="size-4" />
+            </span>
+          </div>
+          <p
+            className={`mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums ${
+              totalOverdue > 0 ? "text-rose-600" : "text-neutral-900"
+            }`}
+          >
+            {formatMoney(totalOverdue)}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-rose-700">
+            <span>
+              {statusCounts.OVERDUE > 0
+                ? `${statusCounts.OVERDUE} invoices past due`
+                : "Zero overdue rent"}
+            </span>
+            <span className="text-[11px] font-bold text-rose-600">
+              {selectedStatusTab === "OVERDUE" ? "Active filter" : "Filter →"}
+            </span>
+          </div>
+        </button>
       </div>
 
       {/* Filter Bar with Status Tabs, Period & Floor Selectors */}
@@ -907,7 +1002,7 @@ export default function InvoicesClient({
           <>
             {/* Mobile Cards (Collapsed Stacked Lines) */}
             <div className="divide-y divide-slate-100 sm:hidden">
-              {visible.map((inv) => {
+              {paginatedInvoices.map((inv) => {
                 const rel = getRelativeDueDate(inv.dueDate);
                 return (
                   <div
@@ -1033,30 +1128,25 @@ export default function InvoicesClient({
                     </th>
 
                     {/* Money columns: Right aligned, tabular-nums */}
-                    <th className="py-3 px-3 text-right font-medium min-w-[90px]">
+                    <th className="py-3 px-3 text-right font-semibold min-w-[90px]">
                       Total
                     </th>
-                    <th className="py-3 px-3 text-right font-medium min-w-[90px]">
+                    <th className="py-3 px-3 text-right font-semibold min-w-[95px]">
                       Paid
                     </th>
-                    <th className="py-3 px-3 text-right font-medium min-w-[100px]">
+                    <th className="py-3 px-3 text-right font-semibold min-w-[100px]">
                       Outstanding
                     </th>
 
-                    {/* Status */}
-                    <th className="py-3 px-3 min-w-[90px]">
-                      Status
-                    </th>
-
                     {/* Action (Sticky Right) */}
-                    <th className="py-3 pr-4 pl-3 text-right sticky right-0 z-20 bg-slate-50 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.06)] min-w-[140px]">
+                    <th className="py-3 pr-4 pl-3 text-right sticky right-0 z-20 bg-neutral-50 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.06)] min-w-[140px]">
                       Action
                     </th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-slate-100">
-                  {visible.map((inv) => {
+                <tbody className="divide-y divide-neutral-100">
+                  {paginatedInvoices.map((inv) => {
                     const isSelected = selectedIds.has(inv.id);
                     const rel = getRelativeDueDate(inv.dueDate);
 
@@ -1126,46 +1216,62 @@ export default function InvoicesClient({
                         </td>
 
                         {/* Total */}
-                        <td className="py-2.5 px-3 text-right font-mono tabular-nums text-xs font-medium text-slate-800 whitespace-nowrap">
+                        <td className="py-2.5 px-3 text-right tabular-nums text-xs font-semibold text-neutral-800 whitespace-nowrap">
                           {formatMoney(inv.totalAmount)}
                         </td>
 
-                        {/* Paid */}
-                        <td className="py-2.5 px-3 text-right font-mono tabular-nums text-xs text-emerald-600 whitespace-nowrap">
-                          {inv.paidAmount > 0 ? (
-                            formatMoney(inv.paidAmount)
-                          ) : (
-                            <span className="text-slate-300">-</span>
-                          )}
-                        </td>
-
-                        {/* Outstanding */}
-                        <td className="py-2.5 px-3 text-right font-mono tabular-nums text-xs whitespace-nowrap">
-                          {inv.outstanding > 0 ? (
-                            <span
-                              className={`font-bold ${
-                                inv.status === "OVERDUE" ? "text-rose-600" : "text-amber-600"
-                              }`}
-                            >
-                              {formatMoney(inv.outstanding)}
+                        {/* Paid (Prominent check mark when paid, clean dash when zero) */}
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                          {inv.status === "PAID" || (inv.paidAmount > 0 && inv.outstanding === 0) ? (
+                            <span className="inline-flex items-center gap-1 font-extrabold text-xs text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full ring-1 ring-emerald-600/20 tabular-nums">
+                              <Check className="size-3 text-emerald-600 stroke-[3]" />
+                              {formatMoney(inv.paidAmount || inv.totalAmount)}
                             </span>
+                          ) : inv.paidAmount > 0 ? (
+                            <div className="inline-flex flex-col items-end">
+                              <span className="font-extrabold text-xs text-neutral-900 tabular-nums">
+                                {formatMoney(inv.paidAmount)}
+                              </span>
+                              <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-1.5 py-0.2 rounded">
+                                Partial
+                              </span>
+                            </div>
                           ) : (
-                            <span className="text-slate-400">-</span>
+                            <span className="text-neutral-400 font-bold text-xs tabular-nums">—</span>
                           )}
                         </td>
 
-                        {/* Status Dot */}
-                        <td className="py-2.5 px-3 whitespace-nowrap">
-                          <StatusDot status={inv.status} />
+                        {/* Outstanding (Highlighted red if overdue, clean dash if settled) */}
+                        <td className="py-2.5 px-3 text-right tabular-nums text-xs whitespace-nowrap">
+                          {inv.outstanding > 0 ? (
+                            <div className="inline-flex flex-col items-end">
+                              <span
+                                className={`font-extrabold ${
+                                  inv.status === "OVERDUE" ? "text-rose-600" : "text-amber-600"
+                                }`}
+                              >
+                                {formatMoney(inv.outstanding)}
+                              </span>
+                              {inv.status === "OVERDUE" && (
+                                <span className="text-[10px] font-bold text-rose-600 uppercase tracking-tight">
+                                  Overdue
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-neutral-400 font-bold text-xs tabular-nums">—</span>
+                          )}
                         </td>
 
-                        {/* Sticky Action Column */}
+                        {/* Sticky Action Column (Dynamic z-index prevents dropdown overlap bug) */}
                         <td
-                          className="py-2.5 pr-4 pl-3 text-right sticky right-0 z-10 bg-white group-hover:bg-slate-50/70 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.06)] whitespace-nowrap"
+                          className={`py-2.5 pr-4 pl-3 text-right sticky right-0 bg-white group-hover:bg-neutral-50/70 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.06)] whitespace-nowrap ${
+                            activeMenuId === inv.id ? "z-40" : "z-10"
+                          }`}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* Single primary action based on status */}
+                            {/* Primary action */}
                             {(inv.status === "PENDING" || inv.status === "OVERDUE") &&
                             inv.outstanding > 0 ? (
                               <WhatsAppReminderButton invoice={inv} size="xs" />
@@ -1174,30 +1280,35 @@ export default function InvoicesClient({
                                 size="xs"
                                 variant="primary"
                                 onClick={() => setPayFor(inv)}
-                                className="!text-xs !py-1 !px-2.5"
+                                className="!text-xs !py-1 !px-2.5 font-bold"
                               >
                                 <Wallet className="size-3" />
-                                Record payment
+                                Record
                               </Button>
                             ) : inv.status === "PAID" ? (
-                              <span className="text-[11px] text-slate-400 font-medium px-2 py-1">
-                                ✓ Paid
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                                <CheckCircle2 className="size-3 text-emerald-600" />
+                                Paid
                               </span>
                             ) : inv.outstanding > 0 ? (
                               <Button
                                 size="xs"
                                 variant="secondary"
                                 onClick={() => setPayFor(inv)}
-                                className="!text-xs !py-1 !px-2.5"
+                                className="!text-xs !py-1 !px-2.5 font-bold"
                               >
                                 <Wallet className="size-3" />
-                                Record payment
+                                Record
                               </Button>
                             ) : null}
 
                             {/* ⋯ Menu */}
                             <RowMoreMenu
                               invoice={inv}
+                              isOpen={activeMenuId === inv.id}
+                              onToggle={() =>
+                                setActiveMenuId((prev) => (prev === inv.id ? null : inv.id))
+                              }
                               onRecordPayment={() => setPayFor(inv)}
                               onOpenDrawer={() => setDrawerInvoice(inv)}
                             />
@@ -1209,6 +1320,22 @@ export default function InvoicesClient({
                 </tbody>
               </table>
             </div>
+
+            {/* Modern Pagination UI */}
+            {visible.length > 0 && (
+              <Pagination
+                page={safePage}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                onPageChange={(newPage) => setPage(newPage)}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setPage(1);
+                }}
+                pageSizeOptions={[10, 20, 50, 100]}
+                itemName="invoices"
+              />
+            )}
           </>
         )}
       </div>

@@ -10,6 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/Feedback";
 import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
+import Pagination from "@/components/ui/Pagination";
 import { FilterChips } from "@/components/ui/FilterPills";
 import { formatDate, formatMoney } from "@/lib/format";
 import { buildDefaulterNoticeMessage, getWhatsAppUrl } from "@/lib/billing/whatsapp";
@@ -72,6 +73,8 @@ function overdueTone(days) {
 export default function DefaultersClient({ defaulters, summary }) {
   const [query, setQuery] = useState("");
   const [bandKey, setBandKey] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -84,6 +87,14 @@ export default function DefaultersClient({ defaulters, summary }) {
         .some((v) => String(v).toLowerCase().includes(q));
     });
   }, [defaulters, query, bandKey]);
+
+  const totalItems = visible.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedDefaulters = useMemo(() => {
+    return visible.slice(startIndex, startIndex + pageSize);
+  }, [visible, startIndex, pageSize]);
 
   const bandCounts = useMemo(() => {
     const counts = { all: defaulters.length };
@@ -125,12 +136,12 @@ export default function DefaultersClient({ defaulters, summary }) {
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center">
           <FilterChips
             value={bandKey}
-            onChange={setBandKey}
+            onChange={(val) => { setBandKey(val); setPage(1); }}
             options={BANDS.map((b) => ({ value: b.key, label: `${b.label} ${bandCounts[b.key]}` }))}
           />
           <SearchInput
             value={query}
-            onChange={setQuery}
+            onChange={(val) => { setQuery(val); setPage(1); }}
             placeholder="Search flat or resident"
             className="w-full lg:ml-auto lg:max-w-xs"
           />
@@ -150,7 +161,7 @@ export default function DefaultersClient({ defaulters, summary }) {
           <>
             {/* Mobile Cards for Defaulters */}
             <div className="divide-y divide-slate-100 sm:hidden">
-              {visible.map((d) => (
+              {paginatedDefaulters.map((d) => (
                 <div key={d.targetId || d.occupancyId || d.flatId || d.id} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -206,7 +217,7 @@ export default function DefaultersClient({ defaulters, summary }) {
                   { label: "", align: "right" },
                 ]}
               >
-                {visible.map((d) => (
+                {paginatedDefaulters.map((d) => (
                   <Tr key={d.targetId || d.occupancyId || d.flatId || d.id}>
                     <Td className="font-semibold text-slate-900 whitespace-nowrap">
                       {d.unitLabel || (d.block ? `${d.block}-${d.flatNumber}` : `Room ${d.flatNumber}`)}
@@ -237,6 +248,18 @@ export default function DefaultersClient({ defaulters, summary }) {
                 ))}
               </Table>
             </div>
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={(newPage) => setPage(newPage)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemName="defaulters"
+            />
           </>
         )}
       </div>

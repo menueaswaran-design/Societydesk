@@ -153,12 +153,15 @@ export default async function AdminInvoicesPage({ searchParams }) {
     };
   });
 
+  const initialGenerateOpen = params?.action === "generate";
+
   return (
     <InvoicesClient
       invoices={withOutstanding}
       units={unitsWithMeters}
       occupancies={occupancies}
       filters={{ status, period }}
+      initialGenerateOpen={initialGenerateOpen}
       summary={{
         billed,
         collected,

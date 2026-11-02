@@ -1,1374 +1,281 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Building2,
-  User,
-  KeyRound,
-  ArrowRight,
-  Receipt,
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  LogIn,
-  Check,
-  Sparkles,
-  ShieldCheck,
-  Users,
-  Smartphone,
-  ChevronRight,
-  BedSingle,
-  MessageCircle,
-  QrCode,
-  Shield,
-  Zap,
-  TrendingUp,
-  XCircle,
-  ArrowUpRight,
-  Play,
-  ChevronDown,
-  Layers,
-  Globe,
-  IndianRupee,
-  BarChart3,
-  Bell,
-  FileText,
-  CheckCheck,
-  Clock,
-  Sliders,
-  Calculator,
-  Send,
-  Download,
-  HelpCircle,
-  Star,
-  RefreshCw,
-  Building,
-} from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, BedDouble, Check, ChevronDown, ChevronRight, CircleHelp, ClipboardCheck, FileCheck2, FileText, LayoutDashboard, Loader2, Menu, MessageCircle, ReceiptText, ShieldCheck, Smartphone, Users, Wrench, X, Zap } from "lucide-react";
 import { api } from "@/lib/client/api";
 import { homeForRole } from "@/lib/routing";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 
-const PRICING_TIERS = [
-  {
-    name: "Starter PG",
-    nameTa: "தொடக்க பிஜி",
-    tagline: "Ideal for small hostels and boutique PGs",
-    taglineTa: "சிறிய விடுதிகள் மற்றும் தொடக்க பிஜிகளுக்கு ஏற்றது",
-    price: "₹999",
-    period: "/ month",
-    periodTa: "/ மாதம்",
-    beds: "Up to 30 Beds",
-    bedsTa: "30 படுக்கைகள் வரை",
-    features: [
-      "Per-bed live occupancy grid",
-      "Automated rent invoicing",
-      "1-Click WhatsApp payment reminders",
-      "Direct UPI payments (Zero gateway fees)",
-      "Resident login portal & receipts",
-      "Security deposit refund tracking",
-      "Room sub-meter electricity support",
-    ],
-    featuresTa: [
-      "படுக்கை வாரியான நேரடி வரைபடம்",
-      "தானியங்கி வாடகை ரசீது உருவாக்கம்",
-      "1-கிளிக் வாட்ஸ்அப் கட்டண நினைவூட்டல்",
-      "நேரடி யுபிஐ (கட்டணக் கமிஷன் பூஜ்ஜியம்)",
-      "குடியிருப்போருக்கான தனி இணையதள அணுகல்",
-      "முன்பணம் திரும்ப அளித்தல் கண்காணிப்பு",
-      "அறை வாரியான மின் மீட்டர்கள் ஆதரவு",
-    ],
-    cta: "Try Live Demo",
-    ctaTa: "மாதிரி பார்க்க",
-    ctaLink: "#demo-portals",
-    popular: false,
-  },
-  {
-    name: "Growth PG & Hostels",
-    nameTa: "வளர்ச்சி பிஜி & விடுதிகள்",
-    tagline: "For busy PGs looking to automate billing & maintenance",
-    taglineTa: "விரைவான வாடகை வசூல் மற்றும் பராமரிப்புக்கு",
-    price: "₹2,499",
-    period: "/ month",
-    periodTa: "/ மாதம்",
-    beds: "Up to 100 Beds",
-    bedsTa: "100 படுக்கைகள் வரை",
-    features: [
-      "All Starter PG features included",
-      "Multi-floor room & bed matrix",
-      "Automated daily rent penalty rules",
-      "Maintenance & complaint ticketing desk",
-      "Notice period vacate dashboard",
-      "Resident Web Push notifications",
-      "Excel & Tally exportable reports",
-    ],
-    featuresTa: [
-      "அனைத்து தொடக்க பிஜி வசதிகளும் அடங்கும்",
-      "பல தள அறை & படுக்கை கட்டமைப்பு",
-      "தானியங்கி தாமதக் கட்டண விதிமுறைகள்",
-      "பழுது மற்றும் பராமரிப்பு மேசை",
-      "வெளியேறும் அறிவிப்பு மேலாண்மை",
-      "குடியிருப்பாளர் புஷ் அறிவிப்புகள்",
-      "எக்செல் மற்றும் கணக்கு அறிக்கைகள்",
-    ],
-    cta: "Start Free Trial",
-    ctaTa: "இலவசமாகத் தொடங்குங்கள்",
-    ctaLink: "#demo-portals",
-    popular: true,
-  },
-  {
-    name: "Enterprise & Chains",
-    nameTa: "நிறுவனம் & கிளைகள்",
-    tagline: "Multiple branches, hostels & co-living buildings",
-    taglineTa: "பல கிளைகள் மற்றும் பெரு விடுதிகளுக்கு",
-    price: "Custom",
-    priceTa: "தனிப்பயன்",
-    period: "",
-    periodTa: "",
-    beds: "Unlimited Beds",
-    bedsTa: "வரம்பற்ற படுக்கைகள்",
-    features: [
-      "All Growth features included",
-      "Multi-property owner dashboard",
-      "Custom staff roles & access permissions",
-      "Priority WhatsApp & phone support",
-      "Dedicated account manager",
-      "Custom domain & branding options",
-    ],
-    featuresTa: [
-      "அனைத்து வளர்ச்சி வசதிகளும் அடங்கும்",
-      "பல கிளைகளை ஒரே இடத்தில் நிர்வகிக்கும் மேடை",
-      "தனிப்பயன் பணியாளர் அனுமதி நிலைகள்",
-      "முன்னுரிமை வாட்ஸ்அப் & தொலைபேசி ஆதரவு",
-      "தனி மேலாளர் உதவி",
-      "தனிப்பயன் டொமைன் & வர்த்தகப் பெயர்",
-    ],
-    cta: "Contact Sales",
-    ctaTa: "தொடர்பு கொள்ள",
-    ctaLink: "/contact",
-    popular: false,
-  },
+const PLANS = [
+  { name: "Starter PG", badge: "For one property", monthly: "\u20B9699", annual: "\u20B9499", desc: "The essentials for independent PG owners and boutique hostels.", features: ["Up to 30 beds", "Room and bed occupancy", "WhatsApp invoices with UPI", "Direct UPI payments", "Digital receipts", "1 manager account"], popular: false },
+  { name: "Growth & Co-Living", badge: "For growing properties", monthly: "\u20B91,499", annual: "\u20B91,199", desc: "More control over billing, deposits and daily operations.", features: ["Up to 90 beds", "Everything in Starter", "Room sub-meter billing", "Deposit settlements", "Overdue payment tracking", "Resident requests", "3 staff accounts", "Excel and Tally exports"], popular: true },
+  { name: "Multi-Branch Enterprise", badge: "For multiple properties", monthly: "\u20B92,999", annual: "\u20B92,399", desc: "A single view across properties, teams and branches.", features: ["Unlimited beds", "Unified property dashboard", "Role-based permissions", "Digital resident records", "Dedicated onboarding", "Priority support"], popular: false },
+];
+const FAQS = [
+  { q: "Does Bedy take a cut from UPI rent payments?", a: "Bedy supports direct UPI payment links so rent goes to the property's own UPI account. Bedy does not charge a transaction commission on those direct UPI payments." },
+  { q: "How are room electricity bills split?", a: "Enter a room's previous and current meter readings and your per-unit tariff. Bedy calculates usage and adds the room's share to resident invoices." },
+  { q: "Can I manage more than one property?", a: "Yes. Owners can switch between properties from one account. Staff access can be limited to their assigned property." },
+  { q: "Do residents need an app?", a: "Residents can use the mobile web portal for invoices, receipts and maintenance requests. Rent invoices can also be shared through WhatsApp." },
+  { q: "How does move-out settlement work?", a: "Record deductions such as unpaid utilities or agreed room repairs against the security deposit. Bedy generates a settlement statement for the resident." },
+];
+const TABS = [
+  { id: "rooms", label: "Rooms & beds", icon: BedDouble },
+  { id: "billing", label: "Rent & receipts", icon: ReceiptText },
+  { id: "utilities", label: "Utilities", icon: Zap },
+  { id: "requests", label: "Resident requests", icon: Wrench },
+];
+const ROLES = [
+  { role: "owner", email: "owner@srilakshmipg.local", title: "Owner", detail: "Property-wide operations and financial controls.", icon: LayoutDashboard },
+  { role: "manager", email: "manager@srilakshmipg.local", title: "Manager", detail: "Room allocation, billing and daily tasks.", icon: ClipboardCheck },
+  { role: "resident", email: "resident@srilakshmipg.local", title: "Resident", detail: "Invoices, receipts and the resident portal.", icon: Smartphone },
 ];
 
-/* ── Lightweight Scroll Reveal Hook ─────────────────────────────────────── */
-function useScrollReveal(threshold = 0.12) {
-  const ref = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
+export default function HomePageClient() {
+  const router = useRouter();
+  const { isTamil } = useTranslation();
+  const [tab, setTab] = useState("rooms");
+  const [reading, setReading] = useState(1480);
+  const [annual, setAnnual] = useState(true);
+  const [faq, setFaq] = useState(0);
+  const [preview, setPreview] = useState(false);
+  const [loading, setLoading] = useState(null);
+  const [menu, setMenu] = useState(false);
+  const used = Math.max(0, reading - 1200);
+  const bill = used * 10;
+  const share = Math.round(bill / 2);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const progress = document.getElementById("page-scroll-progress");
+    let frame = 0;
+    let observer = null;
 
-    // Fallback if browser doesn't support IntersectionObserver
-    if (typeof IntersectionObserver === "undefined") {
-      setIsVisible(true);
-      return;
+    const updateProgress = () => {
+      const range = document.documentElement.scrollHeight - window.innerHeight;
+      const value = range > 0 ? Math.min(1, window.scrollY / range) : 0;
+      progress?.style.setProperty("--page-scroll-progress", String(value));
+    };
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        updateProgress();
+      });
+    };
+
+    updateProgress();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    const selectors = [
+      "main > section:not(:first-child) > div:not([aria-hidden])",
+      "#how-it-works .grid > div",
+      "#features [role='tab']",
+      "#resident-journey [data-scroll-reveal]",
+      "#demo-portals article",
+      "#pricing article",
+      "#faq .divide-y > div",
+    ];
+    const targets = new Set(selectors.flatMap((selector) => [...document.querySelectorAll(selector)]));
+    targets.forEach((target, index) => {
+      target.dataset.scrollReveal = "";
+      if (target.matches("article, #features [role='tab'], #faq .divide-y > div, #how-it-works .grid > div")) {
+        target.style.setProperty("--reveal-delay", `${(index % 4) * 70}ms`);
+      }
+    });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion || !("IntersectionObserver" in window)) {
+      targets.forEach((target) => target.classList.add("is-visible"));
+    } else {
+      document.documentElement.classList.add("motion-ready");
+      observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          observer?.unobserve(entry.target);
+        });
+      }, { threshold: 0.08, rootMargin: "0px 0px -64px 0px" });
+      targets.forEach((target) => observer.observe(target));
     }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(el);
-        }
-      },
-      { threshold, rootMargin: "0px 0px -40px 0px" }
-    );
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+      document.documentElement.classList.remove("motion-ready");
+    };
+  }, []);
 
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [threshold]);
-
-  return [ref, isVisible];
-}
-
-/* ── Scroll Animated Container Component ────────────────────────────────── */
-function Reveal({ children, className = "", delay = 0 }) {
-  const [ref, isVisible] = useScrollReveal();
-
-  return (
-    <div
-      ref={ref}
-      className={`${className} transition-all duration-700 ease-out`}
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? "translateY(0)" : "translateY(24px)",
-        transitionDelay: `${delay}ms`,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-export default function HomePageClient({ user = null }) {
-  const router = useRouter();
-  const { t, locale } = useTranslation();
-  const isTa = locale === "ta";
-
-  // Login action loading state (stores email being logged in)
-  const [loggingIn, setLoggingIn] = useState(null);
-
-  // Interactive Showcase Active Tab
-  const [activeTab, setActiveTab] = useState("whatsapp"); // "whatsapp" | "beds" | "submeter" | "deposit"
-
-  // Simulator state in Showcase
-  const [simState, setSimState] = useState("IDLE"); // "IDLE" | "PROCESSING" | "PAID"
-
-  // Interactive Profit & Time Saved Calculator
-  const [calcBeds, setCalcBeds] = useState(36);
-  const [calcRent, setCalcRent] = useState(8500);
-
-  // FAQ Accordion State
-  const [openFaq, setOpenFaq] = useState(0);
-
-  // Quick 1-click dev-login function for authentic seeded accounts
-  const quickLogin = async (email, path) => {
-    setLoggingIn(email);
+  async function demo(role, email) {
     try {
-      try {
-        const { getFirebaseClient, signOut } = await import("@/lib/firebase/client");
-        const auth = getFirebaseClient();
-        if (auth?.currentUser) await signOut(auth);
-      } catch {
-        /* ignore */
-      }
-      if (typeof document !== "undefined") {
-        document.cookie = "__session=; path=/; max-age=0; samesite=lax";
-      }
+      setLoading(role);
+      const response = await api.post("/api/auth/login", { email, password: "password123" });
+      if (response?.user) router.push(homeForRole(response.user.role || role));
+    } catch (error) {
+      console.error("Demo login:", error);
+      router.push(role === "resident" ? "/resident/dashboard" : "/admin/dashboard");
+    } finally { setLoading(null); }
+  }
 
-      const resUser = await api.post("/api/auth/dev-login", { email });
-      const target = path || (resUser?.role ? homeForRole(resUser.role) : "/login");
-      window.location.href = target;
-    } catch {
-      window.location.href = "/login";
-    }
-  };
+  return <div className="min-h-screen overflow-x-hidden bg-[#F8FAFF] text-[#10192E] antialiased selection:bg-brand-100 selection:text-brand-950">
+    <div id="page-scroll-progress" aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[3px] origin-left bg-gradient-to-r from-brand-700 via-brand-500 to-[#8BA8FF]" />
+    <header className="sticky top-0 z-50 border-b border-[#E5EAF3]/80 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-[70px] max-w-[1320px] items-center justify-between px-5 sm:px-8">
+        <Link href="/" aria-label="Bedy home" className="flex items-center gap-2.5"><img src="/logo.png" alt="" className="size-9 rounded-xl object-contain" /><span className="text-[21px] font-extrabold tracking-[-0.06em]">bedy</span></Link>
+        <nav aria-label="Main navigation" className="hidden items-center gap-8 text-[13px] font-semibold text-[#516078] md:flex"><a className="hover:text-brand-700" href="#features">Product</a><a className="hover:text-brand-700" href="#how-it-works">How it works</a><a className="hover:text-brand-700" href="#pricing">Pricing</a><a className="hover:text-brand-700" href="#faq">FAQ</a></nav>
+        <div className="flex items-center gap-3"><div className="hidden sm:block"><LanguageSwitcher /></div><Link href="/login" className="hidden px-2 py-2 text-[13px] font-bold text-[#39475F] sm:block">Sign in</Link><a href="#demo-portals" className="hidden items-center gap-2 rounded-full bg-[#10192E] px-4 py-2.5 text-xs font-bold text-white hover:bg-brand-800 sm:inline-flex">Explore demo <ArrowUpRight className="size-3.5" /></a><button type="button" className="inline-flex size-10 items-center justify-center rounded-full border border-[#E5EAF3] md:hidden" aria-label={menu ? "Close menu" : "Open menu"} aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? <X className="size-5" /> : <Menu className="size-5" />}</button></div>
+      </div>
+      {menu && <nav aria-label="Mobile navigation" className="flex flex-col gap-1 border-t border-[#E5EAF3] bg-white px-5 py-4 text-sm font-semibold md:hidden"><a onClick={() => setMenu(false)} className="rounded-lg p-3" href="#features">Product</a><a onClick={() => setMenu(false)} className="rounded-lg p-3" href="#how-it-works">How it works</a><a onClick={() => setMenu(false)} className="rounded-lg p-3" href="#pricing">Pricing</a><a onClick={() => setMenu(false)} className="rounded-lg p-3" href="#faq">FAQ</a><div className="flex items-center justify-between border-t pt-3"><LanguageSwitcher /><Link onClick={() => setMenu(false)} href="/login" className="rounded-full bg-brand-600 px-4 py-2.5 text-xs font-bold text-white">Sign in</Link></div></nav>}
+    </header>
 
-  // Simulate Payment Click
-  const handleSimulatePayment = () => {
-    if (simState === "PAID") {
-      setSimState("IDLE");
-      return;
-    }
-    setSimState("PROCESSING");
-    setTimeout(() => {
-      setSimState("PAID");
-    }, 900);
-  };
+    <main>
+      <section className="relative isolate overflow-hidden bg-[#F8FAFF]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"><div className="absolute -right-32 -top-64 size-[44rem] rounded-full bg-[#DCE6FF]/70 blur-3xl" /><div className="absolute -bottom-72 -left-40 size-[40rem] rounded-full bg-[#E9EEFF] blur-3xl" /></div>
+        <div className="mx-auto grid max-w-[1320px] items-center gap-12 px-5 pb-16 pt-14 sm:px-8 sm:pb-24 sm:pt-20 lg:grid-cols-[.92fr_1.08fr] lg:gap-16 lg:py-24">
+          <div className="animate-fade-slide-up max-w-[610px]">
+            <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-brand-200 bg-white/80 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[.13em] text-brand-800 shadow-xs"><span className="size-1.5 rounded-full bg-brand-600" />Built for PGs, hostels and co-living</div>
+            <h1 className="max-w-[700px] text-[clamp(2.8rem,6vw,5.7rem)] font-extrabold leading-[.98] tracking-[-.075em]">{isTamil ? <>{"\u0B89\u0B99\u0BCD\u0B95\u0BB3\u0BCD"} PG-{"\u0B90"} {"\u0BA8\u0B9F\u0BA4\u0BCD\u0BA4\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD."}<br /><span className="text-brand-600">{"\u0B95\u0BBE\u0B95\u0BBF\u0BA4"} {"\u0BB5\u0BC7\u0BB2\u0BC8\u0B95\u0BB3\u0BC8"} {"\u0B85\u0BB2\u0BCD\u0BB2."}</span></> : <>Run your property.<br /><span className="text-brand-600">Not the paperwork.</span></>}</h1>
+            <p className="mt-7 max-w-[530px] text-base leading-7 text-[#516078] sm:text-lg sm:leading-8">{isTamil ? "\u0B85\u0BB1\u0BC8\u0B95\u0BB3\u0BCD, \u0BB5\u0BBE\u0B9F\u0B95\u0BC8, \u0BAE\u0BBF\u0BA9\u0BCD\u0B9A\u0BBE\u0BB0\u0BAE\u0BCD \u0BAE\u0BB1\u0BCD\u0BB1\u0BC1\u0BAE\u0BCD \u0B95\u0BCB\u0BB0\u0BBF\u0B95\u0BCD\u0B95\u0BC8\u0B95\u0BB3\u0BC8 \u0B92\u0BB0\u0BC7 \u0B87\u0B9F\u0BA4\u0BCD\u0BA4\u0BBF\u0BB2\u0BCD \u0BA8\u0BBF\u0BB0\u0BCD\u0BB5\u0B95\u0BBF\u0B95\u0BCD\u0B95\u0BB5\u0BC1\u0BAE\u0BCD." : "Rooms, rent, electricity and resident requests belong in one clear workflow. Bedy brings the everyday work of a PG or hostel into one place."}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><a href="#demo-portals" className="group inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-brand-600 px-6 text-sm font-bold text-white shadow-[0_10px_24px_rgba(49,84,217,.22)] transition hover:-translate-y-0.5 hover:bg-brand-700">See Bedy in action <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></a><a href="#features" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#C9D3E5] bg-white/70 px-6 text-sm font-bold text-[#26344C] hover:border-brand-300 hover:bg-white">Explore the product <ArrowDownRight className="size-4" /></a></div>
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-[#DCE4F2] pt-5 text-[11px] font-semibold text-[#516078] sm:text-xs"><span className="inline-flex items-center gap-2"><Check className="size-3.5 text-emerald-600" />Direct UPI payments</span><span className="inline-flex items-center gap-2"><Check className="size-3.5 text-emerald-600" />No resident app install</span><span className="inline-flex items-center gap-2"><Check className="size-3.5 text-emerald-600" />Room-level billing</span></div>
+          </div>
+          <div className="animate-fade-slide-up relative mx-auto w-full max-w-[700px] lg:ml-auto" style={{ animationDelay: "120ms" }}>
+            <div className="absolute -inset-5 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-200/60 via-white/30 to-[#B8C9FF]/50 blur-2xl" />
+            <div className="animate-float overflow-hidden rounded-[1.6rem] border border-[#D7E1F2] bg-white shadow-[0_35px_90px_rgba(31,51,91,.16)]">
+              <div className="flex items-center justify-between border-b border-[#E5EAF3] px-4 py-3.5 sm:px-5"><div className="flex items-center gap-2"><span className="flex gap-1.5"><i className="size-2 rounded-full bg-[#F97066]" /><i className="size-2 rounded-full bg-[#FDB022]" /><i className="size-2 rounded-full bg-[#32D583]" /></span><span className="ml-2 text-[11px] font-bold text-[#39475F]">Property workspace</span></div><span className="rounded-full bg-[#F3F6FC] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.12em] text-[#6C7890]">Illustrative preview</span></div>
+              <div className="grid min-h-[340px] grid-cols-[118px_1fr] sm:grid-cols-[150px_1fr]">
+                <aside className="border-r border-[#E5EAF3] bg-[#F9FAFD] p-3 sm:p-4"><div className="mb-7 flex items-center gap-2 rounded-lg bg-white px-2 py-2 shadow-xs"><span className="flex size-6 items-center justify-center rounded-md bg-brand-100 text-brand-700"><BuildingMark /></span><span className="truncate text-[9px] font-bold text-[#26344C]">My property</span><ChevronDown className="ml-auto size-3 text-[#9AA6BA]" /></div><div className="space-y-1 text-[9px] font-semibold text-[#6C7890]"><div className="flex items-center gap-2 rounded-lg bg-brand-50 px-2 py-2 text-brand-800"><LayoutDashboard className="size-3.5" />Overview</div><div className="flex items-center gap-2 px-2 py-2"><BedDouble className="size-3.5" />Rooms</div><div className="flex items-center gap-2 px-2 py-2"><Users className="size-3.5" />Residents</div><div className="flex items-center gap-2 px-2 py-2"><ReceiptText className="size-3.5" />Billing</div></div></aside>
+                <div className="min-w-0 p-4 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[9px] font-bold uppercase tracking-[.14em] text-[#9AA6BA]">Overview</p><h2 className="mt-1 text-base font-extrabold text-[#17213A] sm:text-xl">A clear view of today</h2></div><span className="rounded-lg border border-[#E5EAF3] px-2.5 py-1.5 text-[9px] font-semibold text-[#6C7890]">Example data</span></div>
+                  <div className="mt-5 grid grid-cols-2 gap-2.5 sm:gap-3"><div className="rounded-xl border border-[#E5EAF3] p-3"><span className="text-[9px] font-semibold text-[#6C7890]">Beds</span><div className="mt-1 flex items-end justify-between"><strong className="text-base sm:text-lg">Room by room</strong><BedDouble className="size-4 text-brand-600" /></div><div className="mt-2 h-1 rounded-full bg-[#E9EEFF]"><div className="h-1 w-3/4 rounded-full bg-brand-600" /></div></div><div className="rounded-xl border border-[#E5EAF3] p-3"><span className="text-[9px] font-semibold text-[#6C7890]">Rent</span><div className="mt-1 flex items-end justify-between"><strong className="text-base sm:text-lg">Invoices</strong><ReceiptText className="size-4 text-emerald-600" /></div><div className="mt-2 text-[9px] text-[#6C7890]">Share · collect · receipt</div></div></div>
+                  <div className="mt-3 overflow-hidden rounded-xl border border-[#E5EAF3] bg-white"><div className="flex items-center justify-between border-b border-[#EEF1F6] px-3.5 py-2.5"><span className="text-[10px] font-bold text-[#26344C]">Room 204 · Double sharing</span><span className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-bold text-emerald-700">1 bed available</span></div><div className="grid grid-cols-2 gap-2 p-2.5"><div className="rounded-lg bg-[#F8FAFF] p-2.5"><span className="block text-[8px] font-bold uppercase text-[#9AA6BA]">Bed A</span><span className="mt-1 block text-[9px] font-bold">Occupied</span></div><div className="rounded-lg border border-dashed border-emerald-300 bg-emerald-50/50 p-2.5"><span className="block text-[8px] font-bold uppercase text-emerald-700">Bed B</span><span className="mt-1 block text-[9px] font-bold text-emerald-800">Ready to assign</span></div></div></div>
+                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#14234B] px-3.5 py-3 text-white"><span className="flex size-7 items-center justify-center rounded-lg bg-white/10"><Zap className="size-3.5 text-[#FEC84B]" /></span><span className="text-[9px] leading-4 text-white/75">Track readings, split electricity and add each share to rent invoices.</span><ArrowUpRight className="ml-auto size-3.5 shrink-0 text-white/60" /></div>
+                </div>
+              </div>
+            </div>
+            <div className="absolute -bottom-5 -left-3 hidden rounded-xl border border-[#DCE4F2] bg-white px-4 py-3 shadow-lg sm:block"><div className="flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700"><ShieldCheck className="size-4" /></span><span><strong className="block text-[10px]">Your UPI. Your account.</strong><span className="text-[9px] text-[#6C7890]">Direct resident payments</span></span></div></div>
+          </div>
+        </div>
+      </section>
 
-  // Calculated operational insights based on real formula
-  const calculatedMonthlyRevenue = useMemo(() => calcBeds * calcRent, [calcBeds, calcRent]);
-  const estimatedHoursSaved = useMemo(() => Math.round((calcBeds / 10) * 4.5 + 4), [calcBeds]);
-  const estimatedLeakagePrevented = useMemo(() => Math.round(calculatedMonthlyRevenue * 0.04), [calculatedMonthlyRevenue]);
+      <section id="how-it-works" className="border-y border-[#E5EAF3] bg-white"><div className="mx-auto grid max-w-[1320px] gap-8 px-5 py-9 sm:px-8 md:grid-cols-[220px_1fr] md:items-center"><p data-scroll-reveal className="text-[11px] font-extrabold uppercase tracking-[.16em] text-brand-700">One connected workflow</p><div className="grid gap-5 sm:grid-cols-4"><Workflow number="01" title="Set up rooms" text="Map buildings, rooms and beds." /><Workflow number="02" title="Add residents" text="Keep resident details and documents together." /><Workflow number="03" title="Share invoices" text="Send rent and utility bills through WhatsApp." /><Workflow number="04" title="Stay on top" text="Follow payments, requests and move-outs." /></div></div></section>
+
+      <section id="features" className="relative overflow-hidden bg-[#10192E] px-5 py-20 text-white sm:px-8 sm:py-28"><div aria-hidden="true" className="pointer-events-none absolute -right-36 -top-72 size-[44rem] rounded-full bg-brand-600/25 blur-[100px]" /><div className="relative mx-auto max-w-[1320px]">
+        <div data-scroll-reveal className="grid gap-8 lg:grid-cols-[.78fr_1.22fr] lg:items-end"><div><p className="text-[11px] font-extrabold uppercase tracking-[.17em] text-[#9BB2FF]">Inside Bedy</p><h2 className="mt-4 max-w-[570px] text-4xl font-extrabold leading-[1.04] tracking-[-.06em] sm:text-6xl">The details that keep a property moving.</h2></div><p className="max-w-[510px] text-sm leading-7 text-white/65 lg:justify-self-end">Explore the everyday workflows in one place, from allocating a bed to collecting rent and resolving a resident request.</p></div>
+        <div className="mt-10 grid gap-7 lg:mt-14 lg:grid-cols-[260px_1fr]">
+          <div data-scroll-reveal role="tablist" aria-label="Product workflows" className="grid grid-cols-2 gap-2 lg:grid-cols-1">{TABS.map((item, index) => { const Icon = item.icon; const selected = tab === item.id; return <button key={item.id} type="button" role="tab" aria-selected={selected} aria-controls="product-preview" onClick={() => { setTab(item.id); setPreview(false); }} className={"group flex min-h-[66px] items-center gap-3 rounded-xl border px-3.5 text-left transition " + (selected ? "border-white/15 bg-white text-[#10192E] shadow-lg" : "border-white/10 bg-white/[.035] text-white/65 hover:bg-white/[.08] hover:text-white")}><span className={"flex size-9 shrink-0 items-center justify-center rounded-lg " + (selected ? "bg-brand-50 text-brand-700" : "bg-white/10 text-[#B5C5FF]")}><Icon className="size-4" /></span><span><span className="block text-[8px] font-bold uppercase tracking-[.14em] opacity-55">0{index + 1}</span><span className="mt-0.5 block text-[11px] font-bold sm:text-xs">{item.label}</span></span><ChevronRight className={"ml-auto hidden size-4 sm:block " + (selected ? "text-brand-600" : "text-white/35")} /></button>; })}</div>
+          <div id="product-preview" data-scroll-reveal role="tabpanel" className="min-h-[340px] overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#F8FAFF] text-[#10192E] shadow-[0_24px_70px_rgba(0,0,0,.25)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5EAF3] bg-white px-4 py-3.5 sm:px-6"><div className="flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><TabIcon tab={tab} /></span><span className="text-xs font-extrabold">{TABS.find((item) => item.id === tab)?.label}</span></div><span className="text-[9px] font-semibold uppercase tracking-[.14em] text-[#9AA6BA]">Illustrative interface · Example data</span></div>
+            <div key={tab} className="animate-fade-slide-up p-4 sm:p-7">
+              {tab === "rooms" && <Rooms />}
+              {tab === "billing" && <div className="grid gap-5 md:grid-cols-[1fr_.8fr] md:items-center"><div><p className="text-[9px] font-bold uppercase tracking-[.16em] text-brand-700">Rent collection</p><h3 className="mt-2 text-2xl font-extrabold sm:text-3xl">A clearer bill, ready to share.</h3><p className="mt-2 max-w-md text-xs leading-6 text-[#6C7890]">Itemized rent invoices with a direct UPI link and a digital receipt once payment is recorded.</p><button type="button" onClick={() => setPreview(!preview)} className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand-600 px-4 text-[11px] font-bold text-white hover:bg-brand-700"><MessageCircle className="size-3.5" />{preview ? "Close invoice preview" : "Preview invoice message"}</button></div><div className="rounded-[1.2rem] border border-[#DCE4F2] bg-white p-4 shadow-sm sm:p-5"><div className="flex items-center justify-between border-b border-[#EEF1F6] pb-3"><span className="text-xs font-extrabold">Monthly invoice · example</span><ReceiptText className="size-4 text-brand-600" /></div><div className="space-y-3 py-4 text-[11px]"><Line label="Monthly rent" amount={"\u20B98,500"} /><Line label="Room electricity" amount={"\u20B9380"} /><Line label="Total due" amount={"\u20B98,880"} strong /></div><div className="rounded-lg bg-emerald-50 px-3 py-2.5 text-center text-[10px] font-bold text-emerald-800">Direct UPI payment link</div>{preview && <p className="mt-3 rounded-lg bg-[#F8FAFF] p-3 text-[10px] leading-5 text-[#516078]">Invoice preview: itemized rent and room electricity with a payment link.</p>}</div></div>}
+              {tab === "utilities" && <div className="grid gap-6 md:grid-cols-[1fr_.8fr] md:items-center"><div><p className="text-[9px] font-bold uppercase tracking-[.16em] text-brand-700">Room sub-meter</p><h3 className="mt-2 text-2xl font-extrabold sm:text-3xl">Split the bill by actual use.</h3><p className="mt-2 max-w-md text-xs leading-6 text-[#6C7890]">Adjust the example meter reading. The bill and per-resident share update with it.</p><label className="mt-5 block text-[10px] font-bold" htmlFor="preview-meter">Current reading <span className="ml-1 font-mono text-brand-700">{reading} kWh</span></label><input id="preview-meter" type="range" min="1220" max="1750" step="10" value={reading} onChange={(event) => setReading(Number(event.target.value))} className="mt-3 w-full accent-brand-600" /><div className="flex justify-between text-[9px] font-mono text-[#9AA6BA]"><span>1,220 kWh</span><span>1,750 kWh</span></div></div><div className="grid grid-cols-2 gap-2.5"><Metric label="Previous reading" value="1,200 kWh" /><Metric label="Units used" value={used + " kWh"} /><Metric label="Example tariff" value={"\u20B910 / unit"} /><Metric label="Each resident" value={"\u20B9" + share} accent /><div className="col-span-2 rounded-xl bg-[#14234B] p-4 text-white"><span className="text-[9px] font-bold uppercase tracking-[.15em] text-white/55">Example room bill</span><strong className="mt-1 block text-2xl">{"\u20B9" + bill}</strong></div></div></div>}
+              {tab === "requests" && <div className="grid gap-5 md:grid-cols-[1fr_.8fr] md:items-center"><div><p className="text-[9px] font-bold uppercase tracking-[.16em] text-brand-700">Resident portal</p><h3 className="mt-2 text-2xl font-extrabold sm:text-3xl">From request to resolution.</h3><p className="mt-2 max-w-md text-xs leading-6 text-[#6C7890]">Residents can raise a maintenance request from the mobile portal. Staff can assign and follow its status.</p><a href="#demo-portals" className="mt-5 inline-flex items-center gap-2 text-[11px] font-bold text-brand-700">Open the resident demo <ArrowRight className="size-3.5" /></a></div><div className="rounded-[1.2rem] border border-[#DCE4F2] bg-white p-4 shadow-sm sm:p-5"><div className="flex items-center justify-between border-b border-[#EEF1F6] pb-3"><span className="text-xs font-extrabold">Maintenance request</span><Wrench className="size-4 text-brand-600" /></div><div className="mt-4 rounded-xl bg-[#F8FAFF] p-3.5"><span className="text-[9px] font-bold uppercase tracking-[.14em] text-[#9AA6BA]">Example request</span><p className="mt-1.5 text-xs font-bold">Room repair or service issue</p><div className="mt-3 flex items-center gap-2 text-[10px] font-semibold text-[#516078]"><span className="size-2 rounded-full bg-amber-500" />Open · ready for assignment</div></div><div className="mt-3 flex justify-between text-[9px] text-[#6C7890]"><span>Assigned staff</span><span className="font-bold">Manage in portal</span></div></div></div>}
+            </div>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      <section id="resident-journey" className="resident-journey-surface relative overflow-hidden px-5 py-20 text-[#10192E] sm:px-8 sm:py-28">
+        <div className="relative mx-auto grid max-w-[1320px] gap-12 lg:grid-cols-[.78fr_1.22fr] lg:gap-20">
+          <div data-scroll-reveal className="lg:sticky lg:top-28 lg:self-start">
+            <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-brand-700">From move-in to move-out</p>
+            <h2 className="mt-4 max-w-[520px] text-4xl font-extrabold leading-[1.04] tracking-[-.06em] sm:text-6xl">The whole stay, in one steady rhythm.</h2>
+            <p className="mt-5 max-w-md text-sm leading-7 text-[#516078]">A resident's experience touches every part of a property. Keep each handoff connected, from the first bed assignment to the final settlement.</p>
+            <a href="#demo-portals" className="mt-7 inline-flex items-center gap-2 text-xs font-bold text-brand-700 transition hover:text-brand-900">Explore the role-based portals <ArrowRight className="size-4" /></a>
+            <div className="mt-10 hidden h-px w-20 bg-brand-300 lg:block" />
+            <p className="mt-3 hidden text-[9px] uppercase tracking-[.16em] text-[#9AA6BA] lg:block">One record, all the way through</p>
+          </div>
+
+          <div className="relative space-y-3 pl-5 before:absolute before:bottom-8 before:left-[7px] before:top-8 before:w-px before:bg-[#D4D9E3] sm:pl-8 sm:before:left-[11px]">
+            <JourneyStep number="01 / ARRIVE" title="Make the room ready." description="See room and bed availability, assign a space, and keep resident documents with their record." tags={["Bed assignment", "Resident records"]}>
+              <div className="rounded-xl border border-[#E5EAF3] bg-white p-3.5">
+                <div className="mb-3 flex items-center justify-between"><span className="text-[9px] font-bold uppercase tracking-[.12em] text-[#6C7890]">Example room map</span><BedDouble className="size-4 text-brand-600" /></div>
+                <div className="grid grid-cols-2 gap-2"><div className="rounded-lg bg-[#F3F6FC] p-2"><span className="block text-[8px] font-bold text-[#9AA6BA]">BED A</span><span className="mt-1 block text-[9px] font-bold text-[#39475F]">Occupied</span></div><div className="rounded-lg border border-dashed border-emerald-300 bg-emerald-50/60 p-2"><span className="block text-[8px] font-bold text-emerald-700">BED B</span><span className="mt-1 block text-[9px] font-bold text-emerald-800">Available</span></div></div>
+              </div>
+            </JourneyStep>
+            <JourneyStep number="02 / BILL" title="Make monthly costs clear." description="Share itemized rent and electricity invoices through WhatsApp. Residents pay directly through the property's UPI link." tags={["Rent invoice", "Direct UPI"]} tone="invoice">
+              <div className="rounded-xl border border-[#E2E8F5] bg-white p-3.5">
+                <div className="mb-3 flex items-center justify-between border-b border-[#EEF1F6] pb-2"><span className="text-[9px] font-bold text-[#39475F]">Invoice preview</span><MessageCircle className="size-3.5 text-emerald-600" /></div>
+                <div className="space-y-2 text-[9px] text-[#6C7890]"><div className="flex justify-between"><span>Rent</span><span className="font-mono text-[#39475F]">Included</span></div><div className="flex justify-between"><span>Room electricity</span><span className="font-mono text-[#39475F]">Itemized</span></div></div>
+                <div className="mt-3 rounded-md bg-emerald-50 px-2 py-1.5 text-center text-[8px] font-bold text-emerald-800">UPI link goes to property account</div>
+              </div>
+            </JourneyStep>
+            <JourneyStep number="03 / CARE" title="Keep everyday issues moving." description="Residents can raise maintenance requests from the portal. Staff can assign work and follow its status." tags={["Resident request", "Staff assignment"]}>
+              <div className="rounded-xl border border-[#E5EAF3] bg-white p-3.5">
+                <div className="mb-3 flex items-center justify-between"><span className="text-[9px] font-bold text-[#39475F]">Request workflow</span><Wrench className="size-3.5 text-brand-600" /></div>
+                <div className="flex items-center gap-1.5 text-[8px] font-bold text-[#516078]"><span className="rounded-md bg-amber-50 px-2 py-1 text-amber-800">Raised</span><ArrowRight className="size-3 text-[#9AA6BA]" /><span className="rounded-md bg-brand-50 px-2 py-1 text-brand-800">Assigned</span><ArrowRight className="size-3 text-[#9AA6BA]" /><span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">Resolved</span></div>
+              </div>
+            </JourneyStep>
+            <JourneyStep number="04 / SETTLE" title="Close with a clear record." description="Record agreed deductions and outstanding bills, then provide a move-out settlement statement." tags={["Deposit deductions", "Settlement statement"]} tone="settlement">
+              <div className="rounded-xl border border-white/10 bg-white/[.07] p-3.5 text-white">
+                <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2"><span className="text-[9px] font-bold">Move-out summary</span><FileCheck2 className="size-3.5 text-[#B8C8FF]" /></div>
+                <div className="space-y-2 text-[9px] text-white/65"><div className="flex justify-between"><span>Deposit</span><span>Recorded</span></div><div className="flex justify-between"><span>Deductions</span><span>Itemized</span></div></div>
+                <div className="mt-3 rounded-md bg-white px-2 py-1.5 text-center text-[8px] font-bold text-[#14234B]">Settlement statement ready</div>
+              </div>
+            </JourneyStep>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#EEF2FA] px-5 py-20 sm:px-8 sm:py-28"><div className="mx-auto grid max-w-[1320px] gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
+        <div className="max-w-lg"><p className="text-[11px] font-extrabold uppercase tracking-[.16em] text-brand-700">Move-outs & records</p><h2 className="mt-4 text-4xl font-extrabold leading-[1.05] tracking-[-.06em] sm:text-5xl">A fair finish. A better record.</h2><p className="mt-5 text-sm leading-7 text-[#516078]">Keep resident documents in one place. At checkout, record agreed deductions and outstanding bills in a settlement statement.</p><a href="#demo-portals" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-700">See the resident experience <ArrowRight className="size-4" /></a></div>
+        <div className="grid overflow-hidden rounded-[1.5rem] border border-[#DCE4F2] bg-white shadow-[0_25px_60px_rgba(31,51,91,.10)] md:grid-cols-[1fr_.86fr]">
+          <div className="p-5 sm:p-8"><div className="flex items-center justify-between border-b border-[#E5EAF3] pb-4"><div className="flex items-center gap-2.5"><span className="flex size-9 items-center justify-center rounded-xl bg-brand-50 text-brand-700"><FileCheck2 className="size-4" /></span><span><strong className="block text-xs">Move-out settlement</strong><span className="text-[9px] text-[#9AA6BA]">Illustrative statement</span></span></div><ArrowUpRight className="size-4 text-[#9AA6BA]" /></div><div className="space-y-4 py-5 text-[11px]"><Line label="Security deposit" amount={"\u20B915,000"} /><Line label="Utility balance" amount={"- \u20B9480"} /><Line label="Agreed room repair" amount={"- \u20B91,500"} /></div><div className="flex items-center justify-between border-t border-[#E5EAF3] pt-4"><span className="text-xs font-bold">Refund amount</span><strong className="text-lg font-extrabold text-emerald-700">{"\u20B913,020"}</strong></div></div>
+          <div className="border-t border-[#E5EAF3] bg-[#F8FAFF] p-5 sm:p-8 md:border-l md:border-t-0"><p className="text-[9px] font-extrabold uppercase tracking-[.15em] text-brand-700">Resident records</p><h3 className="mt-2 text-xl font-extrabold">Documents, organized.</h3><p className="mt-2 text-[11px] leading-5 text-[#6C7890]">Keep identity, contact and tenancy documents with resident details.</p><div className="mt-5 space-y-2"><Doc icon={FileText} label="Identity document" /><Doc icon={Users} label="Emergency contact" /><Doc icon={ShieldCheck} label="Tenancy record" /></div></div>
+        </div>
+      </div></section>
+
+      <section id="demo-portals" className="bg-white px-5 py-20 sm:px-8 sm:py-28"><div className="mx-auto max-w-[1320px]">
+        <div className="flex flex-col justify-between gap-5 border-b border-[#E5EAF3] pb-8 sm:flex-row sm:items-end"><div><p className="text-[11px] font-extrabold uppercase tracking-[.16em] text-brand-700">Try the product</p><h2 className="mt-3 text-4xl font-extrabold tracking-[-.06em] sm:text-5xl">Three views. One property.</h2></div><p className="max-w-md text-xs leading-6 text-[#6C7890]">Open a sample portal to see how owners, managers and residents use Bedy.</p></div>
+        <div className="mt-8 grid overflow-hidden rounded-[1.5rem] border border-[#DCE4F2] bg-[#F8FAFF] md:grid-cols-3">{ROLES.map((item, index) => { const Icon = item.icon; return <article key={item.role} className={"flex min-h-[245px] flex-col justify-between p-6 sm:p-8 " + (index ? "border-t border-[#DCE4F2] md:border-l md:border-t-0" : "")}><div><div className="flex items-center justify-between"><span className="flex size-11 items-center justify-center rounded-xl bg-white text-brand-700 shadow-xs"><Icon className="size-5" /></span><span className="font-mono text-[10px] text-[#9AA6BA]">0{index + 1}</span></div><h3 className="mt-5 text-xl font-extrabold">{item.title}</h3><p className="mt-2 max-w-xs text-xs leading-5 text-[#6C7890]">{item.detail}</p></div><button type="button" onClick={() => demo(item.role, item.email)} disabled={loading === item.role} className="mt-7 inline-flex min-h-11 items-center justify-between rounded-xl bg-[#10192E] px-4 text-xs font-bold text-white hover:bg-brand-700 disabled:opacity-60"><span>{loading === item.role ? "Opening portal..." : "Open " + item.title + " portal"}</span>{loading === item.role ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}</button></article>; })}</div>
+      </div></section>
+
+      <section id="pricing" className="bg-[#F8FAFF] px-5 py-20 sm:px-8 sm:py-28"><div className="mx-auto max-w-[1320px]">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end"><div className="max-w-xl"><p className="text-[11px] font-extrabold uppercase tracking-[.16em] text-brand-700">Straightforward plans</p><h2 className="mt-3 text-4xl font-extrabold tracking-[-.06em] sm:text-5xl">Choose the size that fits.</h2><p className="mt-4 text-sm leading-6 text-[#6C7890]">Pricing per property, with direct UPI rent payments and no transaction commission.</p></div><div className="inline-flex w-fit items-center gap-3 rounded-full border border-[#DCE4F2] bg-white p-1.5"><span className={"px-2 text-[11px] font-bold " + (!annual ? "text-[#10192E]" : "text-[#9AA6BA]")}>Monthly</span><button type="button" role="switch" aria-label="Annual billing" aria-checked={annual} onClick={() => setAnnual(!annual)} className={"relative h-6 w-11 rounded-full " + (annual ? "bg-brand-600" : "bg-neutral-300")}><span className={"absolute top-1 size-4 rounded-full bg-white shadow-sm " + (annual ? "left-6" : "left-1")} /></button><span className={"px-2 text-[11px] font-bold " + (annual ? "text-[#10192E]" : "text-[#9AA6BA]")}>Annual <span className="text-emerald-700">- save 20%</span></span></div></div>
+        <div className="mt-9 grid gap-4 lg:grid-cols-3">{PLANS.map((plan) => <article key={plan.name} className={"flex flex-col rounded-[1.35rem] border p-6 sm:p-7 " + (plan.popular ? "border-brand-600 bg-[#14234B] text-white shadow-[0_24px_60px_rgba(20,35,75,.22)]" : "border-[#DCE4F2] bg-white text-[#10192E]")}><span className={"mb-5 inline-flex w-fit rounded-full px-3 py-1 text-[9px] font-extrabold uppercase tracking-[.14em] " + (plan.popular ? "bg-white/10 text-[#C6D2FF]" : "text-brand-700")}>{plan.popular ? "Popular plan" : plan.badge}</span><h3 className="text-xl font-extrabold">{plan.name}</h3><p className={"mt-2 min-h-10 text-xs leading-5 " + (plan.popular ? "text-white/65" : "text-[#6C7890]")}>{plan.desc}</p><div className="mt-6 flex items-baseline gap-1"><strong className="text-4xl font-extrabold tracking-[-.06em]">{annual ? plan.annual : plan.monthly}</strong><span className={"text-[10px] " + (plan.popular ? "text-white/55" : "text-[#9AA6BA]")}>/ property / month</span></div><div className={"my-6 h-px " + (plan.popular ? "bg-white/15" : "bg-[#E5EAF3]")} /><ul className="flex-1 space-y-3">{plan.features.map((feature) => <li key={feature} className={"flex items-start gap-2.5 text-[11px] leading-5 " + (plan.popular ? "text-white/80" : "text-[#516078]")}><Check className={"mt-0.5 size-3.5 shrink-0 " + (plan.popular ? "text-[#94A9FF]" : "text-emerald-600")} /><span>{feature}</span></li>)}</ul><Link href={plan.name.includes("Enterprise") ? "/contact" : "/login"} className={"mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-xs font-bold " + (plan.popular ? "bg-white text-[#14234B] hover:bg-[#EEF2FA]" : "bg-brand-600 text-white hover:bg-brand-700")}>{plan.popular ? "Start your trial" : plan.name.includes("Enterprise") ? "Talk to our team" : "Start your trial"}<ArrowRight className="size-3.5" /></Link></article>)}</div>
+      </div></section>
+
+      <section id="faq" className="border-t border-[#E5EAF3] bg-white px-5 py-20 sm:px-8 sm:py-28"><div className="mx-auto grid max-w-[1100px] gap-10 lg:grid-cols-[.72fr_1.28fr]"><div><p className="text-[11px] font-extrabold uppercase tracking-[.16em] text-brand-700">Good to know</p><h2 className="mt-3 text-4xl font-extrabold leading-[1.05] tracking-[-.06em] sm:text-5xl">A few practical answers.</h2><p className="mt-4 text-sm leading-6 text-[#6C7890]">Details about payments, room billing and the resident experience.</p><span className="mt-7 inline-flex size-12 items-center justify-center rounded-2xl bg-[#F3F6FC] text-brand-700"><CircleHelp className="size-5" /></span></div><div className="divide-y divide-[#E5EAF3] border-y border-[#E5EAF3]">{FAQS.map((item, index) => { const expanded = faq === index; return <div key={item.q}><h3><button type="button" id={"faq-trigger-" + index} aria-expanded={expanded} aria-controls={"faq-panel-" + index} onClick={() => setFaq(expanded ? -1 : index)} className="flex w-full items-center justify-between gap-4 py-5 text-left text-sm font-bold text-[#26344C] hover:text-brand-700"><span>{item.q}</span><ChevronDown className={"size-4 shrink-0 text-[#9AA6BA] transition-transform " + (expanded ? "rotate-180 text-brand-700" : "")} /></button></h3>{expanded && <div id={"faq-panel-" + index} role="region" aria-labelledby={"faq-trigger-" + index} className="max-w-2xl pb-5 pr-8 text-xs leading-6 text-[#6C7890]">{item.a}</div>}</div>; })}</div></div></section>
+
+      <section className="px-5 py-12 sm:px-8 sm:py-16"><div className="relative mx-auto max-w-[1320px] overflow-hidden rounded-[1.6rem] bg-brand-600 px-6 py-10 text-white sm:px-10 sm:py-14"><div aria-hidden="true" className="absolute -right-20 -top-40 size-[30rem] rounded-full border border-white/10" /><div aria-hidden="true" className="absolute -right-4 -top-24 size-[22rem] rounded-full border border-white/10" /><div className="relative flex flex-col justify-between gap-7 md:flex-row md:items-end"><div className="max-w-2xl"><p className="text-[10px] font-extrabold uppercase tracking-[.16em] text-white/65">A more manageable day starts here</p><h2 className="mt-3 text-3xl font-extrabold leading-tight tracking-[-.05em] sm:text-5xl">See how Bedy fits your property.</h2></div><a href="#demo-portals" className="inline-flex min-h-12 w-fit items-center gap-3 rounded-full bg-white px-6 text-xs font-extrabold text-brand-800 hover:bg-[#EEF2FA]">Explore the portals <ArrowRight className="size-4" /></a></div></div></section>
+    </main>
+
+    <footer className="border-t border-[#E5EAF3] bg-white px-5 py-10 sm:px-8"><div className="mx-auto max-w-[1320px]"><div className="flex flex-col justify-between gap-8 md:flex-row"><div className="max-w-xs"><Link href="/" className="inline-flex items-center gap-2"><img src="/logo.png" alt="" className="size-8 rounded-lg" /><span className="text-lg font-extrabold tracking-[-.06em]">bedy</span></Link><p className="mt-3 text-[11px] leading-5 text-[#6C7890]">A clearer way to manage rooms, rent and resident operations.</p></div><nav aria-label="Footer" className="grid grid-cols-2 gap-x-10 gap-y-3 text-[11px] font-semibold text-[#516078] sm:grid-cols-3"><Link className="hover:text-brand-700" href="/features">Features</Link><Link className="hover:text-brand-700" href="/pricing">Pricing</Link><Link className="hover:text-brand-700" href="/services">Services</Link><Link className="hover:text-brand-700" href="/about">About</Link><Link className="hover:text-brand-700" href="/contact">Contact</Link><Link className="hover:text-brand-700" href="/privacy">Privacy</Link><Link className="hover:text-brand-700" href="/terms">Terms</Link><Link className="hover:text-brand-700" href="/refund-policy">Refund policy</Link></nav></div><div className="mt-8 flex flex-col justify-between gap-2 border-t border-[#E5EAF3] pt-5 text-[10px] text-[#9AA6BA] sm:flex-row"><span>Copyright {new Date().getFullYear()} Bedy Technologies</span><span>PG, hostel and co-living operations</span></div></div></footer>
+  </div>;
+}
+
+function Workflow({ number, title, text }) { return <div className="relative pl-10 sm:pl-0"><span className="absolute left-0 top-0.5 font-mono text-[10px] font-bold text-brand-600 sm:static">{number}</span><h3 className="text-xs font-extrabold text-[#17213A] sm:mt-3">{title}</h3><p className="mt-1 text-[10px] leading-4 text-[#6C7890]">{text}</p></div>; }
+function TabIcon({ tab }) { if (tab === "billing") return <ReceiptText className="size-4" />; if (tab === "utilities") return <Zap className="size-4" />; if (tab === "requests") return <Wrench className="size-4" />; return <BedDouble className="size-4" />; }
+function Rooms() { return <div className="grid gap-5 md:grid-cols-[1fr_.8fr] md:items-center"><div><p className="text-[9px] font-bold uppercase tracking-[.16em] text-brand-700">Occupancy overview</p><h3 className="mt-2 text-2xl font-extrabold sm:text-3xl">Know what is available.</h3><p className="mt-2 max-w-md text-xs leading-6 text-[#6C7890]">View room and bed assignments together, then assign an open bed when someone moves in.</p><div className="mt-5 flex gap-3 text-[9px] font-semibold text-[#6C7890]"><span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-full bg-brand-600" />Occupied</span><span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-full bg-emerald-500" />Available</span></div></div><div className="rounded-[1.2rem] border border-[#DCE4F2] bg-white p-4 shadow-sm sm:p-5"><div className="flex justify-between border-b border-[#EEF1F6] pb-3"><span className="text-xs font-extrabold">Floor 2 · Room map</span><span className="text-[9px] text-[#9AA6BA]">Example layout</span></div><div className="mt-4 grid grid-cols-3 gap-2">{["201","202","203","204","205","206"].map((room) => <div key={room} className="rounded-lg border border-[#E5EAF3] p-2"><span className="block text-[8px] font-bold text-[#6C7890]">Room {room}</span><div className="mt-1.5 flex gap-1"><span className="flex size-6 items-center justify-center rounded-md bg-brand-50 text-[8px] font-extrabold text-brand-700">A</span><span className={"flex size-6 items-center justify-center rounded-md text-[8px] font-extrabold " + (room === "204" ? "bg-emerald-50 text-emerald-700" : "bg-brand-50 text-brand-700")}>B</span></div></div>)}</div></div></div>; }
+function Line({ label, amount, strong = false }) { return <div className={"flex items-center justify-between gap-4 " + (strong ? "border-t border-[#E5EAF3] pt-3 font-extrabold text-[#17213A]" : "text-[#6C7890]")}><span>{label}</span><span className="shrink-0 font-mono">{amount}</span></div>; }
+function Metric({ label, value, accent = false }) { return <div className="rounded-xl border border-[#E5EAF3] bg-white p-3"><span className="block text-[9px] font-semibold leading-4 text-[#6C7890]">{label}</span><strong className={"mt-1 block text-sm font-extrabold " + (accent ? "text-brand-700" : "text-[#26344C]")}>{value}</strong></div>; }
+function Doc({ icon: Icon, label }) { return <div className="flex items-center gap-2.5 rounded-lg border border-[#E5EAF3] bg-white px-3 py-2.5"><span className="flex size-7 items-center justify-center rounded-md bg-brand-50 text-brand-700"><Icon className="size-3.5" /></span><span className="text-[10px] font-bold text-[#39475F]">{label}</span><Check className="ml-auto size-3.5 text-emerald-600" /></div>; }
+function BuildingMark() { return <svg aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="none"><path d="M3 13V4.2L8 2l5 2.2V13M1.8 13h12.4M5.5 5.5h.1m4.8 0h.1m-5 2.3h.1m4.8 0h.1m-4.9 2.3h.1m4.8 0h.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
+
+function JourneyStep({ number, title, description, tags, tone = "default", children }) {
+  const isDark = tone === "settlement";
+  const surface = isDark
+    ? "border-[#14234B] bg-[#14234B] text-white shadow-[0_16px_36px_rgba(20,35,75,.16)]"
+    : tone === "invoice"
+      ? "border-[#D5DFF4] bg-[#F5F7FC] text-[#10192E] shadow-[0_8px_28px_rgba(31,51,91,.045)]"
+      : "border-[#E0E4EC] bg-white text-[#10192E] shadow-[0_8px_28px_rgba(31,51,91,.045)]";
 
   return (
-    <div className="min-h-screen bg-[#F8FAFF] text-neutral-900 flex flex-col font-sans selection:bg-brand-100 selection:text-brand-900 overflow-x-hidden antialiased">
-      {/* ── Active Session Banner if already signed in ──────────────────── */}
-      {user ? (
-        <aside
-          aria-label="Active session banner"
-          className="bg-neutral-950 text-white px-4 py-2 text-xs font-medium border-b border-neutral-800 z-50 sticky top-0"
-        >
-          <div className="mx-auto max-w-7xl flex flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="relative flex size-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-2 bg-brand-500" />
-              </span>
-              <span className="truncate">
-                {isTa ? "செயலில் உள்ள கணக்கு: " : "Signed in as "}
-                <strong className="text-white font-semibold">{user.name}</strong> ({user.role})
-              </span>
-            </div>
-            <Link
-              href={
-                user.role === "SUPER_ADMIN"
-                  ? "/super-admin/dashboard"
-                  : user.role === "OWNER" || user.role === "MANAGER" || user.role === "SOCIETY_ADMIN"
-                  ? "/admin/dashboard"
-                  : user.role === "FLAT_ADMIN"
-                  ? "/admin/residents"
-                  : "/resident/dashboard"
-              }
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1 text-xs text-white transition-all shrink-0 font-semibold"
-            >
-              <span>{isTa ? "டாஷ்போர்டுக்குச் செல்க" : "Go to Dashboard"}</span>
-              <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-        </aside>
-      ) : null}
-
-      {/* ── Crisp, Modern Floating Header ───────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-[#E5EAF3] transition-all">
-        <div className="mx-auto max-w-7xl flex h-16 sm:h-18 items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <img
-              src="/logo.png"
-              alt="Bedy"
-              className="size-9 object-contain rounded-xl shadow-2xs group-hover:scale-105 transition-transform"
-            />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-black tracking-tight text-neutral-950 leading-tight">
-                  Bedy
-                </span>
-                <span className="rounded-full bg-brand-50 border border-brand-200/80 px-2 py-0.2 text-[9px] font-bold text-brand-700 uppercase tracking-wide">
-                  PG & Hostel
-                </span>
-              </div>
-              <span className="text-[10px] text-neutral-500 font-medium leading-none hidden xs:block">
-                Operations Management OS
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-neutral-600">
-            <a href="#showcase" className="hover:text-brand-600 transition-colors">
-              {isTa ? "நேரடி மாதிரி" : "Live Terminal"}
-            </a>
-            <a href="#features" className="hover:text-brand-600 transition-colors">
-              {isTa ? "வசதிகள்" : "Features"}
-            </a>
-            <a href="#pricing" className="hover:text-brand-600 transition-colors">
-              {isTa ? "விலை விவரம்" : "Pricing"}
-            </a>
-            <a href="#calculator" className="hover:text-brand-600 transition-colors">
-              {isTa ? "கணிப்பான்" : "Calculator"}
-            </a>
-            <a href="#demo-portals" className="hover:text-brand-600 transition-colors">
-              {isTa ? "டெமோ கணக்குகள்" : "Demo Logins"}
-            </a>
-          </nav>
-
-          {/* Right Action Cluster */}
-          <div className="flex items-center gap-2.5">
-            <div className="scale-90 sm:scale-100 origin-right">
-              <LanguageSwitcher />
-            </div>
-
-            {user ? (
-              <Link
-                href={
-                  user.role === "SUPER_ADMIN"
-                    ? "/super-admin/dashboard"
-                    : user.role === "OWNER" || user.role === "MANAGER" || user.role === "SOCIETY_ADMIN"
-                    ? "/admin/dashboard"
-                    : user.role === "FLAT_ADMIN"
-                    ? "/admin/residents"
-                    : "/resident/dashboard"
-                }
-                className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 px-3.5 py-2 text-xs font-bold text-white transition-all shadow-sm shadow-brand-600/20"
-              >
-                <span>{isTa ? "டாஷ்போர்டு" : "Dashboard"}</span>
-                <ArrowRight className="size-3.5" />
-              </Link>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/login"
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-[#D2D9E6] bg-white hover:bg-brand-50 hover:text-brand-700 px-3 py-2 text-xs font-semibold text-neutral-700 transition-all shadow-2xs"
-                >
-                  <LogIn className="size-3.5 text-neutral-500" />
-                  <span>{isTa ? "உள்நுழை" : "Sign In"}</span>
-                </Link>
-
-                <a
-                  href="#demo-portals"
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white px-3.5 sm:px-4 py-2 text-xs font-bold transition-all shadow-sm shadow-brand-600/20"
-                >
-                  <Sparkles className="size-3.5" />
-                  <span>{isTa ? "மாதிரி கணக்குகள்" : "Try Free Demo"}</span>
-                </a>
-              </div>
-            )}
+    <article data-scroll-reveal className={"relative rounded-2xl border p-5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(31,51,91,.10)] sm:p-6 " + surface}>
+      <span className={"absolute -left-[24px] top-7 size-2.5 rounded-full border-2 sm:-left-[27px] " + (isDark ? "border-[#F5F4EF] bg-[#14234B]" : "border-[#F5F4EF] bg-brand-600")} />
+      <div className="grid gap-4 sm:grid-cols-[88px_1fr] sm:gap-5 lg:grid-cols-[76px_minmax(0,1fr)_190px] lg:items-center">
+        <span className={"font-mono text-[9px] font-bold tracking-[.12em] " + (isDark ? "text-[#B8C8FF]" : "text-brand-700")}>{number}</span>
+        <div>
+          <h3 className="text-base font-extrabold tracking-tight sm:text-lg">{title}</h3>
+          <p className={"mt-1.5 max-w-lg text-[11px] leading-5 " + (isDark ? "text-white/65" : "text-[#6C7890]")}>{description}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {tags.map((tag) => <span key={tag} className={"rounded-md px-2 py-1 text-[8px] font-semibold " + (isDark ? "bg-white/10 text-white/75" : "bg-white/80 text-[#516078]")}>{tag}</span>)}
           </div>
         </div>
-      </header>
-
-      {/* ── HERO SECTION (LIGHT & CRISP) ─────────────────────────────────── */}
-      <main className="flex-1">
-        <section className="relative pt-8 sm:pt-14 lg:pt-18 pb-14 sm:pb-20 overflow-hidden bg-gradient-to-b from-white via-white to-neutral-50/70 border-b border-[#E5EAF3]">
-          {/* Subtle decorative background gradient circles */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-gradient-to-b from-brand-100/60 via-blue-50/30 to-transparent blur-3xl pointer-events-none -z-10" />
-
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-center text-center max-w-3xl mx-auto space-y-5 sm:space-y-6">
-              {/* Innovation Pill */}
-              <Reveal delay={0}>
-                <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-200/90 px-3.5 py-1 text-xs font-bold text-brand-700 shadow-2xs">
-                  <span className="size-2 rounded-full bg-brand-500 animate-pulse" />
-                  <span>
-                    {isTa
-                      ? "பிஜி & விடுதிகளுக்கான நவீன மென்பொருள்"
-                      : "Purpose-Built for PGs, Hostels & Co-Living Spaces"}
-                  </span>
-                </div>
-              </Reveal>
-
-              {/* High-Impact Hero Headline */}
-              <Reveal delay={100}>
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-neutral-950 leading-[1.12]">
-                  {isTa ? (
-                    <>
-                      வாடகை வசூல் தானியங்கி முறையில்.{" "}
-                      <span className="text-brand-600">கணக்கு நோட்டுகள் தேவையில்லை.</span>
-                    </>
-                  ) : (
-                    <>
-                      Rent Collection on Autopilot.{" "}
-                      <span className="text-brand-600">Zero Notebook Chasing.</span>
-                    </>
-                  )}
-                </h1>
-              </Reveal>
-
-              {/* Value Proposition Subtitle */}
-              <Reveal delay={200}>
-                <p className="text-xs sm:text-sm lg:text-base text-neutral-600 leading-relaxed max-w-2xl font-normal">
-                  {isTa
-                    ? "கணக்கு நோட்டுகள், எக்செல் தாள்கள் மற்றும் வாட்ஸ்அப் குழப்பங்களுக்கு முற்றுப்புள்ளி வையுங்கள். படுக்கை வாரியான ஆக்கிரமிப்பு, 1-கிளிக் வாட்ஸ்அப் யுபிஐ நினைவூட்டல், அறை மின் கணக்கீடு மற்றும் வைப்புத்தொகைத் தீர்வு."
-                    : "Bedy replaces paper registers, Excel sheets, and awkward rent phone calls. Track bed occupancy live, send 1-click WhatsApp payment reminders with instant UPI links, split room sub-meter electricity, and settle security deposits digitally."}
-                </p>
-              </Reveal>
-
-              {/* Action Buttons */}
-              <Reveal delay={300}>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1 w-full max-w-md">
-                  <button
-                    type="button"
-                    onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
-                    disabled={Boolean(loggingIn)}
-                    className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white px-5 py-3 text-xs sm:text-sm font-bold transition-all shadow-md shadow-brand-600/25 cursor-pointer min-h-[46px]"
-                  >
-                    {loggingIn === "owner@srilakshmipg.local" ? (
-                      <Loader2 className="size-4 animate-spin text-white" />
-                    ) : (
-                      <Building2 className="size-4 text-brand-200" />
-                    )}
-                    <span>{isTa ? "பிஜி உரிமையாளர் நேரடி மாதிரி" : "Open Owner Portal"}</span>
-                    <ArrowRight className="size-4" />
-                  </button>
-
-                  <a
-                    href="#showcase"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-brand-300 bg-white hover:bg-brand-50 active:scale-[0.98] text-brand-700 px-5 py-3 text-xs sm:text-sm font-semibold transition-all shadow-2xs min-h-[46px]"
-                  >
-                    <span>{isTa ? "மாதிரி திரை காண்க" : "Explore Interactive Demo"}</span>
-                    <ChevronDown className="size-4 text-brand-500" />
-                  </a>
-                </div>
-              </Reveal>
-
-              {/* Micro-spec checkmarks */}
-              <Reveal delay={400}>
-                <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-neutral-500 font-medium pt-1">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="size-3.5 text-brand-600 shrink-0" />
-                    <span>1-Tap UPI (GPay / PhonePe)</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="size-3.5 text-brand-600 shrink-0" />
-                    <span>Room Sub-Meter Memory</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="size-3.5 text-brand-600 shrink-0" />
-                    <span>Instant PDF WhatsApp Receipts</span>
-                  </span>
-                </div>
-              </Reveal>
-            </div>
-
-            {/* ── INTERACTIVE APPLICATION TERMINAL (SHOWCASE) ────────────────── */}
-            <div id="showcase" className="mt-10 sm:mt-14 max-w-5xl mx-auto">
-              <Reveal delay={200}>
-                <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xl shadow-slate-200/60 overflow-hidden">
-                  {/* Top Application Bar */}
-                  <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="size-2.5 rounded-full bg-rose-500/90" />
-                        <span className="size-2.5 rounded-full bg-amber-500/90" />
-                        <span className="size-2.5 rounded-full bg-emerald-500/90" />
-                      </div>
-                      <div className="h-4 w-px bg-slate-700" />
-                      <div className="flex items-center gap-2">
-                        <Building2 className="size-3.5 text-brand-300" />
-                        <span className="font-bold text-white text-xs truncate">
-                          Sri Lakshmi Luxury PG & Co-Living
-                        </span>
-                        <span className="text-[10px] text-slate-400 hidden sm:inline font-mono">
-                          · Live Bedy Terminal
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="size-2 rounded-full bg-brand-400 animate-pulse shrink-0" />
-                      <span className="text-[10px] font-semibold text-brand-200 bg-brand-950/80 px-2 py-0.5 rounded border border-brand-800">
-                        86% Occupied
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 4 Feature Tab Selectors */}
-                  <div className="flex items-center gap-1 bg-slate-100/90 p-1.5 border-b border-slate-200/80 overflow-x-auto text-xs font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("whatsapp")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 cursor-pointer text-xs ${
-                        activeTab === "whatsapp"
-                          ? "bg-white text-brand-700 shadow-2xs font-bold ring-1 ring-brand-600/20"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                      }`}
-                    >
-                      <MessageCircle className="size-4 text-brand-600" />
-                      <span>{isTa ? "வாட்ஸ்அப் வசூல்" : "WhatsApp Pay"}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("beds")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 cursor-pointer text-xs ${
-                        activeTab === "beds"
-                          ? "bg-white text-slate-900 shadow-2xs font-bold"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                      }`}
-                    >
-                      <BedSingle className="size-4 text-indigo-600" />
-                      <span>{isTa ? "படுக்கை ஆக்கிரமிப்பு" : "Bed Matrix"}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("submeter")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 cursor-pointer text-xs ${
-                        activeTab === "submeter"
-                          ? "bg-white text-slate-900 shadow-2xs font-bold"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                      }`}
-                    >
-                      <Zap className="size-4 text-amber-600" />
-                      <span>{isTa ? "மின் கட்டணப் பகிர்வு" : "Sub-Meter Splitting"}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("deposit")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 cursor-pointer text-xs ${
-                        activeTab === "deposit"
-                          ? "bg-white text-slate-900 shadow-2xs font-bold"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                      }`}
-                    >
-                      <Receipt className="size-4 text-cyan-600" />
-                      <span>{isTa ? "வைப்புத்தொகைத் தீர்வு" : "Deposit Refund"}</span>
-                    </button>
-                  </div>
-
-                  {/* Terminal Body Content */}
-                  <div className="p-4 sm:p-6 min-h-[320px]">
-                    {/* TAB 1: WhatsApp Pay & Instant UPI Simulation */}
-                    {activeTab === "whatsapp" && (
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center animate-fade-slide-up">
-                        {/* WhatsApp Message Preview */}
-                        <div className="md:col-span-6 space-y-3">
-                          <div className="rounded-xl bg-brand-50/70 border border-brand-200/80 p-3.5 space-y-2.5">
-                            <div className="flex items-center justify-between text-[11px] text-brand-800 font-bold border-b border-brand-200/60 pb-1.5">
-                              <span className="flex items-center gap-1.5">
-                                <MessageCircle className="size-3.5 text-brand-600" />
-                                WhatsApp Auto-Reminder to Karthik Raja
-                              </span>
-                              <span className="text-[10px] text-brand-600 font-normal">Delivered 10:02 AM</span>
-                            </div>
-                            <p className="text-xs text-neutral-800 leading-relaxed font-mono">
-                              &quot;Hi Karthik, your Room 201 (Bed A) rent for Oct (₹13,000) + electricity (₹600) is due by 5th.
-                              <br />
-                              <br />
-                              Tap to pay via UPI:
-                              <br />
-                              <strong className="text-brand-700 underline">https://bedy.in/pay/inv_sllp_201</strong>
-                              <br />
-                              — Sri Lakshmi Luxury PG&quot;
-                            </p>
-                          </div>
-
-                          <div className="text-[11px] text-neutral-500 flex items-center gap-1.5">
-                            <CheckCheck className="size-3.5 text-brand-600" />
-                            <span>1-click batch sending to all tenants with zero manual typing.</span>
-                          </div>
-                        </div>
-
-                        {/* Public 1-Click Pay Sheet Simulator */}
-                        <div className="md:col-span-6 space-y-3">
-                          <div className="rounded-xl border border-[#E5EAF3] bg-white p-4 space-y-3 text-xs shadow-2xs">
-                            <div className="flex items-center justify-between border-b border-[#E5EAF3] pb-2.5">
-                              <div>
-                                <span className="text-[10px] uppercase font-bold text-neutral-400">
-                                  Tenant Pay Sheet
-                                </span>
-                                <div className="font-bold text-neutral-900 text-sm">Room 201 · Bed A</div>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-[10px] text-neutral-400 block">Total Due</span>
-                                <span className="font-extrabold text-brand-700 text-base">₹13,600</span>
-                              </div>
-                            </div>
-
-                            {/* Interactive simulation button */}
-                            <div>
-                              <button
-                                type="button"
-                                onClick={handleSimulatePayment}
-                                disabled={simState === "PROCESSING"}
-                                className={`w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                  simState === "PAID"
-                                    ? "bg-success-100 text-success-900 border border-success-300"
-                                    : "bg-brand-600 hover:bg-brand-700 text-white shadow-sm shadow-brand-600/20"
-                                }`}
-                              >
-                                {simState === "PROCESSING" ? (
-                                  <>
-                                    <Loader2 className="size-4 animate-spin text-white" />
-                                    <span>Simulating UPI Processing...</span>
-                                  </>
-                                ) : simState === "PAID" ? (
-                                  <>
-                                    <CheckCircle2 className="size-4 text-success-700" />
-                                    <span>Paid via PhonePe · Click to Reset</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Smartphone className="size-4" />
-                                    <span>Test 1-Tap UPI Payment (Click Here)</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-
-                            {/* Resulting PDF receipt auto-generation */}
-                            {simState === "PAID" ? (
-                              <div className="rounded-lg bg-success-50 border border-success-200 p-2.5 text-[11px] text-success-900 font-medium space-y-1 animate-fade-slide-up">
-                                <div className="flex items-center justify-between font-bold">
-                                  <span>✓ Reconciled & Receipt Auto-Generated</span>
-                                  <span className="text-[10px] bg-success-100 px-1.5 py-0.2 rounded text-success-800">
-                                    INV-2026-10-001
-                                  </span>
-                                </div>
-                                <p className="text-[10px] text-neutral-600">
-                                  Official PDF payment receipt delivered straight back to tenant WhatsApp automatically.
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between text-[11px] text-neutral-500 bg-neutral-50/70 p-2 rounded-md border border-[#E5EAF3]">
-                                <span className="flex items-center gap-1">
-                                  <QrCode className="size-3.5 text-neutral-400" /> Supports GPay, PhonePe & Paytm
-                                </span>
-                                <span className="text-brand-700 font-semibold font-mono">Zero Fee</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* TAB 2: Live Room & Bed Occupancy Matrix */}
-                    {activeTab === "beds" && (
-                      <div className="space-y-3 text-xs animate-fade-slide-up">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-800">Live Bed Status Roster</span>
-                          <span className="text-[11px] text-slate-500">35 Occupied · 6 Vacant · 1 Reserved</span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* Room 101 */}
-                          <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50 space-y-2">
-                            <div className="flex items-center justify-between font-bold text-slate-900 text-xs">
-                              <span>Room 101 (2-Sharing)</span>
-                              <span className="text-[10px] font-semibold text-emerald-700">₹7,500/bed</span>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between rounded bg-white p-2 border border-slate-200 text-[11px]">
-                                <span className="font-semibold text-slate-800">Bed A: Rahul Sharma</span>
-                                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                                  PAID
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between rounded bg-emerald-50/70 p-2 border border-dashed border-emerald-300 text-[11px]">
-                                <span className="font-bold text-emerald-800">Bed B: VACANT</span>
-                                <span className="text-[9.5px] font-semibold text-emerald-700 underline">
-                                  Check-in
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Room 201 */}
-                          <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50 space-y-2">
-                            <div className="flex items-center justify-between font-bold text-slate-900 text-xs">
-                              <span>Room 201 (3-Sharing AC)</span>
-                              <span className="text-[10px] font-semibold text-emerald-700">₹13,000/bed</span>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between rounded bg-white p-2 border border-slate-200 text-[11px]">
-                                <span className="font-semibold text-slate-800">Bed A: Karthik Raja</span>
-                                <span className="text-[9.5px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                                  DUE (5th)
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between rounded bg-white p-2 border border-slate-200 text-[11px]">
-                                <span className="font-semibold text-slate-800">Bed B: Suresh M</span>
-                                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                                  PAID
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="rounded-lg bg-indigo-50/80 p-2 text-indigo-950 text-[11px] font-medium flex items-center justify-between border border-indigo-100">
-                          <span>Auto-calculated mid-month join pro-rata rent supported</span>
-                          <span className="font-bold text-indigo-700">✓ Enabled</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* TAB 3: Room Sub-Meter Electricity Engine */}
-                    {activeTab === "submeter" && (
-                      <div className="space-y-3 text-xs animate-fade-slide-up">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-800">Stored Room Sub-Meter Reading Engine</span>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                            Zero Manual Math
-                          </span>
-                        </div>
-
-                        <div className="rounded-xl border border-slate-200 p-3.5 bg-slate-50/60 space-y-3">
-                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-center sm:text-left">
-                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                              <span className="text-[10px] text-slate-400 block font-semibold">Previous Reading</span>
-                              <span className="text-sm font-bold text-slate-900">1,420 units</span>
-                              <span className="text-[9px] text-emerald-700 block">Pre-filled auto</span>
-                            </div>
-                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                              <span className="text-[10px] text-slate-400 block font-semibold">Current Reading</span>
-                              <span className="text-sm font-bold text-emerald-700">1,540 units</span>
-                              <span className="text-[9px] text-slate-500 block">Entered on 1st</span>
-                            </div>
-                            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                              <span className="text-[10px] text-slate-400 block font-semibold">Units Consumed</span>
-                              <span className="text-sm font-bold text-slate-900">120 u @ ₹10 = ₹1,200</span>
-                              <span className="text-[9px] text-slate-500 block">Room Total</span>
-                            </div>
-                            <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
-                              <span className="text-[10px] text-emerald-800 block font-semibold">Per-Bed Split</span>
-                              <span className="text-base font-black text-emerald-800">₹600 / bed</span>
-                              <span className="text-[9px] text-emerald-700 block">Divided across 2 beds</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200">
-                            <span>
-                              Supports 3 modes: <strong>Meter Readings (Start → End)</strong>, <strong>Direct Units Consumed</strong>, or <strong>Fixed Amount</strong>.
-                            </span>
-                            <span className="font-semibold text-emerald-700">100% Optional</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* TAB 4: Deposit Refund Settlement */}
-                    {activeTab === "deposit" && (
-                      <div className="space-y-3 text-xs animate-fade-slide-up max-w-xl mx-auto">
-                        <div className="rounded-xl border border-slate-200 p-3.5 bg-white space-y-2.5">
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <div>
-                              <div className="font-bold text-slate-900">Arun Kumar · Check-out Settlement</div>
-                              <div className="text-[10px] text-slate-500">Room 102 (Bed A) · Notice Period: 30 Days</div>
-                            </div>
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                              SETTLING
-                            </span>
-                          </div>
-
-                          <div className="space-y-1.5 text-[11px] text-slate-600">
-                            <div className="flex justify-between">
-                              <span>Security Deposit Held:</span>
-                              <span className="font-bold text-slate-900">₹15,000</span>
-                            </div>
-                            <div className="flex justify-between text-rose-600">
-                              <span>Less: Room Repainting / Cleaning:</span>
-                              <span className="font-bold">-₹1,000</span>
-                            </div>
-                            <div className="flex justify-between text-rose-600">
-                              <span>Less: Electricity & Water arrears:</span>
-                              <span className="font-bold">-₹1,200</span>
-                            </div>
-                            <div className="flex justify-between text-rose-600">
-                              <span>Less: Mid-month stay (10 days pro-rata):</span>
-                              <span className="font-bold">-₹2,500</span>
-                            </div>
-                            <div className="flex justify-between border-t border-slate-200 pt-1.5 text-xs font-bold text-slate-900">
-                              <span>Net Refund Payable to Tenant:</span>
-                              <span className="text-emerald-700 text-sm">₹10,300</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="rounded-lg bg-slate-50 p-2 text-[10px] text-slate-500 flex items-center justify-between border border-slate-200">
-                          <span>Written to immutable audit log with deduction reasons</span>
-                          <span className="font-semibold text-slate-700">Bed vacated auto</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-
-        {/* ── BENTO GRID: 6 CORE OPERATIONAL CAPABILITIES ─────────────────── */}
-        <section id="features" className="py-14 sm:py-20 bg-white border-b border-[#E5EAF3]">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
-            <div className="text-center max-w-2xl mx-auto space-y-2">
-              <span className="text-[11px] font-bold text-brand-700 uppercase tracking-wider bg-brand-50 px-3 py-1 rounded-full border border-brand-200">
-                Core Capabilities
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-950">
-                Everything required to run 10 to 60+ beds smoothly
-              </h2>
-              <p className="text-xs sm:text-sm text-neutral-500">
-                No complex training required. Built for quick daily phone or laptop usage.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              {/* Feature 1 */}
-              <Reveal delay={0} className="rounded-2xl border border-[#E5EAF3] bg-white p-5 sm:p-6 hover:border-brand-200 hover:shadow-md transition-all">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700 mb-4">
-                  <MessageCircle className="size-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "1-கிளிக் வாட்ஸ்அப் வசூல்" : "1-Click WhatsApp Invoicing"}
-                </h3>
-                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Generate rent bills for all occupied rooms in one tap. Send personalized WhatsApp reminders with direct UPI deep-links that open GPay, PhonePe, or Paytm.
-                </p>
-              </Reveal>
-
-              {/* Feature 2 */}
-              <Reveal delay={100} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 mb-4">
-                  <BedSingle className="size-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "நேரடி படுக்கை ஆக்கிரமிப்பு" : "Real-Time Bed Matrix"}
-                </h3>
-                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Visual floor map showing occupied, due, and vacant beds. Automatic pro-rata rent calculation for mid-month check-ins and zero double-booking.
-                </p>
-              </Reveal>
-
-              {/* Feature 3 (Sub-meter) */}
-              <Reveal delay={200} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 mb-4">
-                  <Zap className="size-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "அறை மின் கணக்கீடு" : "Stored Room Sub-Meters"}
-                </h3>
-                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Automatically remembers last month&apos;s meter reading. Enter the current reading and Bedy splits consumed units equally only among room roommates.
-                </p>
-              </Reveal>
-
-              {/* Feature 4 */}
-              <Reveal delay={300} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 mb-4">
-                  <Receipt className="size-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "வைப்புத்தொகைத் தீர்வு" : "Itemized Deposit Refunds"}
-                </h3>
-                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Zero arguments at move-out. Deduct repair damages, unpaid electricity, and notice period shortages with an itemized summary written to audit logs.
-                </p>
-              </Reveal>
-
-              {/* Feature 5 */}
-              <Reveal delay={400} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-700 mb-4">
-                  <AlertTriangle className="size-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "பழுது நீக்கல் மேசை" : "Maintenance Ticket Tracker"}
-                </h3>
-                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Tenants raise repair tickets directly with photos. Managers assign technicians, monitor progress, and verify fixes without WhatsApp confusion.
-                </p>
-              </Reveal>
-
-              {/* Feature 6 */}
-              <Reveal delay={500} className="rounded-2xl border border-slate-200/80 bg-slate-50/30 p-5 sm:p-6 hover:border-slate-300 hover:shadow-md transition-all">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700 mb-4">
-                  <FileText className="size-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {isTa ? "தானியங்கி ரசீதுகள் & அறிக்கை" : "Official PDF Receipts & Export"}
-                </h3>
-                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Official branded payment receipts sent automatically to tenant WhatsApp. One-click Excel downloads for monthly accounting and tax audits.
-                </p>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-
-        {/* ── PRICING SECTION (COMBINED FULL MODERN SAAS PRICING) ─────────── */}
-        <section id="pricing" className="py-14 sm:py-20 bg-neutral-50/50 border-b border-neutral-200/70 scroll-mt-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center max-w-3xl mx-auto space-y-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 border border-brand-200 px-3.5 py-1 text-xs font-bold text-brand-800">
-                <Sparkles className="size-3.5 text-brand-600" />
-                {isTa ? "வெளிப்படையான கட்டணம் · மறைமுகக் கட்டணங்கள் இல்லை" : "Transparent Pricing · Zero Hidden Commissions"}
-              </span>
-              <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-neutral-950">
-                {isTa ? "உங்கள் பிஜி படுக்கை எண்ணிக்கைக்கு ஏற்ற எளிய கட்டணம்" : "Simple pricing that scales with your PG occupancy"}
-              </h2>
-              <p className="text-xs sm:text-sm text-neutral-600 max-w-2xl mx-auto leading-relaxed">
-                {isTa
-                  ? "குடியிருப்போரைத் துரத்தாமல் 100% வாடகையை சரியான நேரத்தில் வசூலியுங்கள். உங்கள் விடுதிக்கு ஏற்ற திட்டத்தைத் தேர்ந்தெடுங்கள்."
-                  : "Collect 100% of your rent on time without chasing residents. Pick a plan suited for your property size with zero transaction fees on UPI."}
-              </p>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
-              {PRICING_TIERS.map((tier, idx) => (
-                <Reveal key={tier.name} delay={idx * 100}>
-                  <div
-                    className={`relative rounded-2xl p-6 sm:p-7 flex flex-col justify-between h-full transition-all ${
-                      tier.popular
-                        ? "bg-white border-2 border-brand-500 shadow-xl shadow-brand-500/10 scale-[1.02]"
-                        : "bg-white border border-neutral-200 hover:border-neutral-300 hover:shadow-sm"
-                    }`}
-                  >
-                    {tier.popular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider shadow-xs">
-                        {isTa ? "மிகவும் பிரபலமானது" : "Most Popular"}
-                      </span>
-                    )}
-
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-neutral-900">
-                          {isTa ? tier.nameTa : tier.name}
-                        </h3>
-                        <span className="text-[11px] font-bold text-brand-800 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200">
-                          {isTa ? tier.bedsTa : tier.beds}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {isTa ? tier.taglineTa : tier.tagline}
-                      </p>
-
-                      <div className="mt-5 flex items-baseline gap-1">
-                        <span className="text-3xl sm:text-4xl font-black text-neutral-950">
-                          {isTa && tier.priceTa ? tier.priceTa : tier.price}
-                        </span>
-                        <span className="text-xs text-neutral-500">
-                          {isTa ? tier.periodTa : tier.period}
-                        </span>
-                      </div>
-
-                      <div className="mt-6 pt-5 border-t border-neutral-100">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-3">
-                          {isTa ? "சேர்க்கப்பட்டுள்ளவை:" : "What's included:"}
-                        </p>
-                        <ul className="space-y-2.5 text-xs text-neutral-600">
-                          {(isTa ? tier.featuresTa : tier.features).map((feat) => (
-                            <li key={feat} className="flex items-start gap-2.5">
-                              <Check className="size-4 text-brand-600 shrink-0 mt-0.5" />
-                              <span className="leading-tight">{feat}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="mt-8 pt-5 border-t border-neutral-100">
-                      <a
-                        href={tier.ctaLink}
-                        className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition shadow-2xs ${
-                          tier.popular
-                            ? "bg-brand-600 text-white hover:bg-brand-700"
-                            : "bg-neutral-50 border border-neutral-200 text-neutral-800 hover:bg-neutral-100"
-                        }`}
-                      >
-                        <span>{isTa ? tier.ctaTa : tier.cta}</span>
-                        <ArrowRight className="size-3.5" />
-                      </a>
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-
-            <div className="text-center text-xs text-neutral-500 pt-2">
-              <p>
-                {isTa
-                  ? "150-க்கும் மேற்பட்ட படுக்கைகள் கொண்ட கிளைகள் உள்ளதா? "
-                  : "Have more than 150 beds across multiple branches? "}
-                <Link href="/contact" className="text-brand-600 font-semibold underline underline-offset-4 hover:text-brand-700">
-                  {isTa ? "எங்கள் குழுவைத் தொடர்பு கொள்ளவும்" : "Talk to our enterprise team"}
-                </Link>
-                {isTa ? " தனிப்பயன் அமைப்புக்கு." : " for custom setups."}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── INTERACTIVE OPERATIONAL CALCULATOR ───────────────────────────── */}
-        <section id="calculator" className="py-14 sm:py-20 bg-neutral-50/60 border-b border-neutral-200/70">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8">
-            <div className="text-center max-w-xl mx-auto space-y-2">
-              <span className="text-[11px] font-bold text-brand-800 uppercase tracking-wider bg-brand-50 px-3 py-1 rounded-full border border-brand-200">
-                Operational Calculator
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-950">
-                Estimate your monthly time & revenue savings
-              </h2>
-              <p className="text-xs sm:text-sm text-neutral-500">
-                Move the sliders to match your property size.
-              </p>
-            </div>
-
-            <Reveal delay={100}>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Slider 1: Beds */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-neutral-700">Total Beds Operated</span>
-                      <span className="text-brand-700 font-mono text-sm font-bold bg-brand-50 px-2 py-0.5 rounded">
-                        {calcBeds} Beds
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="10"
-                      max="150"
-                      step="2"
-                      value={calcBeds}
-                      onChange={(e) => setCalcBeds(Number(e.target.value))}
-                      className="w-full accent-brand-600 cursor-pointer h-2 bg-neutral-100 rounded-lg"
-                    />
-                    <div className="flex justify-between text-[10px] text-neutral-400">
-                      <span>10 Beds</span>
-                      <span>75 Beds</span>
-                      <span>150 Beds</span>
-                    </div>
-                  </div>
-
-                  {/* Slider 2: Rent */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-neutral-700">Average Rent Per Bed</span>
-                      <span className="text-brand-700 font-mono text-sm font-bold bg-brand-50 px-2 py-0.5 rounded">
-                        ₹{calcRent.toLocaleString()} / mo
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="4000"
-                      max="20000"
-                      step="500"
-                      value={calcRent}
-                      onChange={(e) => setCalcRent(Number(e.target.value))}
-                      className="w-full accent-brand-600 cursor-pointer h-2 bg-neutral-100 rounded-lg"
-                    />
-                    <div className="flex justify-between text-[10px] text-neutral-400">
-                      <span>₹4,000</span>
-                      <span>₹12,000</span>
-                      <span>₹20,000</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Calculation Outputs */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-neutral-100 text-center">
-                  <div className="rounded-xl bg-neutral-50 p-4 border border-neutral-200">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold block">
-                      Monthly Rent Turnover
-                    </span>
-                    <span className="text-xl font-extrabold text-neutral-900 mt-1 block">
-                      ₹{calculatedMonthlyRevenue.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="rounded-xl bg-brand-50 p-4 border border-brand-200">
-                    <span className="text-[10px] text-brand-800 uppercase tracking-wider font-bold block">
-                      Estimated Time Saved
-                    </span>
-                    <span className="text-xl font-extrabold text-brand-700 mt-1 block">
-                      ~{estimatedHoursSaved} Hours / mo
-                    </span>
-                    <span className="text-[9.5px] text-brand-600 block mt-0.5">
-                      No chasing rent calls or register notes
-                    </span>
-                  </div>
-
-                  <div className="rounded-xl bg-neutral-50 p-4 border border-neutral-200">
-                    <span className="text-[10px] text-neutral-700 uppercase tracking-wider font-bold block">
-                      Leakage Prevented
-                    </span>
-                    <span className="text-xl font-extrabold text-brand-600 mt-1 block">
-                      ~₹{estimatedLeakagePrevented.toLocaleString()} / mo
-                    </span>
-                    <span className="text-[9.5px] text-neutral-500 block mt-0.5">
-                      Unbilled sub-meters & delayed dues
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* ── AUTHENTIC SEEDED DEMO LOGINS (TEST DRIVE) ───────────────────── */}
-        <section id="demo-portals" className="py-14 sm:py-20 bg-white border-b border-neutral-200/70">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
-            <div className="text-center max-w-2xl mx-auto space-y-2">
-              <span className="text-[11px] font-bold text-brand-800 uppercase tracking-wider bg-brand-50 px-3 py-1 rounded-full border border-brand-200">
-                1-Click Test Drive
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-950">
-                {isTa ? "மாதிரி கணக்குகளில் உள்நுழையுங்கள்" : "Try Every Role Instantly"}
-              </h2>
-              <p className="text-xs sm:text-sm text-neutral-500">
-                Click any account below to jump straight into their portal with real seeded PG data. No password or signup required.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 max-w-5xl mx-auto">
-              {/* Card 1: PG Owner */}
-              <Reveal delay={0} className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-brand-300 hover:shadow-md transition-all">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-neutral-950 text-white font-bold">
-                      <Building2 className="size-5" />
-                    </span>
-                    <span className="text-[10px] font-bold text-neutral-900 bg-neutral-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                      PG Owner
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-neutral-900">Sri Lakshmi Luxury PG</h3>
-                  <p className="text-xs text-neutral-500 mt-0.5">42 Beds · 18 Rooms · Calendar Month Cycle</p>
-                  <p className="text-xs text-neutral-600 mt-3 leading-relaxed">
-                    Full owner controls: view bed occupancy, generate batch rent, send WhatsApp reminders, track defaulters, and view revenue analytics.
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-neutral-100">
-                  <button
-                    type="button"
-                    onClick={() => quickLogin("owner@srilakshmipg.local", "/admin/dashboard")}
-                    disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-neutral-950 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-neutral-800 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
-                  >
-                    {loggingIn === "owner@srilakshmipg.local" ? (
-                      <Loader2 className="size-4 animate-spin text-white" />
-                    ) : null}
-                    <span>Open PG Owner Portal</span>
-                    <ArrowRight className="size-3.5" />
-                  </button>
-                </div>
-              </Reveal>
-
-              {/* Card 2: PG Manager */}
-              <Reveal delay={150} className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-brand-300 hover:shadow-md transition-all">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                      <ShieldCheck className="size-5" />
-                    </span>
-                    <span className="text-[10px] font-bold text-brand-800 bg-brand-50 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                      PG Manager
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-neutral-900">Suresh Kumar</h3>
-                  <p className="text-xs text-neutral-500 mt-0.5">Manager · On-site Operations</p>
-                  <p className="text-xs text-neutral-600 mt-3 leading-relaxed">
-                    Check-in new tenants, upload ID proofs, record cash/UPI payments, assign maintenance complaints, and settle check-out deposits.
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-neutral-100">
-                  <button
-                    type="button"
-                    onClick={() => quickLogin("manager@srilakshmipg.local", "/admin/dashboard")}
-                    disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-brand-700 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
-                  >
-                    {loggingIn === "manager@srilakshmipg.local" ? (
-                      <Loader2 className="size-4 animate-spin text-white" />
-                    ) : null}
-                    <span>Open PG Manager Portal</span>
-                    <ArrowRight className="size-3.5" />
-                  </button>
-                </div>
-              </Reveal>
-
-              {/* Card 3: Resident Tenant */}
-              <Reveal delay={300} className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6 flex flex-col justify-between hover:border-brand-300 hover:shadow-md transition-all">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                      <User className="size-5" />
-                    </span>
-                    <span className="text-[10px] font-bold text-brand-800 bg-brand-50 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                      Tenant / Resident
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-neutral-900">Karthik Raja</h3>
-                  <p className="text-xs text-neutral-500 mt-0.5">Room 201 (Bed A) · Active Occupant</p>
-                  <p className="text-xs text-neutral-600 mt-3 leading-relaxed">
-                    View rent breakdown, pay instantly with UPI QR/Cards, download official PDF receipts, and file repair requests.
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-neutral-100">
-                  <button
-                    type="button"
-                    onClick={() => quickLogin("resident@srilakshmipg.local", "/resident/dashboard")}
-                    disabled={Boolean(loggingIn)}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-brand-700 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer shadow-2xs min-h-[44px]"
-                  >
-                    {loggingIn === "resident@srilakshmipg.local" ? (
-                      <Loader2 className="size-4 animate-spin text-white" />
-                    ) : null}
-                    <span>Open Resident Portal</span>
-                    <ArrowRight className="size-3.5" />
-                  </button>
-                </div>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-
-        {/* ── OPERATOR FAQ ACCORDION ───────────────────────────────────────── */}
-        <section className="py-14 sm:py-20 bg-neutral-50/60 border-b border-neutral-200/70">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 space-y-6">
-            <div className="text-center space-y-2">
-              <span className="text-[11px] font-bold text-brand-800 uppercase tracking-wider bg-brand-50 px-3 py-1 rounded-full border border-brand-200">
-                FAQ
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-950">
-                Common Operator Questions
-              </h2>
-            </div>
-
-            <div className="space-y-2.5">
-              {[
-                {
-                  q: "Do tenants have to download an app or create a password?",
-                  a: "No! Tenants receive a WhatsApp reminder with a direct payment link that opens GPay, PhonePe, or Paytm on their phone. Once paid, the receipt is sent directly back to their WhatsApp.",
-                },
-                {
-                  q: "How does the room-wise electricity sub-meter feature work?",
-                  a: "Each room's starting meter reading is remembered automatically from the previous month. On the 1st of the month, enter the current reading. Bedy multiplies units by your rate per unit and divides the total bill equally only among active occupants of that room.",
-                },
-                {
-                  q: "What happens if a tenant moves in the middle of the month?",
-                  a: "Bedy automatically computes pro-rata rent based on the exact move-in date and remaining days in the calendar month, so you never have to calculate fractions manually.",
-                },
-                {
-                  q: "How are security deposits settled at check-out?",
-                  a: "You enter itemized deductions (e.g. repainting, unbilled electricity units, notice period shortage). The system calculates the net refund and saves a timestamped record to the audit log.",
-                },
-              ].map((faq, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-xl border border-neutral-200 bg-white overflow-hidden transition-all shadow-2xs"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
-                    className="w-full flex items-center justify-between p-4 text-left text-xs sm:text-sm font-bold text-neutral-800 hover:text-brand-600 cursor-pointer"
-                  >
-                    <span>{faq.q}</span>
-                    <ChevronDown
-                      className={`size-4 text-neutral-400 transition-transform duration-200 shrink-0 ml-2 ${
-                        openFaq === idx ? "rotate-180 text-brand-600" : ""
-                      }`}
-                    />
-                  </button>
-                  {openFaq === idx && (
-                    <div className="px-4 pb-4 text-xs text-neutral-600 leading-relaxed border-t border-neutral-100 pt-3">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* ── CLEAN MINIMALIST FOOTER ──────────────────────────────────────── */}
-      <footer className="border-t border-neutral-200 bg-white py-10 text-xs text-neutral-500">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-            <div className="flex items-center gap-2.5">
-              <img src="/logo.png" alt="Bedy" className="size-7 object-contain rounded-lg" />
-              <span className="font-bold text-neutral-900 text-sm">Bedy</span>
-              <span>·</span>
-              <span>
-                {isTa
-                  ? "பிஜி மற்றும் விடுதி நிர்வாக மென்பொருள்"
-                  : "Smart PG, Hostel & Co-Living Operations"}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-5 gap-y-2 font-medium text-neutral-600">
-              <a href="#features" className="hover:text-neutral-950 transition-colors">
-                {isTa ? "அம்சங்கள்" : "Features"}
-              </a>
-              <a href="#pricing" className="hover:text-neutral-950 transition-colors">
-                {isTa ? "கட்டணம்" : "Pricing"}
-              </a>
-              <a href="#demo-portals" className="hover:text-neutral-950 transition-colors">
-                {isTa ? "டெமோ" : "Demo"}
-              </a>
-              <Link href="/contact" className="hover:text-neutral-950 transition-colors">
-                {isTa ? "தொடர்பு" : "Contact"}
-              </Link>
-              <Link href="/refund-policy" className="hover:text-neutral-950 transition-colors">
-                {isTa ? "திருப்பி அளித்தல்" : "Refund Policy"}
-              </Link>
-              <Link href="/terms" className="hover:text-neutral-950 transition-colors">
-                {isTa ? "விதிமுறைகள்" : "Terms"}
-              </Link>
-              <Link href="/privacy" className="hover:text-neutral-950 transition-colors">
-                {isTa ? "தனியுரிமை" : "Privacy"}
-              </Link>
-              <Link href="/login" className="hover:text-neutral-950 transition-colors font-semibold text-brand-600">
-                {isTa ? "உள்நுழை" : "Sign In"}
-              </Link>
-            </div>
-          </div>
-
-          <div className="border-t border-neutral-100 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-neutral-400">
-            <span>© {new Date().getFullYear()} Bedy Technologies. All rights reserved.</span>
-            <span>Made with ❤️ for PG & Hostel Operators in India</span>
-          </div>
-        </div>
-      </footer>
-    </div>
+        <div className="sm:col-span-2 lg:col-span-1">{children}</div>
+      </div>
+    </article>
   );
 }

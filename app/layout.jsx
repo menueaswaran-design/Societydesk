@@ -23,14 +23,18 @@ export const metadata = {
   },
   keywords: [
     "Bedy",
+    "Bedy PG Software",
     "PG Management Software",
     "Hostel Management Software",
     "PG Rent Collection App",
     "Coliving Management System",
     "Paying Guest Software India",
+    "Hostel ERP",
+    "Sub-meter electricity split PG",
   ],
-  authors: [{ name: "Bedy Technologies" }],
-  creator: "Bedy",
+  authors: [{ name: "Bedy Technologies", url: "https://bedy.in" }],
+  creator: "Bedy Technologies",
+  publisher: "Bedy Technologies",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -50,7 +54,7 @@ export const metadata = {
     siteName: "Bedy",
     title: "Bedy – PG & Hostel Rent Management Software",
     description:
-      "Simplify rent collection, invoice tracking, and resident management with Bedy.",
+      "Simplify rent collection, invoice tracking, live bed availability, and resident management with Bedy.",
     images: [
       {
         url: "https://bedy.in/logo.png",
@@ -64,7 +68,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "Bedy – PG & Hostel Rent Management Software",
     description:
-      "Simplify rent collection, invoice tracking, and resident management with Bedy.",
+      "Simplify rent collection, invoice tracking, live bed availability, and resident management with Bedy.",
     images: ["https://bedy.in/logo.png"],
   },
 };
@@ -77,8 +81,16 @@ const jsonLd = {
       "@id": "https://bedy.in/#website",
       "url": "https://bedy.in",
       "name": "Bedy",
-      "description": "Smart PG, Hostel & Rental Living Management App",
+      "alternateName": [
+        "Bedy Technologies",
+        "Bedy PG Software",
+        "Bedy App",
+        "Bedy Coliving OS",
+      ],
+      "description":
+        "Smart PG, Hostel & Rental Living Management App with 1-Click WhatsApp Invoicing, Live Bed Matrix, and Sub-meter Electricity Splitting.",
       "publisher": { "@id": "https://bedy.in/#organization" },
+      "inLanguage": "en-IN",
       "potentialAction": {
         "@type": "SearchAction",
         "target": "https://bedy.in/?q={search_term_string}",
@@ -88,50 +100,63 @@ const jsonLd = {
     {
       "@type": "Organization",
       "@id": "https://bedy.in/#organization",
-      "name": "Bedy",
+      "name": "Bedy Technologies",
+      "alternateName": "Bedy",
       "url": "https://bedy.in",
       "logo": {
         "@type": "ImageObject",
+        "@id": "https://bedy.in/#logo",
         "url": "https://bedy.in/logo.png",
+        "caption": "Bedy Logo",
         "width": 1024,
         "height": 1024,
       },
-      "sameAs": [],
+      "image": { "@id": "https://bedy.in/#logo" },
+      "description":
+        "Developer of Bedy, modern cloud software for Paying Guest (PG) accommodations, student hostels, and co-living operators in India.",
+      "email": "contact@bedy.in",
     },
     {
-      "@type": "SiteNavigationElement",
-      "name": "About Us",
-      "url": "https://bedy.in/about",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Services & Products",
-      "url": "https://bedy.in/services",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Pricing Plans",
-      "url": "https://bedy.in/#pricing",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Contact Us",
-      "url": "https://bedy.in/contact",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Refund Policy",
-      "url": "https://bedy.in/refund-policy",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Terms of Service",
-      "url": "https://bedy.in/terms",
-    },
-    {
-      "@type": "SiteNavigationElement",
-      "name": "Privacy Policy",
-      "url": "https://bedy.in/privacy",
+      "@type": "ItemList",
+      "@id": "https://bedy.in/#site-navigation",
+      "name": "Main Navigation",
+      "itemListElement": [
+        {
+          "@type": "SiteNavigationElement",
+          "position": 1,
+          "name": "Features",
+          "description": "Complete PG and hostel management software features",
+          "url": "https://bedy.in/features",
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 2,
+          "name": "Pricing",
+          "description": "Affordable per-bed and monthly plans for PGs and hostels",
+          "url": "https://bedy.in/pricing",
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 3,
+          "name": "Services",
+          "description": "Platform capabilities and operations management services",
+          "url": "https://bedy.in/services",
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 4,
+          "name": "About Us",
+          "description": "About Bedy and our mission to digitize PG living across India",
+          "url": "https://bedy.in/about",
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 5,
+          "name": "Contact",
+          "description": "Get in touch with Bedy team for demos and support",
+          "url": "https://bedy.in/contact",
+        },
+      ],
     },
   ],
 };

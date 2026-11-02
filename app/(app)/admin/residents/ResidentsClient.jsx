@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -32,6 +32,7 @@ import {
 import Button, { Spinner } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
+import Pagination from "@/components/ui/Pagination";
 import { Input, Select } from "@/components/ui/Input";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
 import Avatar from "@/components/ui/Avatar";
@@ -81,20 +82,58 @@ export default function ResidentsClient({
   initialDocuments = [],
   initialStatus = "ACTIVE",
   initialRoom = "ALL",
+  initialCheckInOpen = false,
+  initialUnitId = "",
+  initialBedId = "",
 }) {
   const router = useRouter();
   const [documents, setDocuments] = useState(initialDocuments);
   const [kycResident, setKycResident] = useState(null);
 
   // Check-in modal
-  const [checkInOpen, setCheckInOpen] = useState(false);
-  const [checkInForm, setCheckInForm] = useState(EMPTY_CHECKIN);
+  const [checkInOpen, setCheckInOpen] = useState(
+    Boolean(initialCheckInOpen || initialUnitId || initialBedId)
+  );
+  const [checkInForm, setCheckInForm] = useState(() => {
+    let rent = 7500;
+    if (initialUnitId) {
+      const u = units.find((x) => x.id === initialUnitId);
+      const b = u?.beds?.find((x) => x.id === initialBedId);
+      if (b?.rentAmount) rent = b.rentAmount;
+      else if (u?.rentAmount) rent = u.rentAmount;
+    }
+    return {
+      ...EMPTY_CHECKIN,
+      unitId: initialUnitId || "",
+      bedId: initialBedId || "",
+      monthlyRent: rent,
+      depositAmount: rent * 2,
+    };
+  });
   const [checkInDocs, setCheckInDocs] = useState([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [docUploadError, setDocUploadError] = useState(null);
   const [docTypeToUpload, setDocTypeToUpload] = useState("AADHAAR");
   const [checkInSaving, setCheckInSaving] = useState(false);
   const [checkInError, setCheckInError] = useState(null);
+
+  useEffect(() => {
+    if (initialCheckInOpen || initialUnitId || initialBedId) {
+      setCheckInOpen(true);
+      if (initialUnitId || initialBedId) {
+        const u = units.find((x) => x.id === initialUnitId);
+        const b = u?.beds?.find((x) => x.id === initialBedId);
+        const rent = b?.rentAmount || u?.rentAmount || 7500;
+        setCheckInForm((prev) => ({
+          ...prev,
+          unitId: initialUnitId || prev.unitId,
+          bedId: initialBedId || prev.bedId,
+          monthlyRent: rent,
+          depositAmount: rent * 2,
+        }));
+      }
+    }
+  }, [initialCheckInOpen, initialUnitId, initialBedId, units]);
 
   // CSV Import Modal
   const [importOpen, setImportOpen] = useState(false);
@@ -111,7 +150,9 @@ export default function ResidentsClient({
   const [filterStatus, setFilterStatus] = useState(initialStatus); // "ALL" | "ACTIVE" | "NOTICE" | "LEFT"
   const [filterRoom, setFilterRoom] = useState(initialRoom); // "ALL" | roomNumber
   const [filterKyc, setFilterKyc] = useState("ALL"); // "ALL" | "VERIFIED" | "MISSING"
-  const [filterDues, setFilterDues] = useState("ALL"); // "ALL" | "DUE" | "PAID"
+  const [filterDues, setFilterDues] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20); // "ALL" | "DUE" | "PAID"
 
   // Helper: check resident KYC status
   function getResidentKyc(userId) {
@@ -200,6 +241,10 @@ export default function ResidentsClient({
     setFilterDues("ALL");
   }
 
+  useEffect(() => {
+    setPage(1);
+  }, [query, filterStatus, filterRoom, filterKyc, filterDues]);
+
   // Filtered Occupancies
   const filteredOccupancies = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -232,12 +277,29 @@ export default function ResidentsClient({
     });
   }, [occupancies, query, filterStatus, filterRoom, filterKyc, filterDues, occupancyDataMap]);
 
+  const totalItems = filteredOccupancies.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedOccupancies = useMemo(() => {
+    return filteredOccupancies.slice(startIndex, startIndex + pageSize);
+  }, [filteredOccupancies, startIndex, pageSize]);
+
   // Available beds for selected room in Check-in form
   const selectedUnit = units.find((u) => u.id === checkInForm.unitId);
   const availableBeds = useMemo(() => {
-    if (!selectedUnit) return [];
-    return selectedUnit.beds?.filter((b) => b.status === "VACANT") || [];
-  }, [selectedUnit]);
+    if (!selectedUnit?.beds) return [];
+    return (
+      selectedUnit.beds.filter((b) => {
+        if (checkInForm.bedId && b.id === checkInForm.bedId) return true;
+        const hasActiveOccupancy = b.occupancies?.some(
+          (occ) => occ.status === "ACTIVE" || occ.status === "NOTICE"
+        );
+        if (hasActiveOccupancy) return false;
+        return b.status === "VACANT" || !b.status || b.status !== "OCCUPIED";
+      }) || []
+    );
+  }, [selectedUnit, checkInForm.bedId]);
 
   // Document upload in Check-in modal
   async function handleOnboardingDocUpload(e) {
@@ -658,7 +720,7 @@ export default function ResidentsClient({
         <>
           {/* Mobile Cards View (< 640px) */}
           <div className="space-y-3 sm:hidden">
-            {filteredOccupancies.map((occ) => {
+            {paginatedOccupancies.map((occ) => {
               const data = occupancyDataMap.get(occ.id) || {
                 outstandingBalance: 0,
                 isOverdue: false,
@@ -786,7 +848,7 @@ export default function ResidentsClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredOccupancies.map((occ) => {
+                  {paginatedOccupancies.map((occ) => {
                     const data = occupancyDataMap.get(occ.id) || {
                       outstandingBalance: 0,
                       isOverdue: false,
@@ -952,6 +1014,18 @@ export default function ResidentsClient({
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={(newPage) => setPage(newPage)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemName="residents"
+            />
           </div>
         </>
       )}
@@ -1016,44 +1090,71 @@ export default function ResidentsClient({
                   onChange={(e) => {
                     const uId = e.target.value;
                     const u = units.find((x) => x.id === uId);
+                    const firstVacantBed = u?.beds?.find((b) => {
+                      const hasActiveOccupancy = b.occupancies?.some(
+                        (occ) => occ.status === "ACTIVE" || occ.status === "NOTICE"
+                      );
+                      return !hasActiveOccupancy && b.status !== "OCCUPIED";
+                    });
+                    const rent = firstVacantBed?.rentAmount || u?.rentAmount || checkInForm.monthlyRent;
                     setCheckInForm({
                       ...checkInForm,
                       unitId: uId,
-                      bedId: "",
-                      monthlyRent: u?.rentAmount || checkInForm.monthlyRent,
+                      bedId: firstVacantBed?.id || "",
+                      monthlyRent: rent,
+                      depositAmount: rent * 2,
                     });
                   }}
                 >
                   <option value="">-- Choose Room --</option>
-                  {units.map((u) => {
-                    const vacant = u.beds?.filter((b) => b.status === "VACANT").length || 0;
-                    return (
-                      <option key={u.id} value={u.id}>
-                        Room {u.unitNumber} ({u.unitType}) · {vacant} vacant
-                      </option>
-                    );
-                  })}
+                  {units.length === 0 ? (
+                    <option value="" disabled>No rooms configured yet</option>
+                  ) : (
+                    units.map((u) => {
+                      const vacant =
+                        u.beds?.filter((b) => {
+                          const hasActiveOccupancy = b.occupancies?.some(
+                            (occ) => occ.status === "ACTIVE" || occ.status === "NOTICE"
+                          );
+                          return !hasActiveOccupancy && b.status !== "OCCUPIED";
+                        }).length || 0;
+                      return (
+                        <option key={u.id} value={u.id}>
+                          Room {u.unitNumber} {u.unitType ? `(${u.unitType})` : ""} · {vacant} vacant
+                        </option>
+                      );
+                    })
+                  )}
                 </Select>
 
                 <Select
                   label="Select Bed"
                   value={checkInForm.bedId}
+                  disabled={!checkInForm.unitId}
                   onChange={(e) => {
                     const bId = e.target.value;
                     const b = selectedUnit?.beds?.find((x) => x.id === bId);
+                    const rent = b?.rentAmount || selectedUnit?.rentAmount || checkInForm.monthlyRent;
                     setCheckInForm({
                       ...checkInForm,
                       bedId: bId,
-                      monthlyRent: b?.rentAmount || checkInForm.monthlyRent,
+                      monthlyRent: rent,
+                      depositAmount: rent * 2,
                     });
                   }}
                 >
                   <option value="">-- Any Available Bed --</option>
-                  {availableBeds.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      Bed {b.bedLabel} {b.rentAmount ? `(₹${b.rentAmount})` : ""}
-                    </option>
-                  ))}
+                  {!checkInForm.unitId ? (
+                    <option value="" disabled>Select a room first</option>
+                  ) : availableBeds.length === 0 ? (
+                    <option value="" disabled>No vacant beds in this room</option>
+                  ) : (
+                    availableBeds.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        Bed {b.bedLabel} {b.rentAmount ? `(₹${b.rentAmount})` : ""}
+                      </option>
+                    ))
+                  )}
                 </Select>
               </div>
 
