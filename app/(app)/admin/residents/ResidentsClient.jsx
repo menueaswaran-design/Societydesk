@@ -1084,6 +1084,7 @@ export default function ResidentsClient({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Select
+                  id="select-room"
                   label="Select Room"
                   required
                   value={checkInForm.unitId}
@@ -1128,6 +1129,7 @@ export default function ResidentsClient({
                 </Select>
 
                 <Select
+                  id="select-bed"
                   label="Select Bed"
                   value={checkInForm.bedId}
                   disabled={!checkInForm.unitId}

@@ -17,7 +17,7 @@ import {
 export const metadata = {
   title: "Features — Complete PG & Hostel Management Software | Bedy",
   description:
-    "Explore Bedy features: Live bed occupancy matrix, automated WhatsApp rent reminders with UPI, security deposit settlement, room sub-meter electricity engine, and resident maintenance.",
+    "Explore Bedy features: Live bed occupancy matrix, automated WhatsApp rent reminders with UPI, security deposit settlement, room sub-meter electricity engine, and resident maintenance .",
   alternates: {
     canonical: "/features",
   },

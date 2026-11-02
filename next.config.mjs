@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Pinned so Next does not infer C:\Users\VIGNESH as the workspace root
+  // Pinned so Nextdoes not infer C:\Users\VIGNESH as the workspace root
   // (there is an unrelated package-lock.json in the user profile).
   outputFileTracingRoot: __dirname,
   webpack: (config, { dev }) => {
