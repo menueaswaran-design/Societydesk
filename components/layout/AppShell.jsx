@@ -257,8 +257,8 @@ export default function AppShell({ user, society, flats, occupancies, children }
     </nav>
   );
 
-  const identity = (
-    <div className="flex items-center gap-3 px-4 py-3 w-full">
+  const brandHeader = (
+    <div className="flex items-center gap-2.5 px-4 py-3.5 w-full">
       <span className="relative inline-flex shrink-0">
         <img
           src="/logo.png"
@@ -267,33 +267,49 @@ export default function AppShell({ user, society, flats, occupancies, children }
         />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-white tracking-tight leading-tight">
-          {society?.name ?? (user.role === "SUPER_ADMIN" ? "Bedy Platform" : isPgWorkspace ? "Bedy PG" : "Bedy")}
+        <span className="text-[19px] font-extrabold tracking-[-0.05em] text-white">
+          bedy
+        </span>
+      </div>
+    </div>
+  );
+
+  const propertyBadge = (
+    <div className="border-t border-white/10 p-3 bg-white/5">
+      <div className="rounded-xl bg-white/5 px-3 py-2.5 border border-white/10">
+        <p className="truncate text-xs font-bold text-white tracking-tight leading-snug">
+          {society?.name ?? (isPgWorkspace ? "Bedy PG" : "Bedy")}
         </p>
-        <div className="flex items-center gap-1.5 mt-1">
-          <span className="rounded-full bg-white/15 border border-white/20 px-2 py-0.5 text-[9.5px] font-bold text-white uppercase tracking-wide">
-            {user.role === "SUPER_ADMIN" ? "SUPER ADMIN" : isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <span className="rounded bg-white/15 px-1.5 py-0.5 text-[9.5px] font-bold text-white/90 uppercase tracking-wide">
+            {isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
           </span>
           <p className="truncate text-[11px] font-medium text-blue-200">
             {titleCase(user.role)}
           </p>
         </div>
+        {roomLabel ? (
+          <p className="mt-1.5 truncate text-[11px] text-white/45">
+            {roomLabel}
+          </p>
+        ) : null}
       </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFF]">
+    <div className="flex min-h-screen bg-slate-50">
       {isNavigating ? (
-        <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10 pointer-events-none overflow-hidden">
-          <div className="h-full w-full bg-gradient-to-r from-brand-600 via-brand-500 to-[#6995FF] animate-progress shadow-[0_0_8px_rgba(49,84,217,0.5)]" />
+        <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10">
+          <div className="h-full w-full bg-linear-to-r from-brand-500 via-indigo-600 to-sky-400 animate-progress" />
         </div>
       ) : null}
 
-      {/* Sidebar - Royal Cobalt Brand Blue from HTML Design System */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start bg-gradient-to-b from-[#1E398A] to-[#172B68] text-white border-r border-[#1B326E] shadow-sm lg:flex">
-        <div className="flex h-14 items-center border-b border-white/10 bg-transparent">{identity}</div>
+      {/* Sidebar */}
+      <aside className="brand-canvas sticky top-0 hidden h-screen w-64 shrink-0 flex-col lg:flex">
+        <div className="border-b border-white/10">{brandHeader}</div>
         {nav}
+        {propertyBadge}
       </aside>
 
       {/* Mobile drawer */}
@@ -306,7 +322,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
           />
           <div className="animate-slide-left relative z-10 flex h-full w-64 max-w-[85vw] flex-col bg-gradient-to-b from-[#1E398A] to-[#172B68] text-white border-r border-[#1B326E] shadow-pop">
             <div className="flex h-14 items-center justify-between border-b border-white/10 pr-2">
-              <div className="min-w-0 flex-1">{identity}</div>
+              <div className="min-w-0 flex-1">{brandHeader}</div>
               <button
                 onClick={() => setDrawer(false)}
                 aria-label="Close menu"
@@ -316,13 +332,14 @@ export default function AppShell({ user, society, flats, occupancies, children }
               </button>
             </div>
             {nav}
+            {propertyBadge}
           </div>
         </div>
       ) : null}
 
       {/* Main Content Area */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-[#E5EAF3] bg-white shadow-2xs">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-2xs">
           <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8">
             <button
               onClick={() => setDrawer(true)}
@@ -377,22 +394,13 @@ export default function AppShell({ user, society, flats, occupancies, children }
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 px-4 pt-4 pb-24 sm:px-6 sm:pt-6 sm:pb-24 lg:px-8 lg:py-7">
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
           <div className="mx-auto w-full max-w-[90rem]">{children}</div>
         </main>
       </div>
 
       {/* Push Notification Permission Card for Logged-in Users */}
       <PushNotificationPrompt user={user} />
-
-      {/* Mobile Bottom Navigation Bar */}
-      <MobileBottomNav
-        user={user}
-        isPgWorkspace={isPgWorkspace}
-        pathname={pathname}
-        onNavigate={() => setIsNavigating(true)}
-        t={t}
-      />
     </div>
   );
 }
@@ -419,11 +427,11 @@ function NavLink({ item, label, pathname, onNavigate }) {
       {active ? (
         <span
           aria-hidden="true"
-          className="absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-white shadow-xs"
+          className="absolute top-1/2 -left-2.5 h-5 w-1 -translate-y-1/2 rounded-r-full bg-emerald-400"
         />
       ) : null}
       <Icon
-        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-600" : "text-blue-200 group-hover:text-white"}`}
+        className={`size-4.5 shrink-0 transition-colors ${active ? "text-emerald-400" : "text-white/45 group-hover:text-white/80"}`}
       />
       <span className="truncate">{label ?? item.label}</span>
     </Link>
@@ -518,299 +526,4 @@ function UserMenu({ user, roomLabel, onSignOut, onClose, t: tProp }) {
       </div>
     </div>
   );
-}
-
-function MobileBottomNav({ user, isPgWorkspace, pathname, onNavigate, t }) {
-  if (user.role === "SUPER_ADMIN") {
-    const items = [
-      { href: "/super-admin/dashboard", label: "Overview", icon: LayoutDashboard },
-      { href: "/super-admin/societies", label: "Properties", icon: Building },
-      { href: "/super-admin/team", label: "Admins", icon: ShieldCheck },
-    ];
-    return (
-      <nav
-        aria-label="Super Admin Bottom Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5EAF3] bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(49,84,217,0.06)] lg:hidden"
-        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="grid grid-cols-3 items-center px-3 pt-1.5 pb-1 max-w-md mx-auto">
-          {items.map((it) => {
-            const Icon = it.icon;
-            const active =
-              pathname === it.href ||
-              (it.href !== "/super-admin/dashboard" && pathname.startsWith(`${it.href}/`));
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                prefetch={true}
-                onClick={() => {
-                  if (pathname !== it.href && !pathname.startsWith(`${it.href}/`)) {
-                    onNavigate?.();
-                  }
-                }}
-                className={`group flex flex-col items-center justify-center py-1 text-center transition-all ${
-                  active ? "text-brand-600 font-semibold" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <Icon
-                  className={`size-5 transition-transform ${
-                    active ? "scale-110 text-brand-600" : "text-slate-400"
-                  }`}
-                />
-                <span className="text-[11px] mt-1 tracking-tight">{it.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
-
-  const isAdmin = ["OWNER", "MANAGER", "SOCIETY_ADMIN"].includes(user.role);
-  if (isAdmin) {
-    const items = [
-      {
-        href: "/admin/rooms",
-        label: isPgWorkspace ? "Beds" : "Flats",
-        icon: BedSingle,
-        match: (p) =>
-          p === "/admin/rooms" ||
-          p.startsWith("/admin/rooms/") ||
-          p.startsWith("/admin/residents"),
-      },
-      {
-        href: "/admin/billing/payments",
-        label: t("nav.payments", "Payments"),
-        icon: CreditCard,
-        match: (p) =>
-          p === "/admin/billing/payments" || p.startsWith("/admin/billing/payments/"),
-      },
-      {
-        href: "/admin/dashboard",
-        label: t("nav.dashboard", "Dashboard"),
-        icon: LayoutDashboard,
-        isCenter: true,
-        match: (p) => p === "/admin/dashboard",
-      },
-      {
-        href: "/admin/billing/defaulters",
-        label: t("nav.defaulters", "Overdue"),
-        icon: AlertTriangle,
-        match: (p) =>
-          p === "/admin/billing/defaulters" || p.startsWith("/admin/billing/defaulters/"),
-      },
-      {
-        href: "/admin/billing/invoices",
-        label: t("nav.invoices", "Invoices"),
-        icon: FileText,
-        match: (p) =>
-          p === "/admin/billing/invoices" || p.startsWith("/admin/billing/invoices/"),
-      },
-    ];
-
-    return (
-      <nav
-        aria-label="Admin Bottom Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5EAF3] bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(49,84,217,0.07)] lg:hidden"
-        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="grid grid-cols-5 items-center px-1 pt-1.5 pb-1 max-w-lg mx-auto">
-          {items.map((it) => {
-            const Icon = it.icon;
-            const active = it.match(pathname);
-
-            if (it.isCenter) {
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  prefetch={true}
-                  onClick={() => {
-                    if (pathname !== it.href) onNavigate?.();
-                  }}
-                  className="group flex flex-col items-center justify-center -mt-3.5 relative focus:outline-none"
-                  aria-label={it.label}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <div
-                    className={`flex size-11 items-center justify-center rounded-2xl transition-all duration-200 active:scale-95 ${
-                      active
-                        ? "bg-gradient-to-tr from-brand-600 to-brand-500 text-white shadow-lg shadow-brand-500/35 ring-4 ring-white"
-                        : "bg-white text-slate-600 border border-[#E5EAF3] shadow-md hover:text-brand-600 ring-4 ring-white"
-                    }`}
-                  >
-                    <Icon className="size-5.5" />
-                  </div>
-                  <span
-                    className={`text-[10px] mt-0.5 tracking-tight font-bold transition-colors ${
-                      active ? "text-brand-600" : "text-slate-500 group-hover:text-slate-800"
-                    }`}
-                  >
-                    {it.label}
-                  </span>
-                </Link>
-              );
-            }
-
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                prefetch={true}
-                onClick={() => {
-                  if (!it.match(pathname)) onNavigate?.();
-                }}
-                className={`group flex flex-col items-center justify-center py-1 px-0.5 text-center transition-all active:scale-95 focus:outline-none ${
-                  active ? "text-brand-600 font-semibold" : "text-slate-500 hover:text-slate-800"
-                }`}
-                aria-label={it.label}
-                aria-current={active ? "page" : undefined}
-              >
-                <div className="relative flex items-center justify-center">
-                  <Icon
-                    className={`size-5 transition-transform duration-150 ${
-                      active
-                        ? "scale-105 text-brand-600"
-                        : "text-slate-400 group-hover:text-slate-600"
-                    }`}
-                  />
-                  {active ? (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -top-1 size-1 rounded-full bg-brand-600"
-                    />
-                  ) : null}
-                </div>
-                <span className="text-[10px] mt-1 tracking-tight truncate max-w-full">
-                  {it.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
-
-  if (user.role === "RESIDENT") {
-    const resident5 = [
-      {
-        href: "/resident/invoices",
-        label: t("nav.invoices", "Invoices"),
-        icon: FileText,
-        match: (p) => p === "/resident/invoices" || p.startsWith("/resident/invoices/"),
-      },
-      {
-        href: "/resident/vacate",
-        label: "Notice",
-        icon: DoorOpen,
-        match: (p) => p === "/resident/vacate",
-      },
-      {
-        href: "/resident/dashboard",
-        label: t("nav.dashboard", "Home"),
-        icon: LayoutDashboard,
-        isCenter: true,
-        match: (p) => p === "/resident/dashboard",
-      },
-      {
-        href: "/resident/complaints",
-        label: t("nav.complaints", "Complaints"),
-        icon: AlertTriangle,
-        match: (p) => p === "/resident/complaints" || p.startsWith("/resident/complaints/"),
-      },
-      {
-        href: "/resident/profile",
-        label: t("nav.profile", "Profile"),
-        icon: UserCircle,
-        match: (p) => p === "/resident/profile",
-      },
-    ];
-
-    return (
-      <nav
-        aria-label="Resident Bottom Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5EAF3] bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(49,84,217,0.07)] lg:hidden"
-        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="grid grid-cols-5 items-center px-1 pt-1.5 pb-1 max-w-lg mx-auto">
-          {resident5.map((it) => {
-            const Icon = it.icon;
-            const active = it.match(pathname);
-
-            if (it.isCenter) {
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  prefetch={true}
-                  onClick={() => {
-                    if (pathname !== it.href) onNavigate?.();
-                  }}
-                  className="group flex flex-col items-center justify-center -mt-3.5 relative focus:outline-none"
-                  aria-label={it.label}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <div
-                    className={`flex size-11 items-center justify-center rounded-2xl transition-all duration-200 active:scale-95 ${
-                      active
-                        ? "bg-gradient-to-tr from-brand-600 to-brand-500 text-white shadow-lg shadow-brand-500/35 ring-4 ring-white"
-                        : "bg-white text-slate-600 border border-[#E5EAF3] shadow-md hover:text-brand-600 ring-4 ring-white"
-                    }`}
-                  >
-                    <Icon className="size-5.5" />
-                  </div>
-                  <span
-                    className={`text-[10px] mt-0.5 tracking-tight font-bold transition-colors ${
-                      active ? "text-brand-600" : "text-slate-500 group-hover:text-slate-800"
-                    }`}
-                  >
-                    {it.label}
-                  </span>
-                </Link>
-              );
-            }
-
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                prefetch={true}
-                onClick={() => {
-                  if (!it.match(pathname)) onNavigate?.();
-                }}
-                className={`group flex flex-col items-center justify-center py-1 px-0.5 text-center transition-all active:scale-95 focus:outline-none ${
-                  active ? "text-brand-600 font-semibold" : "text-slate-500 hover:text-slate-800"
-                }`}
-                aria-label={it.label}
-                aria-current={active ? "page" : undefined}
-              >
-                <div className="relative flex items-center justify-center">
-                  <Icon
-                    className={`size-5 transition-transform duration-150 ${
-                      active
-                        ? "scale-105 text-brand-600"
-                        : "text-slate-400 group-hover:text-slate-600"
-                    }`}
-                  />
-                  {active ? (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -top-1 size-1 rounded-full bg-brand-600"
-                    />
-                  ) : null}
-                </div>
-                <span className="text-[10px] mt-1 tracking-tight truncate max-w-full">
-                  {it.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
-
-  return null;
 }

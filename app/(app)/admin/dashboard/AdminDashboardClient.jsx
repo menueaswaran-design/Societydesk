@@ -485,7 +485,6 @@ export default function AdminDashboardClient({ data }) {
                           ? "bg-info-50 text-info-700 border-info-200"
                           : "bg-success-50 text-success-700 border-success-200";
 
-                        return (
                         if (isVacant) {
                           return (
                             <Link
@@ -509,7 +508,6 @@ export default function AdminDashboardClient({ data }) {
                           >
                             {b.bedLabel}
                           </div>
-                        );
                         );
                       })
                     : <p className="col-span-6 rounded-xl border border-dashed border-neutral-200 p-6 text-center text-xs text-neutral-500">No beds to display yet.</p>}

@@ -422,7 +422,7 @@ export default function ResidentInvoicesClient({ invoices }) {
                   { label: "Due", className: "hidden lg:table-cell" },
                   { label: "Amount", align: "right" },
                   { label: "Status" },
-                  { label: "Action", align: "right" },
+                  { label: "", align: "right" },
                 ]}
               >
                 {visible.map((inv) => {
