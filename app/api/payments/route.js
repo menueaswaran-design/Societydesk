@@ -86,7 +86,7 @@ const POSTImpl = handler(async (req) => {
       select: { flatId: true, societyId: true },
     });
     if (!invoice || invoice.societyId !== societyId || !assignedFlatIds.includes(invoice.flatId)) {
-      throw forbidden("You can only record payments for your assigned flat");
+      throw forbidden("You can only Add payments for your assigned flat");
     }
   }
 

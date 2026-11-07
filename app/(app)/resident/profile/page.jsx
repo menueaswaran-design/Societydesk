@@ -49,6 +49,7 @@ export default async function ResidentProfilePage() {
       }}
       initialDocuments={documents.map((d) => ({
         ...d,
+        fileUrl: `/api/documents/${d.id}`,
         createdAt: d.createdAt?.toISOString() ?? null,
       }))}
       flats={flats.map((f) => ({

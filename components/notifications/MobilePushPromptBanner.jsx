@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellRing, Check, Sparkles, AlertCircle } from "lucide-react";
+import { Bell, BellRing, Check, AlertCircle } from "lucide-react";
 import {
   isPushSupported,
   getNotificationPermission,
@@ -39,7 +39,7 @@ export default function MobilePushPromptBanner({ user }) {
       const res = await subscribeToPushNotifications();
       if (res?.success) {
         setSubscribed(true);
-        setStatusMsg("Notifications enabled on this mobile device! 🎉");
+        setStatusMsg("Notifications enabled on this mobile device!");
       }
     } catch (err) {
       setStatusMsg(err?.message || "Failed to enable notifications");

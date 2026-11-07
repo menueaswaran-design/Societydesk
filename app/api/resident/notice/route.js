@@ -63,7 +63,7 @@ export const POST = handler(async (req) => {
   sendPushToSociety(
     occupancy.societyId,
     {
-      title: "⚠️ Move-out Notice Served",
+      title: "Move-out Notice Served",
       body: `${user.name} (Room ${occupancy.unit?.unitNumber || "-"}) has served notice to vacate on ${leaveDate.toISOString().slice(0, 10)}.`,
       url: "/admin/residents?status=NOTICE",
     },

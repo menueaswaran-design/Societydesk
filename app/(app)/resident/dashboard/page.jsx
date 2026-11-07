@@ -29,7 +29,7 @@ import {
   Zap,
   Utensils,
   Wrench,
-  Sparkles,
+  Shirt,
   Droplets,
 } from "lucide-react";
 
@@ -69,7 +69,7 @@ function getChargeMeta(type) {
     case "LAUNDRY":
       return {
         label: "Laundry",
-        icon: Sparkles,
+        icon: Shirt,
         bg: "bg-purple-50 text-purple-600 border-purple-200",
         badge: "bg-purple-100 text-purple-800",
       };
@@ -313,23 +313,25 @@ export default async function ResidentDashboardPage() {
               ) : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="p-4 bg-white shadow-sm border border-slate-100 flex flex-col justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-brand-50 text-brand-600 rounded-xl">
-                      <BedSingle className="size-5" />
+                <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Assigned Room
+                      </span>
+                      <span className="flex size-8 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-600/20">
+                        <BedSingle className="size-4" />
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Assigned Room</p>
-                      <p className="text-base font-bold text-slate-900 mt-0.5">
-                        Room {primaryOccupancy.unit?.unitNumber} · Bed {primaryOccupancy.bed?.bedLabel}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {primaryOccupancy.unit?.ac ? "AC" : "Non-AC"} · {primaryOccupancy.unit?.unitType || "Sharing"}
-                      </p>
-                    </div>
+                    <p className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-neutral-900 truncate">
+                      Room {primaryOccupancy.unit?.unitNumber} · Bed {primaryOccupancy.bed?.bedLabel}
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500 font-medium">
+                      {primaryOccupancy.unit?.ac ? "AC" : "Non-AC"} · {primaryOccupancy.unit?.unitType || "Sharing"}
+                    </p>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500 font-medium">
+                  <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between">
+                    <span className="text-[11px] text-neutral-500 font-medium">
                       {isNotice ? "Move-out Scheduled" : "Vacating this PG?"}
                     </span>
                     <div className="flex items-center gap-1.5">
@@ -342,48 +344,63 @@ export default async function ResidentDashboardPage() {
                       </Link>
                     </div>
                   </div>
-                </Card>
+                </div>
 
-              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex flex-col justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                    <ShieldCheck className="size-5" />
-                  </div>
+                <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all">
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Security Deposit</p>
-                    <p className="text-base font-bold text-slate-900 mt-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Security Deposit
+                      </span>
+                      <span className="flex size-8 items-center justify-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-600/20">
+                        <ShieldCheck className="size-4" />
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate">
                       {data.depositStatus ? formatMoney(data.depositStatus.amount) : "Recorded"}
                     </p>
-                    <p className="text-xs text-emerald-600 font-medium">
+                    <p className="mt-1 text-xs text-emerald-600 font-medium">
                       Status: {data.depositStatus?.status || "HELD"} (Refundable)
                     </p>
                   </div>
+                  <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between">
+                    <span className="text-[11px] text-neutral-500 font-medium">Refund Policy</span>
+                    <Link
+                      href="/resident/vacate"
+                      className="text-xs font-bold text-sky-700 hover:text-sky-800"
+                    >
+                      View Settlement →
+                    </Link>
+                  </div>
                 </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-500 font-medium">Refund Policy</span>
-                  <Link
-                    href="/resident/vacate"
-                    className="text-xs font-bold text-blue-700 hover:text-blue-800"
-                  >
-                    View Settlement →
-                  </Link>
-                </div>
-              </Card>
 
-              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <Wallet className="size-5" />
+                <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Monthly Rent
+                      </span>
+                      <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
+                        <Wallet className="size-4" />
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate">
+                      {formatMoney(primaryOccupancy.monthlyRent)}
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500 font-medium">
+                      Joined on {formatDate(primaryOccupancy.joinDate)}
+                    </p>
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between">
+                    <span className="text-[11px] text-neutral-500 font-medium">Billing Cycle</span>
+                    <Link
+                      href="/resident/invoices"
+                      className="text-xs font-bold text-brand-700 hover:text-brand-800"
+                    >
+                      View Invoices →
+                    </Link>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Monthly Rent</p>
-                  <p className="text-base font-bold text-slate-900 mt-0.5">
-                    {formatMoney(primaryOccupancy.monthlyRent)}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Joined on {formatDate(primaryOccupancy.joinDate)}
-                  </p>
-                </div>
-              </Card>
               </div>
             </div>
           )}

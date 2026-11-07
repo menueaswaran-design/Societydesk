@@ -75,7 +75,7 @@ const tiers = [
       "Everything in Starter, plus:",
       "Room Sub-Meter electricity billing engine",
       "Security deposit settlement & deduction vouchers",
-      "Defaulter tracking & automatic daily penalty rules",
+      "Overdue tracking & automatic daily penalty rules",
       "Resident maintenance ticketing portal",
       "3 Manager & Caretaker accounts",
       "Tally & Excel accounting export",

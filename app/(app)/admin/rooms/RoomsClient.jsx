@@ -14,7 +14,7 @@ import {
   X,
   Phone,
   Calendar,
-  Sparkles,
+
   LayoutGrid,
   List,
   CheckCircle2,
@@ -23,8 +23,9 @@ import {
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
-import { formatMoney, formatDate } from "@/lib/format";
+import { formatMoney, formatDate, formatBedLabel } from "@/lib/format";
 import { api } from "@/lib/client/api";
 
 // ---------------------------------------------------------------------------
@@ -38,14 +39,55 @@ function formatBedCount(occupied, total) {
 
 function formatRoomType(unitType, bedCount) {
   const typeMap = {
-    SINGLE: "Single",
-    DOUBLE: "Double",
-    TRIPLE: "Triple",
+    SINGLE: "Single Room",
+    DOUBLE: "2 Sharing",
+    TRIPLE: "3 Sharing",
+    FOUR: "4 Sharing",
+    FIVE: "5 Sharing",
+    SIX: "6 Sharing",
     DORM: "Dormitory",
   };
-  const type = typeMap[unitType] || unitType || "Room";
+  const type = typeMap[unitType] || (bedCount ? `${bedCount} Sharing` : unitType) || "Room";
   const bedWord = bedCount === 1 ? "bed" : "beds";
   return `${type} · ${bedCount} ${bedWord}`;
+}
+
+const BED_LETTERS = [
+  "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+  "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
+];
+
+const SHARING_CONFIG = {
+  SINGLE: { label: "Single Room", beds: 1 },
+  DOUBLE: { label: "2 Sharing", beds: 2 },
+  TRIPLE: { label: "3 Sharing", beds: 3 },
+  FOUR: { label: "4 Sharing", beds: 4 },
+  FIVE: { label: "5 Sharing", beds: 5 },
+  SIX: { label: "6 Sharing", beds: 6 },
+};
+
+function buildDormBeds(totalBeds, lowerRent, upperRent) {
+  const count = Math.max(1, Math.min(30, Number(totalBeds) || 6));
+  const lRent = lowerRent !== "" && !isNaN(lowerRent) ? Number(lowerRent) : 7500;
+  const uRent = upperRent !== "" && !isNaN(upperRent) ? Number(upperRent) : 6500;
+  const beds = [];
+
+  for (let i = 0; i < count; i++) {
+    const isLower = i % 2 === 0;
+    const bunkNum = Math.floor(i / 2) + 1;
+    const letter = BED_LETTERS[i] || `${i + 1}`;
+    const tier = isLower ? "LOWER" : "UPPER";
+    const tierLabel = isLower ? "L" : "U";
+    beds.push({
+      id: `bed-${i + 1}`,
+      bedIndex: i,
+      bunkNum,
+      tier,
+      bedLabel: `${letter} (${tierLabel})`,
+      rentAmount: isLower ? lRent : uRent,
+    });
+  }
+  return beds;
 }
 
 function formatDateShort(dateStr) {
@@ -83,6 +125,11 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
     ac: false,
     attachedBathroom: true,
   });
+
+  // Dormitory configuration state
+  const [dormBedCount, setDormBedCount] = useState(6);
+  const [dormLowerRent, setDormLowerRent] = useState(7500);
+  const [dormUpperRent, setDormUpperRent] = useState(6500);
 
   // Keyboard shortcut: Press "/" to focus search
   useEffect(() => {
@@ -199,19 +246,89 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
   }, [filteredUnits]);
 
   // Handlers
+  function handleRoomTypeChange(type) {
+    if (type === "DORM") {
+      setForm((prev) => ({
+        ...prev,
+        unitType: "DORM",
+        bedCapacity: Number(dormBedCount) || 6,
+      }));
+    } else {
+      const cap = SHARING_CONFIG[type]?.beds || 2;
+      setForm((prev) => ({
+        ...prev,
+        unitType: type,
+        bedCapacity: cap,
+      }));
+    }
+  }
+
+  function handleDormBedCountChange(newCount) {
+    if (newCount === "") {
+      setDormBedCount("");
+      return;
+    }
+    const val = Number(newCount);
+    if (isNaN(val)) return;
+    const count = Math.max(1, Math.min(30, val));
+    setDormBedCount(count);
+    setForm((prev) => ({ ...prev, bedCapacity: count }));
+  }
+
   async function handleCreateRoom(e) {
     e.preventDefault();
     setPending(true);
     setError(null);
 
     try {
-      await api.post("/api/units", {
-        ...form,
-        buildingId: form.buildingId?.trim() ? form.buildingId.trim() : null,
-        floor: form.floor?.trim() ? form.floor.trim() : null,
-        bedCapacity: Number(form.bedCapacity),
-        rentAmount: Number(form.rentAmount),
-      });
+      let payload;
+      if (form.unitType === "DORM") {
+        const count = Math.max(1, Math.min(30, Number(dormBedCount) || 6));
+        const lRent = Number(dormLowerRent) || 0;
+        const uRent = Number(dormUpperRent) || 0;
+        const beds = [];
+
+        for (let i = 0; i < count; i++) {
+          const isLower = i % 2 === 0;
+          const letter = BED_LETTERS[i] || `${i + 1}`;
+          const tierLabel = isLower ? "L" : "U";
+          beds.push({
+            bedLabel: `${letter} (${tierLabel})`,
+            rentAmount: isLower ? lRent : uRent,
+          });
+        }
+
+        const avgRent =
+          beds.length > 0
+            ? Math.round(beds.reduce((sum, b) => sum + b.rentAmount, 0) / beds.length)
+            : lRent;
+
+        payload = {
+          unitNumber: form.unitNumber.trim(),
+          floor: form.floor?.trim() || null,
+          buildingId: form.buildingId?.trim() || null,
+          unitType: "DORM",
+          bedCapacity: count,
+          rentAmount: avgRent,
+          ac: Boolean(form.ac),
+          attachedBathroom: Boolean(form.attachedBathroom),
+          beds,
+        };
+      } else {
+        const cap = SHARING_CONFIG[form.unitType]?.beds || Number(form.bedCapacity) || 1;
+        payload = {
+          unitNumber: form.unitNumber.trim(),
+          floor: form.floor?.trim() || null,
+          buildingId: form.buildingId?.trim() || null,
+          unitType: form.unitType,
+          bedCapacity: cap,
+          rentAmount: Number(form.rentAmount),
+          ac: Boolean(form.ac),
+          attachedBathroom: Boolean(form.attachedBathroom),
+        };
+      }
+
+      await api.post("/api/units", payload);
       setIsAddOpen(false);
       setForm({
         unitNumber: "",
@@ -223,6 +340,9 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
         ac: false,
         attachedBathroom: true,
       });
+      setDormBedCount(6);
+      setDormLowerRent(7500);
+      setDormUpperRent(6500);
       router.refresh();
       const res = await api.get("/api/units");
       if (res?.data) setUnits(res.data);
@@ -308,26 +428,26 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
             setFilterStatus("ALL");
             setFilterFloor("ALL");
           }}
-          className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs hover:border-brand-300 hover:shadow-xs cursor-pointer ${
+          className={`group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs hover:border-brand-300 hover:shadow-xs cursor-pointer ${
             filterStatus === "ALL" && filterFloor === "ALL"
               ? "border-neutral-300 ring-1 ring-neutral-300/50"
               : "border-neutral-200"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Total Rooms">
               Total Rooms
             </span>
-            <span className="flex size-8 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
               <Building2 className="size-4" />
             </span>
           </div>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={String(units.length)}>
             {units.length}
           </p>
-          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500">
-            <span>In property</span>
-            <span className="text-[11px] text-neutral-400 group-hover:text-brand-600 transition-colors">
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500 min-w-0 gap-1.5">
+            <span className="truncate">In property</span>
+            <span className="text-[11px] text-neutral-400 group-hover:text-brand-600 transition-colors shrink-0">
               Reset filter
             </span>
           </div>
@@ -337,26 +457,26 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
         <button
           type="button"
           onClick={() => setFilterStatus("ALL")}
-          className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs hover:border-brand-300 hover:shadow-xs cursor-pointer ${
+          className={`group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs hover:border-brand-300 hover:shadow-xs cursor-pointer ${
             filterStatus === "ALL"
               ? "border-neutral-300 ring-1 ring-neutral-300/50"
               : "border-neutral-200"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Total Beds">
               Total Beds
             </span>
-            <span className="flex size-8 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
               <BedDouble className="size-4" />
             </span>
           </div>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={String(totalBeds)}>
             {totalBeds}
           </p>
-          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500">
-            <span>Total capacity</span>
-            <span className="text-[11px] text-neutral-400 group-hover:text-brand-600 transition-colors">
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500 min-w-0 gap-1.5">
+            <span className="truncate">Total capacity</span>
+            <span className="text-[11px] text-neutral-400 group-hover:text-brand-600 transition-colors shrink-0">
               Show all
             </span>
           </div>
@@ -366,29 +486,29 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
         <button
           type="button"
           onClick={() => setFilterStatus((prev) => (prev === "VACANT" ? "ALL" : "VACANT"))}
-          className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
+          className={`group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
             filterStatus === "VACANT"
               ? "border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-500/20 shadow-xs"
               : "border-neutral-200 bg-white hover:border-emerald-300 hover:shadow-xs"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 truncate">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 truncate" title="Vacant Beds">
                 Vacant Beds
               </span>
-              <span className="size-1.5 rounded-full bg-emerald-500" />
+              <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
             </div>
-            <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-600/20">
-              <Sparkles className="size-4" />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-600/20">
+              <CheckCircle2 className="size-4" />
             </span>
           </div>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-emerald-600">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-emerald-600 truncate" title={String(vacantBeds)}>
             {vacantBeds}
           </p>
-          <div className="mt-2 flex items-center justify-between text-xs font-medium text-emerald-700">
-            <span>Available to book</span>
-            <span className="text-[11px] font-bold text-emerald-600">
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-emerald-700 min-w-0 gap-1.5">
+            <span className="truncate">Available to book</span>
+            <span className="text-[11px] font-bold text-emerald-600 shrink-0">
               {filterStatus === "VACANT" ? "Active filter" : "Filter →"}
             </span>
           </div>
@@ -398,64 +518,64 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
         <button
           type="button"
           onClick={() => setFilterStatus((prev) => (prev === "OCCUPIED" ? "ALL" : "OCCUPIED"))}
-          className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
+          className={`group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
             filterStatus === "OCCUPIED"
               ? "border-brand-500 bg-brand-50/40 ring-2 ring-brand-500/20 shadow-xs"
               : "border-neutral-200 bg-white hover:border-brand-300 hover:shadow-xs"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-700">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-700 truncate" title="Occupied Beds">
               Occupied Beds
             </span>
-            <span className="flex size-8 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-600/20">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-600/20">
               <Users className="size-4" />
             </span>
           </div>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-brand-700">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-brand-700 truncate" title={String(occupiedBeds)}>
             {occupiedBeds}
           </p>
-          <div className="mt-2 flex items-center justify-between text-xs font-medium text-brand-600">
-            <span>Active residents</span>
-            <span className="text-[11px] font-bold text-brand-700">
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-brand-600 min-w-0 gap-1.5">
+            <span className="truncate">Active residents</span>
+            <span className="text-[11px] font-bold text-brand-700 shrink-0">
               {filterStatus === "OCCUPIED" ? "Active filter" : "Filter →"}
             </span>
           </div>
         </button>
 
         {/* Card 5: Occupancy Rate */}
-        <div className="relative flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+        <div className="relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Occupancy Rate">
               Occupancy Rate
             </span>
-            <span className="flex size-8 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
               <CheckCircle2 className="size-4" />
             </span>
           </div>
           <div>
-            <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={`${occupancyRate}%`}>
               {occupancyRate}%
             </p>
-            <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500">
-              <span>{occupiedBeds} of {totalBeds} filled</span>
-              <span className="text-[11px] font-bold text-neutral-600">{totalBeds - occupiedBeds} left</span>
+            <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500 min-w-0 gap-1.5">
+              <span className="truncate">{occupiedBeds} of {totalBeds} filled</span>
+              <span className="text-[11px] font-bold text-neutral-600 shrink-0">{totalBeds - occupiedBeds} left</span>
             </div>
-          </div>
-          {/* Progress bar indicator */}
-          <div className="mt-2.5 h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-brand-600 to-indigo-600 transition-all duration-500"
-              style={{ width: `${occupancyRate}%` }}
-            />
+            {/* Progress bar indicator */}
+            <div className="mt-2.5 h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-brand-600 to-indigo-600 transition-all duration-500"
+                style={{ width: `${occupancyRate}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Filter Chips Bar (Status & Floor Chips with counts) */}
+      {/* Filter Chips Bar (Status & Floor Dropdown with Search) */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Status Chips */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none shrink-0">
           {[
             { id: "ALL", label: "All", count: statusCounts.ALL },
             { id: "VACANT", label: "Vacant", count: statusCounts.VACANT },
@@ -468,7 +588,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 key={tab.id}
                 type="button"
                 onClick={() => setFilterStatus(tab.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                   active
                     ? "bg-neutral-950 text-white shadow-2xs"
                     : "bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-50 hover:border-neutral-300"
@@ -487,60 +607,50 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
           })}
         </div>
 
-        {/* Floor Chips & Search Bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Floor Chips */}
-          {floorsList.length > 1 && (
-            <div className="flex items-center gap-1 overflow-x-auto py-0.5">
-              <button
-                type="button"
-                onClick={() => setFilterFloor("ALL")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                  filterFloor === "ALL"
-                    ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200"
-                    : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
-                }`}
+        {/* Floor Dropdown & Search Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Floor Filter Dropdown */}
+          {floorsList.length > 0 && (
+            <div className="w-full sm:w-44 shrink-0">
+              <DropdownSelect
+                value={filterFloor}
+                onChange={(e) => setFilterFloor(e.target.value)}
+                size="md"
+                aria-label="Filter by floor"
               >
-                All Floors
-              </button>
-              {floorsList.map(({ floor, count }) => (
-                <button
-                  key={floor}
-                  type="button"
-                  onClick={() => setFilterFloor(floor)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                    filterFloor === floor
-                      ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200"
-                      : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
-                  }`}
-                >
-                  Floor {floor} ({count})
-                </button>
-              ))}
+                <option value="ALL">All Floors ({units.length})</option>
+                {floorsList.map(({ floor, count }) => (
+                  <option key={floor} value={floor}>
+                    Floor {floor} ({count})
+                  </option>
+                ))}
+              </DropdownSelect>
             </div>
           )}
 
           {/* Search Input with "/" shortcut */}
-          <div className="relative w-full sm:w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-neutral-400 pointer-events-none" />
+          <div className="relative w-full sm:w-80 md:w-96">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search room or tenant..."
-              className="w-full pl-8.5 pr-7 py-1.5 text-xs rounded-xl border border-neutral-200 bg-white placeholder:text-neutral-400 text-neutral-900 focus:border-brand-500 focus:outline-none shadow-2xs"
+              aria-label="Search room or tenant"
+              className="w-full h-9.5 pl-9 pr-8 text-xs sm:text-[13px] rounded-xl border border-slate-200/90 bg-white placeholder:text-slate-400 text-slate-900 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none shadow-2xs transition-all"
             />
             {search ? (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100 transition-colors"
               >
                 <X className="size-3.5" />
               </button>
             ) : (
-              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-neutral-50 border border-neutral-200 rounded px-1.5 py-0.2 text-neutral-400 font-sans pointer-events-none">
+              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-400 font-sans pointer-events-none">
                 /
               </kbd>
             )}
@@ -902,7 +1012,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-neutral-300">
-                      {selectedRoom.unitType} Sharing · Base Rent{" "}
+                      {formatRoomType(selectedRoom.unitType, selectedRoom.beds?.length || selectedRoom.bedCapacity)} · Base Rent{" "}
                       {formatMoney(selectedRoom.rentAmount)}/bed/mo
                     </p>
                   </div>
@@ -998,7 +1108,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3.5">
                           <div
-                            className={`flex size-11 shrink-0 items-center justify-center rounded-2xl font-black text-base border shadow-2xs ${
+                            className={`flex min-w-11 h-11 px-2 shrink-0 items-center justify-center rounded-2xl font-black text-xs sm:text-sm text-center border shadow-2xs ${
                               isNotice
                                 ? "bg-amber-100 text-amber-900 border-amber-300"
                                 : isOcc
@@ -1008,7 +1118,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                                 : "bg-emerald-100 text-emerald-900 border-emerald-300"
                             }`}
                           >
-                            {bed.bedLabel}
+                            {formatBedLabel(bed.bedLabel)}
                           </div>
 
                           <div>
@@ -1019,11 +1129,12 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                                     {occupant.name}
                                   </h4>
                                   {isNotice ? (
-                                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800 ring-1 ring-amber-600/30">
-                                      ⚠️ On Notice ·{" "}
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800 ring-1 ring-amber-600/30">
+                                      <AlertTriangle className="size-3 text-amber-700 shrink-0" />
+                                      <span>On Notice ·{" "}
                                       {daysLeft !== null
                                         ? `Vacating in ${daysLeft}d`
-                                        : "Move-out pending"}
+                                        : "Move-out pending"}</span>
                                     </span>
                                   ) : (
                                     <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10.5px] font-bold text-blue-700 ring-1 ring-blue-600/20">
@@ -1155,12 +1266,18 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
       {/* Modal: Add Room */}
       {isAddOpen ? (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-neutral-950/50 p-2 sm:p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-xl animate-rise max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-              <h2 className="text-base font-extrabold text-neutral-950">Add New Room</h2>
+              <div>
+                <h2 className="text-base font-extrabold text-neutral-950">Add New Room</h2>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Configure room sharing, beds and rent structure
+                </p>
+              </div>
               <button
+                type="button"
                 onClick={() => setIsAddOpen(false)}
-                className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+                className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 cursor-pointer"
               >
                 <X className="size-5" />
               </button>
@@ -1200,44 +1317,96 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 </Select>
               )}
 
+              {/* Row 2: Room Type (Dropdown) & Bed Capacity */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Select
-                  label="Room Type"
-                  value={form.unitType}
-                  onChange={(e) => {
-                    const type = e.target.value;
-                    const cap =
-                      type === "SINGLE" ? 1 : type === "DOUBLE" ? 2 : type === "TRIPLE" ? 3 : 4;
-                    setForm({ ...form, unitType: type, bedCapacity: cap });
-                  }}
-                >
-                  <option value="SINGLE">Single Room</option>
-                  <option value="DOUBLE">Double Sharing</option>
-                  <option value="TRIPLE">Triple Sharing</option>
-                  <option value="DORM">Dormitory</option>
-                </Select>
+                <div>
+                  <label htmlFor="unitType" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                    Room Type <span className="text-error-500">*</span>
+                  </label>
+                  <DropdownSelect
+                    id="unitType"
+                    name="unitType"
+                    value={form.unitType}
+                    onChange={(e) => handleRoomTypeChange(e.target.value)}
+                    className="w-full"
+                  >
+                    <option value="SINGLE">Single Room (1 Bed)</option>
+                    <option value="DOUBLE">2 Sharing (2 Beds)</option>
+                    <option value="TRIPLE">3 Sharing (3 Beds)</option>
+                    <option value="FOUR">4 Sharing (4 Beds)</option>
+                    <option value="FIVE">5 Sharing (5 Beds)</option>
+                    <option value="SIX">6 Sharing (6 Beds)</option>
+                    <option value="DORM">Dormitory (Upper & Lower Bunks)</option>
+                  </DropdownSelect>
+                </div>
 
-                <Input
-                  label="Bed Capacity"
-                  type="number"
-                  min="1"
-                  max="20"
-                  required
-                  value={form.bedCapacity}
-                  onChange={(e) => setForm({ ...form, bedCapacity: e.target.value })}
-                />
+                {form.unitType === "DORM" ? (
+                  <Input
+                    label="Beds in Dormitory"
+                    type="number"
+                    min="1"
+                    max="30"
+                    required
+                    value={dormBedCount}
+                    onChange={(e) => handleDormBedCountChange(e.target.value)}
+                    placeholder="e.g. 6"
+                  />
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                      Bed Capacity <span className="text-error-500">*</span>
+                    </label>
+                    <div className="flex h-9.5 items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50/80 px-3 text-xs font-bold text-neutral-800 shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <BedDouble className="size-4 text-brand-600" />
+                        <span>{form.bedCapacity} Beds</span>
+                      </div>
+                      <span className="text-[11px] font-medium text-neutral-400">
+                        Fixed for room
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <Input
-                label="Monthly Rent per Bed (₹)"
-                type="number"
-                min="0"
-                step="500"
-                required
-                value={form.rentAmount}
-                onChange={(e) => setForm({ ...form, rentAmount: e.target.value })}
-              />
+              {/* Monthly Rent */}
+              {form.unitType !== "DORM" ? (
+                <Input
+                  label="Monthly Rent per Bed (₹)"
+                  type="number"
+                  min="0"
+                  step="500"
+                  required
+                  value={form.rentAmount}
+                  onChange={(e) => setForm({ ...form, rentAmount: e.target.value })}
+                  placeholder="e.g. 7000"
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    label="Lower Berth Rent (₹)"
+                    type="number"
+                    min="0"
+                    step="250"
+                    required
+                    value={dormLowerRent}
+                    onChange={(e) => setDormLowerRent(e.target.value)}
+                    placeholder="e.g. 7500"
+                  />
+                  <Input
+                    label="Upper Berth Rent (₹)"
+                    type="number"
+                    min="0"
+                    step="250"
+                    required
+                    value={dormUpperRent}
+                    onChange={(e) => setDormUpperRent(e.target.value)}
+                    placeholder="e.g. 6500"
+                  />
+                </div>
+              )}
 
+              {/* Amenities */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 pt-1">
                 <label className="flex items-center gap-2 text-xs font-medium text-neutral-700 cursor-pointer">
                   <input
@@ -1260,6 +1429,7 @@ export default function RoomsClient({ initialUnits = [], buildings = [] }) {
                 </label>
               </div>
 
+              {/* Actions */}
               <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-neutral-100">
                 <Button
                   type="button"

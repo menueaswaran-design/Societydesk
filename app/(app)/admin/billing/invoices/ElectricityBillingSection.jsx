@@ -14,7 +14,9 @@ import {
   Users,
   UserCheck,
   RotateCcw,
-  Sparkles,
+  CheckCheck,
+  Calculator,
+  Ban,
 } from "lucide-react";
 
 /**
@@ -423,8 +425,8 @@ export default function ElectricityBillingSection({
       {/* 1. Header & Master Skip / Add Switch */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
         <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20">
-            <Zap className="size-5 fill-amber-500 text-amber-500" />
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 shadow-2xs">
+            <Zap className="size-4 text-slate-700" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -450,24 +452,26 @@ export default function ElectricityBillingSection({
           <button
             type="button"
             onClick={() => onToggleEnabled(false)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               !enabled
                 ? "bg-white text-slate-900 shadow-2xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            🚫 Skip Electricity
+            <Ban className="size-3.5" />
+            <span>Skip Electricity</span>
           </button>
           <button
             type="button"
             onClick={() => onToggleEnabled(true)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               enabled
                 ? "bg-brand-600 text-white shadow-2xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            ⚡ Add Electricity
+            <Zap className="size-3.5" />
+            <span>Add Electricity</span>
           </button>
         </div>
       </div>
@@ -791,7 +795,7 @@ export default function ElectricityBillingSection({
                       </>
                     ) : (
                       <>
-                        <Sparkles className="size-3.5" /> Apply to all rooms
+                        <CheckCheck className="size-3.5" /> Apply to all rooms
                       </>
                     )}
                   </button>
@@ -1372,7 +1376,7 @@ export default function ElectricityBillingSection({
             <div className="rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-50/40 p-3.5 space-y-2.5">
               <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                 <span className="flex items-center gap-1.5">
-                  <Sparkles className="size-3.5 text-brand-600" /> Live Electricity Summary
+                  <Calculator className="size-3.5 text-slate-600" /> Live Electricity Summary
                 </span>
                 <span className="text-slate-500 font-normal">
                   {occupiedRoomsCount} of {totalRoomsCount} rooms occupied
@@ -1422,7 +1426,7 @@ export default function ElectricityBillingSection({
                   <span>Reconciliation:</span>
                   <span className="font-semibold text-emerald-700">
                     {summaryMetrics.discrepancy === 0
-                      ? "✓ 100% Allocated (Zero Discrepancy)"
+                      ? "100% Allocated (Zero Discrepancy)"
                       : `Rounding variance: ₹${summaryMetrics.discrepancy}`}
                   </span>
                 </div>

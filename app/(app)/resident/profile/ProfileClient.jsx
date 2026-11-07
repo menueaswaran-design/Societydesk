@@ -14,6 +14,8 @@ import {
   AlertCircle,
   FileCheck2,
   Bell,
+  Check,
+  AlertTriangle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardHeader, CardNote } from "@/components/ui/Card";
@@ -136,7 +138,17 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
               isKycComplete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
             }`}
           >
-            {isKycComplete ? "✓ KYC Verified" : "⚠ KYC Pending"}
+            {isKycComplete ? (
+              <>
+                <Check className="size-3 text-emerald-700 shrink-0" />
+                <span>KYC Verified</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="size-3 text-amber-700 shrink-0" />
+                <span>KYC Pending</span>
+              </>
+            )}
           </span>
           <StatusBadge status={account?.status} />
         </div>
@@ -245,7 +257,17 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
                     isKycComplete ? "text-emerald-700" : "text-amber-700"
                   }`}
                 >
-                  {isKycComplete ? "✓ Complete (Aadhaar & PAN)" : "⚠ Missing Documents"}
+                  {isKycComplete ? (
+                    <>
+                      <Check className="size-3 text-emerald-700 shrink-0" />
+                      <span>Complete (Aadhaar & PAN)</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="size-3 text-amber-700 shrink-0" />
+                      <span>Missing Documents</span>
+                    </>
+                  )}
                 </span>
               </Row>
               <Row label="Member since">{formatDate(account?.createdAt)}</Row>

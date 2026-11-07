@@ -131,18 +131,20 @@ export default async function SuperAdminDashboardPage() {
         }
       />
 
-      <Card className="p-5 sm:p-6">
+      <Card className="p-5 sm:p-6 overflow-hidden">
         <div className="grid grid-cols-2 gap-x-5 gap-y-6 sm:grid-cols-3 xl:grid-cols-6">
           {snapshot.map((s) => (
-            <div key={s.label}>
-              <div className="flex items-center gap-1.5">
-                <s.icon className="size-4 text-slate-400" />
-                <p className="label-xs">{s.label}</p>
+            <div key={s.label} className="min-w-0 overflow-hidden">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title={s.label}>{s.label}</span>
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
+                  <s.icon className="size-3.5" />
+                </span>
               </div>
-              <p className="tabular mt-2 text-2xl font-bold tracking-tight text-slate-900">
+              <p className="mt-2 text-2xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={String(s.value)}>
                 {s.value}
               </p>
-              <p className="mt-1 text-xs text-slate-500">{s.hint}</p>
+              <p className="mt-1 text-xs text-neutral-500 font-medium truncate" title={s.hint}>{s.hint}</p>
             </div>
           ))}
         </div>

@@ -350,7 +350,7 @@ Permissions
 - Manage residents
 - Configure maintenance
 - Generate invoices
-- Record payments
+- Add payments
 - View payment records
 - Generate/download receipts
 - View defaulters
@@ -950,7 +950,7 @@ Admin
 Open Invoice
  |
  v
-Record Payment
+Add payment
  |
  +--- Amount
  +--- Method

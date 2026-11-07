@@ -1,4 +1,4 @@
-import { formatMoney, formatCompactMoney, getRelativeDueDate, titleCase, initials } from "@/lib/format";
+import { formatMoney, formatCompactMoney, getRelativeDueDate, titleCase, initials, formatBedLabel } from "@/lib/format";
 
 describe("Formatting Utilities (lib/format.js)", () => {
   describe("formatMoney", () => {
@@ -87,6 +87,25 @@ describe("Formatting Utilities (lib/format.js)", () => {
     test("returns question mark for null or empty", () => {
       expect(initials("")).toBe("?");
       expect(initials(null)).toBe("?");
+    });
+  });
+
+  describe("formatBedLabel", () => {
+    test("converts Lower to L and Upper to U for dorm beds", () => {
+      expect(formatBedLabel("A (Lower)")).toBe("A (L)");
+      expect(formatBedLabel("B (Upper)")).toBe("B (U)");
+      expect(formatBedLabel("Bed A (Lower)")).toBe("Bed A (L)");
+    });
+
+    test("keeps standard bed labels unchanged", () => {
+      expect(formatBedLabel("A")).toBe("A");
+      expect(formatBedLabel("B")).toBe("B");
+      expect(formatBedLabel("Bed 1")).toBe("Bed 1");
+    });
+
+    test("handles null or undefined gracefully", () => {
+      expect(formatBedLabel(null)).toBe("");
+      expect(formatBedLabel(undefined)).toBe("");
     });
   });
 });

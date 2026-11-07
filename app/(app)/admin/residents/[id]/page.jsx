@@ -131,6 +131,7 @@ export default async function ResidentDetailsPage({ params }) {
       allStays={allStays}
       documents={documents.map((d) => ({
         ...d,
+        fileUrl: `/api/documents/${d.id}`,
         createdAt: d.createdAt?.toISOString() ?? null,
       }))}
       society={society}

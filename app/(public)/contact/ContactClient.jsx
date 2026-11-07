@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Mail, Clock, MessageCircle, Send, CheckCircle2 } from "lucide-react";
+import { Mail, Clock, MessageCircle, Send, CheckCircle2, Headphones } from "lucide-react";
 
 export default function ContactClient() {
   const [submitted, setSubmitted] = useState(false);
@@ -29,30 +29,44 @@ export default function ContactClient() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* General Contact Email */}
         <div className="rounded-2xl border border-[#E5EAF3] p-4 bg-white space-y-2 shadow-2xs">
           <div className="flex size-9 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
             <Mail className="size-4.5" />
           </div>
-          <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Email Us</h3>
+          <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Contact & Inquiries</h3>
           <a
-            href="mailto:support@bedy.in"
-            className="text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline block"
+            href="mailto:contact@quadrid.in"
+            className="text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline block break-all"
           >
-            support@bedy.in
+            contact@quadrid.in
           </a>
-          <p className="text-[11px] text-neutral-500">Typical reply within 2 business hours</p>
+          <p className="text-[11px] text-neutral-500">Sales, product demos & general queries</p>
         </div>
 
+        {/* Customer Support Email */}
         <div className="rounded-2xl border border-[#E5EAF3] p-4 bg-white space-y-2 shadow-2xs">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-            <Clock className="size-4.5" />
+          <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <Headphones className="size-4.5" />
           </div>
-          <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Support Hours</h3>
-          <div className="text-sm font-semibold text-neutral-900">
-            Mon – Sat: 9 AM – 7 PM IST
-          </div>
-          <p className="text-[11px] text-neutral-500">Bangalore & Chennai Desks</p>
+          <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Customer Support</h3>
+          <a
+            href="mailto:support@quadrid.in"
+            className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline block break-all"
+          >
+            support@quadrid.in
+          </a>
+          <p className="text-[11px] text-neutral-500">Dedicated helpdesk for active operators</p>
         </div>
+      </div>
+
+      {/* Support Hours Banner */}
+      <div className="rounded-xl border border-[#E5EAF3] px-4 py-3 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
+        <div className="flex items-center gap-2 text-xs font-bold text-neutral-800">
+          <Clock className="size-4 text-brand-600 shrink-0" />
+          <span>Support Hours: Mon – Sat, 9:00 AM – 7:00 PM IST</span>
+        </div>
+        <span className="text-[11px] text-neutral-400">Bangalore & Chennai Desks</span>
       </div>
 
       <div className="rounded-2xl border border-[#E5EAF3] p-6 sm:p-7 bg-white shadow-sm space-y-4">
@@ -98,7 +112,7 @@ export default function ContactClient() {
                 type="text"
                 value={form.property}
                 onChange={(e) => setForm({ ...form, property: e.target.value })}
-                placeholder="e.g. Sri Balaji Luxury PG (35 Beds)"
+                placeholder="e.g. Sri Lakshmi PG (48 beds)"
                 className="w-full rounded-xl border border-[#D2D9E6] px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-brand-600 bg-white"
               />
             </div>
@@ -110,28 +124,28 @@ export default function ContactClient() {
                 required
                 value={form.message}
                 onChange={(e) => setForm({ ...form, message: e.target.value })}
-                placeholder="Tell us what you need help with..."
+                placeholder="How can our team help you?"
                 className="w-full rounded-xl border border-[#D2D9E6] px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-brand-600 bg-white"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 py-3 text-xs font-bold text-white transition-all cursor-pointer shadow-sm shadow-brand-600/20"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-xs font-bold text-white shadow-xs hover:bg-brand-700 active:scale-98 transition-all cursor-pointer"
             >
               <Send className="size-3.5" />
-              <span>Send Message</span>
+              <span>Submit Message</span>
             </button>
           </form>
         )}
       </div>
 
-      <div className="pt-2 flex items-center justify-between text-xs text-neutral-500 border-t border-[#E5EAF3]">
-        <Link href="/" className="hover:text-brand-600 font-semibold flex items-center gap-1">
-          ← Back to Home
-        </Link>
-        <Link href="/#pricing" className="text-brand-600 hover:underline font-semibold">
-          View Pricing Plans →
+      <div className="text-center">
+        <Link
+          href="/"
+          className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+        >
+          ← Return to Bedy Home
         </Link>
       </div>
     </div>

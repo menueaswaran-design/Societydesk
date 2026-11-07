@@ -1,4 +1,5 @@
 "use client";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,7 +17,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  MessageCircle,
+  AlertTriangle,
   CreditCard,
   Edit2,
   LogOut,
@@ -284,7 +285,7 @@ export default function ResidentDetailsClient({
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-colors"
               >
-                <MessageCircle className="size-3.5" />
+                <WhatsAppIcon className="size-3.5" />
                 <span>WhatsApp Reminder</span>
               </a>
             )}
@@ -298,7 +299,7 @@ export default function ResidentDetailsClient({
               }}
             >
               <CreditCard className="size-3.5" />
-              <span>Record Payment</span>
+              <span>Add payment</span>
             </Button>
 
             <Button
@@ -325,65 +326,97 @@ export default function ResidentDetailsClient({
       </div>
 
       {/* 2. Financial Summary Cards (4 Cards) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-            Monthly Rent
-          </span>
-          <span className="text-xl font-extrabold text-slate-900 mt-1 block">
+      <div className="grid grid-cols-2 gap-3.5 sm:gap-4 lg:grid-cols-4">
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-neutral-300 hover:shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Monthly Rent">
+              Monthly Rent
+            </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+              <CreditCard className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={formatMoney(occupancy.monthlyRent)}>
             {formatMoney(occupancy.monthlyRent)}
-          </span>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">per resident / month</span>
+          </p>
+          <div className="mt-2 text-xs font-medium text-neutral-500 truncate">
+            per resident / month
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-            Outstanding Balance
-          </span>
-          {outstandingBalance > 0 ? (
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 min-w-0">
             <span
-              className={`text-xl font-extrabold mt-1 block ${
-                isOverdue ? "text-rose-600" : "text-amber-700"
+              className={`text-[11px] font-bold uppercase tracking-wider truncate ${
+                outstandingBalance > 0 ? "text-rose-700" : "text-emerald-700"
+              }`}
+              title="Outstanding Balance"
+            >
+              Outstanding Balance
+            </span>
+            <span
+              className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${
+                outstandingBalance > 0
+                  ? "bg-rose-50 text-rose-600 ring-1 ring-rose-600/20"
+                  : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
               }`}
             >
-              ₹{outstandingBalance.toLocaleString()} Due
+              {outstandingBalance > 0 ? (
+                <AlertTriangle className="size-4" />
+              ) : (
+                <CheckCircle2 className="size-4" />
+              )}
             </span>
-          ) : (
-            <span className="text-xl font-extrabold text-emerald-600 mt-1 block flex items-center gap-1.5">
-              <CheckCircle2 className="size-5" /> Paid Up
-            </span>
-          )}
-          <span className="text-[11px] text-slate-400 mt-0.5 block">
+          </div>
+          <p
+            className={`mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums truncate ${
+              outstandingBalance > 0
+                ? isOverdue
+                  ? "text-rose-600"
+                  : "text-amber-700"
+                : "text-emerald-700"
+            }`}
+            title={outstandingBalance > 0 ? `₹${outstandingBalance.toLocaleString()}` : "Paid Up"}
+          >
+            {outstandingBalance > 0 ? `₹${outstandingBalance.toLocaleString()}` : "Paid Up"}
+          </p>
+          <div className="mt-2 text-xs font-medium text-neutral-500 truncate">
             {unpaidInvoices.length} unpaid {unpaidInvoices.length === 1 ? "invoice" : "invoices"}
-          </span>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-            Security Deposit
-          </span>
-          <span className="text-xl font-extrabold text-emerald-700 mt-1 block">
-            {formatMoney(depositHeld)}
-          </span>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">
-            {isLeft ? "Settled on checkout" : "Held safely"}
-          </span>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-            Last Payment
-          </span>
-          {lastPayment ? (
-            <span className="text-xl font-extrabold text-slate-900 mt-1 block">
-              {formatMoney(lastPayment.amount)}
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 truncate" title="Security Deposit">
+              Security Deposit
             </span>
-          ) : (
-            <span className="text-sm font-bold text-slate-400 mt-2 block">No payments yet</span>
-          )}
-          <span className="text-[11px] text-slate-400 mt-0.5 block">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
+              <ShieldCheck className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-emerald-700 truncate" title={formatMoney(depositHeld)}>
+            {formatMoney(depositHeld)}
+          </p>
+          <div className="mt-2 text-xs font-medium text-emerald-600 truncate">
+            {isLeft ? "Settled on checkout" : "Held safely"}
+          </div>
+        </div>
+
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-neutral-300 hover:shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Last Payment">
+              Last Payment
+            </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+              <Receipt className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={lastPayment ? formatMoney(lastPayment.amount) : "₹0"}>
+            {lastPayment ? formatMoney(lastPayment.amount) : "₹0"}
+          </p>
+          <div className="mt-2 text-xs font-medium text-neutral-500 truncate">
             {lastPayment ? formatDate(lastPayment.paymentDate) : "Awaiting first invoice"}
-          </span>
+          </div>
         </div>
       </div>
 
@@ -657,7 +690,7 @@ export default function ResidentDetailsClient({
                   setRecordPaymentOpen(true);
                 }}
               >
-                <Plus className="size-3.5" /> Record Payment
+                <Plus className="size-3.5" /> Add payment
               </Button>
             </div>
 
@@ -787,7 +820,7 @@ export default function ResidentDetailsClient({
                   setRecordPaymentOpen(true);
                 }}
               >
-                <Plus className="size-3.5" /> Record Payment
+                <Plus className="size-3.5" /> Add payment
               </Button>
             </div>
 
@@ -1155,7 +1188,7 @@ export default function ResidentDetailsClient({
         </Modal>
       )}
 
-      {/* MODAL 3: Record Payment Modal */}
+      {/* MODAL 3: Add payment Modal */}
       {recordPaymentOpen && (
         <RecordPaymentModal
           open={recordPaymentOpen}

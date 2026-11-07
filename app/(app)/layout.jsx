@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSessionOrNull } from "@/lib/auth/server";
 import { prisma } from "@/lib/db/prisma";
 import { getResidentFlatIds } from "@/lib/auth/permissions";
+import { getUserAccessibleSocieties } from "@/lib/db/staffAssignments";
 import AppShell from "@/components/layout/AppShell";
 
 const societyCache = new Map();
@@ -28,8 +29,9 @@ export default async function AppLayout({ children }) {
 
   let society = null;
   let flats = [];
+  let accessibleSocieties = [];
 
-  const [societyRes, flatsRes] = await Promise.allSettled([
+  const [societyRes, flatsRes, accessibleSocietiesRes] = await Promise.allSettled([
     user.societyId ? getCachedSociety(user.societyId) : Promise.resolve(null),
     user.role === "RESIDENT"
       ? getResidentFlatIds(user.id).then(async (flatIds) => {
@@ -39,6 +41,9 @@ export default async function AppLayout({ children }) {
             select: { id: true, flatNumber: true, block: true },
           });
         })
+      : Promise.resolve([]),
+    user.role === "OWNER" || user.role === "MANAGER" || user.role === "SUPER_ADMIN"
+      ? getUserAccessibleSocieties(user)
       : Promise.resolve([]),
   ]);
 
@@ -54,8 +59,12 @@ export default async function AppLayout({ children }) {
     flats = [{ id: "flat-a101", flatNumber: "A101" }];
   }
 
+  if (accessibleSocietiesRes.status === "fulfilled" && Array.isArray(accessibleSocietiesRes.value)) {
+    accessibleSocieties = accessibleSocietiesRes.value;
+  }
+
   return (
-    <AppShell user={user} society={society} flats={flats}>
+    <AppShell user={user} society={society} flats={flats} accessibleSocieties={accessibleSocieties}>
       {children}
     </AppShell>
   );

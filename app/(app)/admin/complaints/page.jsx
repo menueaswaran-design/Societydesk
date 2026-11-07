@@ -19,7 +19,13 @@ export default async function AdminComplaintsPage({ searchParams }) {
 
   const where = { societyId: user.societyId };
   if (assignedFlatIds?.length) where.flatId = { in: assignedFlatIds };
-  if (status) where.status = status;
+  if (status) {
+    if (status === "ACTIVE") {
+      where.status = { in: ["OPEN", "ASSIGNED", "IN_PROGRESS", "REOPENED"] };
+    } else {
+      where.status = status;
+    }
+  }
 
   const [complaints, assignees, flats] = await Promise.all([
     prisma.complaint.findMany({

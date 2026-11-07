@@ -15,14 +15,19 @@ import {
   Receipt,
   ShieldCheck,
   UserCircle,
+  UserCheck,
   LogOut,
   Building,
   Menu,
   X,
   ChevronDown,
+  ChevronsUpDown,
+  Check,
+  Loader2,
   BedSingle,
   DoorOpen,
   TrendingUp,
+  Plus,
 } from "lucide-react";
 import { api } from "@/lib/client/api";
 import { titleCase } from "@/lib/format";
@@ -32,6 +37,7 @@ import { useTranslation } from "@/components/i18n/LanguageProvider";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import PushNotificationPrompt from "@/components/notifications/PushNotificationPrompt";
 import NotificationBellToggle from "@/components/notifications/NotificationBellToggle";
+import AddPropertyModal from "@/components/properties/AddPropertyModal";
 
 const NAV = {
   OWNER: [
@@ -52,12 +58,13 @@ const NAV = {
       items: [
         { href: "/admin/billing/invoices", label: "Rent Invoices", icon: FileText },
         { href: "/admin/billing/payments", label: "Payments", icon: CreditCard },
-        { href: "/admin/billing/defaulters", label: "Defaulters", icon: AlertTriangle },
+        { href: "/admin/billing/defaulters", label: "Overdue", icon: AlertTriangle },
       ],
     },
     {
       label: "Operations",
       items: [
+        { href: "/admin/team", label: "PG Managers", icon: UserCheck },
         { href: "/admin/complaints", label: "Complaints", icon: AlertTriangle },
         { href: "/admin/notices", label: "Notices", icon: Megaphone },
       ],
@@ -88,7 +95,7 @@ const NAV = {
       items: [
         { href: "/admin/billing/invoices", label: "Rent Invoices", icon: FileText },
         { href: "/admin/billing/payments", label: "Payments", icon: CreditCard },
-        { href: "/admin/billing/defaulters", label: "Defaulters", icon: AlertTriangle },
+        { href: "/admin/billing/defaulters", label: "Overdue", icon: AlertTriangle },
       ],
     },
     {
@@ -118,7 +125,7 @@ const NAV = {
         { href: "/admin/billing/configuration", label: "Fee Setup", icon: SlidersHorizontal },
         { href: "/admin/billing/invoices", label: "Invoices", icon: FileText },
         { href: "/admin/billing/payments", label: "Payments", icon: CreditCard },
-        { href: "/admin/billing/defaulters", label: "Defaulters", icon: AlertTriangle },
+        { href: "/admin/billing/defaulters", label: "Overdue", icon: AlertTriangle },
       ],
     },
     {
@@ -196,7 +203,7 @@ const ROLE_TONE = {
   RESIDENT: "emerald",
 };
 
-export default function AppShell({ user, society, flats, occupancies, children }) {
+export default function AppShell({ user, society, flats, occupancies, accessibleSocieties = [], children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
@@ -269,28 +276,27 @@ export default function AppShell({ user, society, flats, occupancies, children }
   );
 
   const identity = (
-    <div className="flex items-center gap-3 px-4 py-3 w-full">
+    <Link
+      href={
+        user.role === "RESIDENT"
+          ? "/resident/dashboard"
+          : user.role === "SUPER_ADMIN"
+            ? "/super-admin/dashboard"
+            : "/admin/dashboard"
+      }
+      className="flex items-center gap-2.5 px-4 py-3 w-full hover:opacity-90 transition-opacity"
+    >
       <span className="relative inline-flex shrink-0">
         <img
           src="/logo.png"
           alt="Bedy"
-          className="size-8.5 rounded-xl object-contain bg-white p-0.5 shadow-sm ring-1 ring-white/20"
+          className="size-8 rounded-xl object-contain bg-white p-0.5 shadow-sm ring-1 ring-white/20"
         />
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-white tracking-tight leading-tight">
-          {society?.name ?? (user.role === "SUPER_ADMIN" ? "Bedy Platform" : isPgWorkspace ? "Bedy PG" : "Bedy")}
-        </p>
-        <div className="flex items-center gap-1.5 mt-1">
-          <span className="rounded-full bg-white/15 border border-white/20 px-2 py-0.5 text-[9.5px] font-bold text-white uppercase tracking-wide">
-            {user.role === "SUPER_ADMIN" ? "SUPER ADMIN" : isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
-          </span>
-          <p className="truncate text-[11px] font-medium text-blue-200">
-            {titleCase(user.role)}
-          </p>
-        </div>
-      </div>
-    </div>
+      <span className="text-lg font-black tracking-tight text-white leading-none">
+        Bedy
+      </span>
+    </Link>
   );
 
   return (
@@ -305,7 +311,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start bg-gradient-to-b from-[#1E398A] to-[#172B68] text-white border-r border-[#1B326E] shadow-sm lg:flex">
         <div className="flex h-14 items-center border-b border-white/10 bg-transparent">{identity}</div>
         {nav}
-        <UserPanel user={user} roomLabel={roomLabel} onSignOut={signOut} />
+        <PropertyPanel society={society} isPgWorkspace={isPgWorkspace} user={user} roomLabel={roomLabel} accessibleSocieties={accessibleSocieties} />
       </aside>
 
       {/* Mobile drawer */}
@@ -328,7 +334,7 @@ export default function AppShell({ user, society, flats, occupancies, children }
               </button>
             </div>
             {nav}
-            <UserPanel user={user} roomLabel={roomLabel} onSignOut={signOut} />
+            <PropertyPanel society={society} isPgWorkspace={isPgWorkspace} user={user} roomLabel={roomLabel} accessibleSocieties={accessibleSocieties} />
           </div>
         </div>
       ) : null}
@@ -356,6 +362,15 @@ export default function AppShell({ user, society, flats, occupancies, children }
               </span>
             </div>
 
+            {accessibleSocieties && accessibleSocieties.length > 1 && (
+              <div className="hidden lg:flex items-center">
+                <TopHeaderPropertySwitcher
+                  society={society}
+                  accessibleSocieties={accessibleSocieties}
+                />
+              </div>
+            )}
+
             <div className="ml-auto flex items-center gap-2">
               <LanguageSwitcher />
               <NotificationBellToggle user={user} compact />
@@ -379,6 +394,8 @@ export default function AppShell({ user, society, flats, occupancies, children }
                 {menu ? (
                   <UserMenu
                     user={user}
+                    society={society}
+                    accessibleSocieties={accessibleSocieties}
                     roomLabel={roomLabel}
                     onSignOut={signOut}
                     onClose={() => setMenu(false)}
@@ -443,31 +460,302 @@ function NavLink({ item, label, pathname, onNavigate }) {
   );
 }
 
-function UserPanel({ user, roomLabel, onSignOut }) {
-  const { t } = useTranslation();
+function TopHeaderPropertySwitcher({ society, accessibleSocieties = [] }) {
+  const [open, setOpen] = useState(false);
+  const [switchingId, setSwitchingId] = useState(null);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (ref.current && !ref.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
+
+  async function handleSwitch(targetId) {
+    if (targetId === society?.id || switchingId) return;
+    setSwitchingId(targetId);
+    try {
+      await api.post("/api/auth/switch-society", { societyId: targetId });
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to switch property:", err);
+      setSwitchingId(null);
+    }
+  }
+
   return (
-    <div className="border-t border-white/10 p-3 bg-transparent">
-      <div className="flex items-center gap-2.5 rounded-xl bg-white/10 backdrop-blur-sm px-2.5 py-2 border border-white/15 transition-colors hover:bg-white/15">
-        <Avatar name={user.name} size="sm" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-bold text-white">{user.name}</p>
-          <p className="truncate text-[11px] font-medium text-blue-200">{titleCase(user.role)}</p>
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="group flex items-center gap-2 rounded-xl border border-slate-200/90 bg-slate-50/80 px-2.5 py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-100 hover:border-slate-300 transition-all shadow-2xs cursor-pointer"
+        title="Switch active PG property"
+      >
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-brand-600 text-white shadow-2xs">
+          <Building className="size-3" />
+        </span>
+        <span className="text-slate-400 font-medium hidden sm:inline">PG:</span>
+        <span className="truncate max-w-[140px] sm:max-w-[200px]">{society?.name || "Select PG"}</span>
+        <ChevronsUpDown className="size-3 text-slate-400 group-hover:text-slate-600 transition-colors" />
+      </button>
+
+      {open && (
+        <div className="animate-pop absolute left-0 mt-1.5 w-64 rounded-2xl bg-white shadow-xl border border-slate-200/90 overflow-hidden z-50 text-slate-800">
+          <div className="bg-slate-50/90 px-3.5 py-2 border-b border-slate-100 flex items-center justify-between">
+            <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
+              Select PG Property
+            </span>
+            <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded-full ring-1 ring-brand-600/20">
+              {accessibleSocieties.length} PGs
+            </span>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto p-1.5 space-y-1">
+            {accessibleSocieties.map((s) => {
+              const isActive = s.id === society?.id;
+              const isSwitching = switchingId === s.id;
+
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleSwitch(s.id)}
+                  disabled={Boolean(switchingId) || isActive}
+                  className={`w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-all ${
+                    isActive
+                      ? "bg-brand-50 text-brand-900 font-bold border border-brand-200 shadow-2xs"
+                      : "hover:bg-slate-100/80 text-slate-700 font-medium cursor-pointer"
+                  }`}
+                >
+                  <span
+                    className={`flex size-6.5 shrink-0 items-center justify-center rounded-lg ${
+                      isActive ? "bg-brand-600 text-white shadow-2xs" : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {isSwitching ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Building className="size-3" />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs tracking-tight">{s.name}</p>
+                    <p className="text-[10px] font-normal text-slate-400">{s.code || "PG"}</p>
+                  </div>
+                  {isActive && (
+                    <span className="flex size-4.5 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow-2xs">
+                      <Check className="size-3 stroke-[2.5]" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <button
-          onClick={onSignOut}
-          aria-label={t("common.signOut", "Sign out")}
-          title={t("common.signOut", "Sign out")}
-          className="inline-flex size-7.5 items-center justify-center rounded-lg text-blue-200 transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
-        >
-          <LogOut className="size-3.5" />
-        </button>
-      </div>
-      {roomLabel ? <p className="mt-2 truncate px-2 text-[11px] font-medium text-blue-200/80">{roomLabel}</p> : null}
+      )}
     </div>
   );
 }
 
-function UserMenu({ user, roomLabel, onSignOut, onClose, t: tProp }) {
+function PropertyPanel({ society, isPgWorkspace, user, roomLabel, accessibleSocieties = [] }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [addPropertyModalOpen, setAddPropertyModalOpen] = useState(false);
+  const [switchingId, setSwitchingId] = useState(null);
+  const panelRef = useRef(null);
+
+  const pgName =
+    society?.name ||
+    (user?.role === "SUPER_ADMIN"
+      ? "Bedy Platform"
+      : isPgWorkspace
+        ? "Sri Lakshmi Luxury PG & Coliving"
+        : "Bedy Property");
+
+  const isOwner = user?.role === "OWNER";
+  const hasMultiple = Array.isArray(accessibleSocieties) && accessibleSocieties.length > 1;
+  const canInteract = hasMultiple || isOwner;
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (panelRef.current && !panelRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  async function handleSwitch(targetSocietyId) {
+    if (targetSocietyId === society?.id || switchingId) return;
+    setSwitchingId(targetSocietyId);
+    try {
+      await api.post("/api/auth/switch-society", { societyId: targetSocietyId });
+      setDropdownOpen(false);
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to switch property:", err);
+      setSwitchingId(null);
+    }
+  }
+
+  const listItems = hasMultiple
+    ? accessibleSocieties
+    : society
+    ? [society]
+    : [];
+
+  return (
+    <div className="relative border-t border-white/10 p-3 bg-transparent" ref={panelRef}>
+      {/* Dropdown Popup Menu */}
+      {dropdownOpen && canInteract && (
+        <div className="animate-pop absolute bottom-full left-3 right-3 mb-2.5 z-50 rounded-2xl bg-white shadow-2xl border border-slate-200/90 overflow-hidden text-slate-800">
+          <div className="bg-slate-50/90 px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
+                {hasMultiple ? "Switch Property" : "My Properties"}
+              </p>
+              <p className="text-xs font-semibold text-slate-700">
+                {accessibleSocieties.length || 1} PG propert{(accessibleSocieties.length || 1) === 1 ? "y" : "ies"}
+              </p>
+            </div>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-50 text-brand-700 ring-1 ring-brand-600/20">
+              {hasMultiple ? "Multi-PG" : "PG"}
+            </span>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto p-1.5 space-y-1">
+            {listItems.map((s) => {
+              const isActive = s.id === society?.id;
+              const isSwitching = switchingId === s.id;
+
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleSwitch(s.id)}
+                  disabled={Boolean(switchingId) || isActive}
+                  className={`w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-all ${
+                    isActive
+                      ? "bg-brand-50 text-brand-900 font-bold border border-brand-200/80 shadow-2xs"
+                      : "hover:bg-slate-100/80 text-slate-700 font-medium cursor-pointer"
+                  }`}
+                >
+                  <span
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${
+                      isActive ? "bg-brand-600 text-white shadow-sm" : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {isSwitching ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Building className="size-3.5" />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs tracking-tight">{s.name}</p>
+                    <p className="text-[10px] font-normal text-slate-400">
+                      {s.code || "PG Property"}
+                    </p>
+                  </div>
+                  {isActive && (
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow-2xs">
+                      <Check className="size-3 stroke-[2.5]" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {isOwner && (
+            <div className="border-t border-slate-100 p-2 bg-slate-50/70 space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setAddPropertyModalOpen(true);
+                }}
+                className="flex w-full items-center justify-center gap-1.5 py-1.5 text-center text-xs font-bold text-brand-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg transition-colors cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>Add New PG Property</span>
+              </button>
+              <Link
+                href="/admin/team"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center justify-center gap-1.5 py-1 text-center text-[11.5px] font-semibold text-slate-600 hover:text-slate-800 transition-colors"
+              >
+                <UserCheck className="size-3.5" />
+                <span>Manage PG Managers</span>
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Property button */}
+      {canInteract ? (
+        <button
+          type="button"
+          onClick={() => setDropdownOpen((v) => !v)}
+          className="group flex w-full items-center gap-2.5 rounded-xl bg-white/10 backdrop-blur-sm px-3 py-2.5 border border-white/15 transition-all hover:bg-white/15 hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 text-left cursor-pointer"
+          title={hasMultiple ? "Click to switch between PG properties" : "Click to manage or add PG properties"}
+        >
+          <span className="flex size-7.5 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white shadow-2xs group-hover:bg-white/20 transition-colors">
+            <Building className="size-4 text-blue-100" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-bold text-white tracking-tight leading-snug">
+              {pgName}
+            </p>
+            <p className="text-[10px] font-medium text-blue-200/90 leading-none mt-0.5 flex items-center gap-1">
+              <span>{hasMultiple ? "Switch property" : "PG Property"}</span>
+              <span className="size-1 rounded-full bg-blue-300" />
+              <span>{accessibleSocieties.length || 1} PG{(accessibleSocieties.length || 1) === 1 ? "" : "s"}</span>
+            </p>
+          </div>
+          <ChevronsUpDown className="size-4 shrink-0 text-blue-200/90 group-hover:text-white transition-colors" />
+        </button>
+      ) : (
+        <div className="flex items-center gap-2.5 rounded-xl bg-white/10 backdrop-blur-sm px-3 py-2.5 border border-white/15 transition-colors">
+          <span className="flex size-7.5 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white shadow-2xs">
+            <Building className="size-4 text-blue-100" />
+          </span>
+          <p className="min-w-0 flex-1 truncate text-xs font-bold text-white tracking-tight" title={pgName}>
+            {pgName}
+          </p>
+        </div>
+      )}
+
+      {roomLabel ? (
+        <p className="mt-1.5 truncate px-2 text-[10.5px] font-medium text-blue-200/80">
+          {roomLabel}
+        </p>
+      ) : null}
+
+      {isOwner && (
+        <AddPropertyModal
+          open={addPropertyModalOpen}
+          onClose={() => setAddPropertyModalOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserMenu({ user, society, accessibleSocieties = [], roomLabel, onSignOut, onClose, t: tProp }) {
   const { t: tContext } = useTranslation();
   const t = tProp || tContext;
   const ref = useRef(null);
@@ -506,6 +794,12 @@ function UserMenu({ user, roomLabel, onSignOut, onClose, t: tProp }) {
           <dt className="text-slate-500">Role</dt>
           <dd className="font-semibold text-slate-800">{titleCase(user.role)}</dd>
         </div>
+        {accessibleSocieties?.length > 1 ? (
+          <div className="flex items-center justify-between gap-3 py-1">
+            <dt className="text-slate-500">Active PG</dt>
+            <dd className="font-semibold text-brand-700 truncate max-w-36">{society?.name || "Selected"}</dd>
+          </div>
+        ) : null}
         {roomLabel ? (
           <div className="flex items-center justify-between gap-3 py-1">
             <dt className="text-slate-500">Assignment</dt>

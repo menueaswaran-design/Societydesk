@@ -1,4 +1,5 @@
 "use client";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 
 import { useState, useId, useEffect } from "react";
 import {
@@ -22,7 +23,7 @@ import {
   Zap,
   Utensils,
   Wrench,
-  Sparkles,
+  Shirt,
   Droplets,
   Home,
 } from "lucide-react";
@@ -58,7 +59,7 @@ function getPayItemMeta(type) {
     case "LAUNDRY":
       return {
         label: "Laundry",
-        icon: Sparkles,
+        icon: Shirt,
         bg: "bg-purple-50 text-purple-700 border-purple-200",
       };
     case "WATER":

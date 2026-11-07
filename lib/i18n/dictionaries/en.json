@@ -10,7 +10,7 @@
     "feeSetup": "Fee Setup",
     "invoices": "Invoices",
     "payments": "Payments",
-    "defaulters": "Defaulters",
+    "defaulters": "Overdue",
     "community": "Community",
     "complaints": "Complaints",
     "notices": "Notices",
@@ -95,7 +95,7 @@
     "password": "Password",
     "forgotPassword": "Forgot password?",
     "welcomeTitle": "Welcome back",
-    "welcomeSubtitle": "Sign in to manage billing, complaints and notices for your society.",
+    "welcomeSubtitle": "Sign in to manage your PG, hostel & co-living property.",
     "troubleSigningIn": "Trouble signing in?",
     "resetPassword": "Reset your password"
   }

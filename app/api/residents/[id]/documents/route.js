@@ -1,14 +1,17 @@
 import { handler, ok, readJson } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireResidentManager, resolveSocietyScope, isStaff, isSuperAdmin } from "@/lib/auth/permissions";
+import { requireResidentManager, isStaff, isSuperAdmin } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { notFound, forbidden, badRequest } from "@/lib/errors";
+import { audit } from "@/lib/audit";
+import { AUDIT_ACTION } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/residents/:id/documents
  * List sensitive ID proof / KYC documents. Restrict access to Owner/Manager or the resident themselves.
+ * Returns secure proxy URLs (/api/documents/:id) instead of raw Cloudinary or static paths.
  */
 export const GET = handler(async (req, { params }) => {
   const user = await getSessionUser(req);
@@ -32,7 +35,13 @@ export const GET = handler(async (req, { params }) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return ok(documents);
+  // Map fileUrl to secure proxy endpoint for UIDAI & DPDP compliance
+  const secureDocs = documents.map((doc) => ({
+    ...doc,
+    fileUrl: `/api/documents/${doc.id}`,
+  }));
+
+  return ok(secureDocs);
 });
 
 /**
@@ -77,7 +86,28 @@ export const POST = handler(async (req, { params }) => {
     },
   });
 
-  return ok(doc, { status: 201 });
+  // Audit trail for document upload
+  await audit({
+    societyId,
+    userId: user.id,
+    action: AUDIT_ACTION.DOCUMENT_UPLOADED,
+    entityType: "tenantDocument",
+    entityId: doc.id,
+    reason: `Uploaded ${doc.docType} KYC document`,
+    newValue: {
+      docType: doc.docType,
+      publicId: doc.cloudinaryPublicId,
+      resourceType: doc.resourceType,
+    },
+  });
+
+  return ok(
+    {
+      ...doc,
+      fileUrl: `/api/documents/${doc.id}`,
+    },
+    { status: 201 }
+  );
 });
 
 /**
@@ -104,6 +134,20 @@ export const DELETE = handler(async (req, { params }) => {
 
   await prisma.tenantDocument.delete({
     where: { id: docId },
+  });
+
+  // Audit trail for document deletion
+  await audit({
+    societyId: existing.societyId,
+    userId: user.id,
+    action: AUDIT_ACTION.DOCUMENT_DELETED,
+    entityType: "tenantDocument",
+    entityId: existing.id,
+    reason: `Deleted ${existing.docType} KYC document`,
+    oldValue: {
+      docType: existing.docType,
+      publicId: existing.cloudinaryPublicId,
+    },
   });
 
   return ok({ success: true, deletedId: docId });

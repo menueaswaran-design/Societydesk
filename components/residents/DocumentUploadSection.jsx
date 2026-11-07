@@ -12,11 +12,15 @@ import {
   Plus,
   Eye,
   CheckCircle2,
+  Check,
   X,
   CreditCard,
   FileBadge,
+  Lock,
+  Download,
 } from "lucide-react";
 import Button, { Spinner } from "@/components/ui/Button";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import Badge from "@/components/ui/Badge";
 import { ErrorBanner, SuccessBanner } from "@/components/ui/Feedback";
 import { formatDate } from "@/lib/format";
@@ -74,6 +78,7 @@ export default function DocumentUploadSection({
         const formData = new FormData();
         formData.append("file", file);
         formData.append("folder", "kyc_documents");
+        formData.append("isPrivate", "true");
 
         const uploadRes = await fetch("/api/uploads", {
           method: "POST",
@@ -185,16 +190,38 @@ export default function DocumentUploadSection({
                 hasAadhaar ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
               }`}
             >
-              {hasAadhaar ? "✓ Aadhaar Card" : "✕ Aadhaar Card"}
+              {hasAadhaar ? <Check className="size-3 text-emerald-700 shrink-0" /> : <X className="size-3 text-rose-700 shrink-0" />}
+              <span>Aadhaar Card</span>
             </span>
             <span
               className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 ${
                 hasPan ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
               }`}
             >
-              {hasPan ? "✓ PAN Card" : "✕ PAN Card"}
+              {hasPan ? <Check className="size-3 text-emerald-700 shrink-0" /> : <X className="size-3 text-rose-700 shrink-0" />}
+              <span>PAN Card</span>
             </span>
           </div>
+        </div>
+      </div>
+
+
+      {/* UIDAI & DPDP Compliance Guidance Notice */}
+      <div className="flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50/70 p-4 text-xs text-sky-950 shadow-2xs">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-white shadow-2xs">
+          <Lock className="size-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-bold tracking-tight text-slate-900">UIDAI & DPDP Act Safe Storage Compliance</p>
+            <span className="inline-flex items-center gap-1 rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+              <ShieldCheck className="size-3 text-sky-600" />
+              Private Encrypted Vault
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+            <strong>UIDAI Masked Aadhaar Advisory:</strong> To safeguard resident privacy, please upload a <strong>Masked Aadhaar</strong> (first 8 digits hidden, only last 4 visible). All identification proofs are stored in authenticated private vaults with expiring access signatures and complete audit logs.
+          </p>
         </div>
       </div>
 
@@ -215,7 +242,8 @@ export default function DocumentUploadSection({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <select
+              <DropdownSelect
+                className="w-64"
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
                 className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs focus:border-brand-500 focus:outline-none"
@@ -226,7 +254,7 @@ export default function DocumentUploadSection({
                 <option value="VOTER_ID">Voter ID</option>
                 <option value="DRIVING_LICENSE">Driving License</option>
                 <option value="OTHER">Other Proof / College / Office ID</option>
-              </select>
+              </DropdownSelect>
 
               <input
                 ref={fileInputRef}
@@ -335,6 +363,15 @@ export default function DocumentUploadSection({
                     </Button>
 
                     <a
+                      href={`${doc.fileUrl}${doc.fileUrl?.includes('?') ? '&' : '?'}download=true`}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 transition-colors"
+                      title="Download securely"
+                    >
+                      <Download className="size-3.5" />
+                    </a>
+
+
+                    <a
                       href={doc.fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -375,6 +412,14 @@ export default function DocumentUploadSection({
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <a
+                  href={`${previewDoc.fileUrl}${previewDoc.fileUrl?.includes('?') ? '&' : '?'}download=true`}
+                  className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                >
+                  <Download className="size-3" />
+                  Download
+                </a>
+
                 <a
                   href={previewDoc.fileUrl}
                   target="_blank"

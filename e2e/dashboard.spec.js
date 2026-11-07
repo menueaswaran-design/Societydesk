@@ -29,7 +29,7 @@ test.describe("Admin Dashboard & Quick Navigation", () => {
 
     // Check top action buttons are visible
     await expect(page.getByRole("link", { name: /Check-in Resident/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Record Payment/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Add payment/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Invoices/i })).toBeVisible();
   });
 
@@ -48,16 +48,16 @@ test.describe("Admin Dashboard & Quick Navigation", () => {
     await expect(page.locator("#select-room")).toBeVisible();
   });
 
-  test("clicking Record Payment navigates to payments route with record modal open", async ({ page }) => {
+  test("clicking Add payment navigates to payments route with record modal open", async ({ page }) => {
     await page.goto("/admin/dashboard");
 
-    const recordBtn = page.getByRole("link", { name: /Record Payment/i });
+    const recordBtn = page.getByRole("link", { name: /Add payment/i });
     await recordBtn.click();
 
     // Verify URL navigation
     await expect(page).toHaveURL(/\/admin\/billing\/payments\?action=record/);
 
-    // Verify record payment modal is visible
+    // Verify Add payment modal is visible
     const recordHeading = page.getByRole("heading", { name: /Record Offline \/ Direct Payment/i });
     await expect(recordHeading).toBeVisible();
   });

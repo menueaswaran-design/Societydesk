@@ -355,11 +355,13 @@ function DetailModal({ id, onClose, summary }) {
                   loading={busy}
                   onClick={() =>
                     act(() =>
-                      api.post(`/api/complaints/${detail.id}/status`, { status: "IN_PROGRESS" })
+                      api.post(`/api/complaints/${detail.id}/reopen`, {
+                        comment: "Resident reported issue is not resolved",
+                      })
                     )
                   }
                 >
-                  <RotateCcw />
+                  <RotateCcw className="size-3.5" />
                   Still an issue, reopen
                 </Button>
               </div>

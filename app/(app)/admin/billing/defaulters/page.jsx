@@ -3,7 +3,7 @@ import { requirePageRole } from "@/lib/auth/guard";
 import { listDefaulters } from "@/lib/billing/invoice";
 import DefaultersClient from "./DefaultersClient";
 
-export const metadata = { title: "Defaulters - Bedy" };
+export const metadata = { title: "Overdue - Bedy" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminDefaultersPage() {

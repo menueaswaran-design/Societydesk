@@ -2,13 +2,14 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, ChevronDown, ChevronRight, SlidersHorizontal, X } from "lucide-react";
+import { ShieldCheck, ChevronDown, ChevronRight, SlidersHorizontal, X, Clock, Users } from "lucide-react";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/Feedback";
 import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
 import { IconButton } from "@/components/ui/Button";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import { formatDateTime, titleCase } from "@/lib/format";
 
 export default function ActivityClient({ logs, entityTypes, filters }) {
@@ -61,10 +62,11 @@ export default function ActivityClient({ logs, entityTypes, filters }) {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Entries" value={logs.length} icon={ShieldCheck} />
-        <StatCard label="Today" value={todayCount} tone="blue" />
+        <StatCard label="Today" value={todayCount} tone="blue" icon={Clock} />
         <StatCard
           label="People involved"
           value={new Set(logs.map((l) => l.userId).filter(Boolean)).size}
+          icon={Users}
         />
       </div>
 
@@ -80,16 +82,13 @@ export default function ActivityClient({ logs, entityTypes, filters }) {
             value={query}
             onChange={setQuery}
             placeholder="Search action, user or reason"
-            className="min-w-52 flex-1"
+            className="min-w-52 flex-1 max-w-sm"
           />
 
-          <label className="relative inline-flex items-center">
-            <span className="sr-only">Entity type</span>
-            <SlidersHorizontal className="pointer-events-none absolute left-3 size-4 text-slate-400" />
-            <select
+          <div className="w-48">
+            <DropdownSelect
               value={filters.entityType ?? ""}
               onChange={(e) => entityFilter(e.target.value)}
-              className="h-10 rounded-xl border border-slate-900/10 bg-white pr-3 pl-9 text-sm text-slate-700 shadow-soft transition-colors focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
             >
               <option value="">All entities</option>
               {entityTypes.map((t) => (
@@ -97,8 +96,8 @@ export default function ActivityClient({ logs, entityTypes, filters }) {
                   {titleCase(t)}
                 </option>
               ))}
-            </select>
-          </label>
+            </DropdownSelect>
+          </div>
 
           <button type="submit" className="sr-only">
             Search

@@ -54,8 +54,8 @@ export default function RefundPolicyPage() {
             <h2 className="text-base font-bold text-neutral-900">4. Contacting Billing Support</h2>
             <p>
               For any refund inquiries or billing disputes, please contact us at{" "}
-              <a href="mailto:support@bedy.in" className="text-brand-600 font-semibold underline hover:text-brand-700">
-                support@bedy.in
+              <a href="mailto:support@quadrid.in" className="text-brand-600 font-semibold underline hover:text-brand-700">
+                support@quadrid.in
               </a>
               . Our billing team reviews and responds to all requests within 1-2 business days.
             </p>

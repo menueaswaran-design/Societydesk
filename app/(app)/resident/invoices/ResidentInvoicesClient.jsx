@@ -16,7 +16,7 @@ import {
   Zap,
   Utensils,
   Wrench,
-  Sparkles,
+  Shirt,
   Droplets,
   Home,
 } from "lucide-react";
@@ -39,49 +39,42 @@ function getItemBadge(type) {
       return {
         label: "Electricity",
         icon: Zap,
-        emoji: "⚡",
         bg: "bg-amber-50 text-amber-800 border-amber-200",
       };
     case "FOOD":
       return {
         label: "Food / Mess",
         icon: Utensils,
-        emoji: "🍽️",
         bg: "bg-emerald-50 text-emerald-800 border-emerald-200",
       };
     case "MAINTENANCE":
       return {
         label: "Maintenance",
         icon: Wrench,
-        emoji: "🔧",
         bg: "bg-sky-50 text-sky-800 border-sky-200",
       };
     case "LAUNDRY":
       return {
         label: "Laundry",
-        icon: Sparkles,
-        emoji: "🧺",
+        icon: Shirt,
         bg: "bg-purple-50 text-purple-800 border-purple-200",
       };
     case "WATER":
       return {
         label: "Water",
         icon: Droplets,
-        emoji: "💧",
         bg: "bg-blue-50 text-blue-800 border-blue-200",
       };
     case "RENT":
       return {
         label: "Room Rent",
         icon: Home,
-        emoji: "🏠",
         bg: "bg-indigo-50 text-indigo-800 border-indigo-200",
       };
     default:
       return {
         label: "Other",
         icon: Receipt,
-        emoji: "📋",
         bg: "bg-slate-50 text-slate-700 border-slate-200",
       };
   }
@@ -206,13 +199,14 @@ export default function ResidentInvoicesClient({ invoices }) {
                       <div className="mt-2 flex flex-wrap gap-1">
                         {inv.items.map((it) => {
                           const meta = getItemBadge(it.type);
+                          const Icon = meta.icon;
                           return (
                             <span
                               key={it.id}
                               className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border ${meta.bg}`}
                               title={it.name}
                             >
-                              <span>{meta.emoji}</span>
+                              <Icon className="size-3 shrink-0" />
                               <span className="truncate max-w-[110px]">{meta.label}</span>
                               <span className="font-bold">{formatMoney(it.amount)}</span>
                             </span>
@@ -351,13 +345,14 @@ export default function ResidentInvoicesClient({ invoices }) {
                       <div className="flex flex-wrap gap-1">
                         {inv.items.map((it) => {
                           const meta = getItemBadge(it.type);
+                          const Icon = meta.icon;
                           return (
                             <span
                               key={it.id}
                               className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border ${meta.bg}`}
                               title={it.name}
                             >
-                              <span>{meta.emoji}</span>
+                              <Icon className="size-3 shrink-0" />
                               <span className="truncate max-w-[110px]">{meta.label}</span>
                               <span className="font-semibold">{formatMoney(it.amount)}</span>
                             </span>
@@ -445,13 +440,14 @@ export default function ResidentInvoicesClient({ invoices }) {
                             <div className="mt-1 flex flex-wrap gap-1 max-w-[220px]">
                               {inv.items.map((it) => {
                                 const meta = getItemBadge(it.type);
+                                const Icon = meta.icon;
                                 return (
                                   <span
                                     key={it.id}
-                                    className={`inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[9.5px] font-medium border ${meta.bg}`}
+                                    className={`inline-flex items-center gap-1 rounded px-1 py-0.5 text-[9.5px] font-medium border ${meta.bg}`}
                                     title={`${it.name} (${formatMoney(it.amount)})`}
                                   >
-                                    <span>{meta.emoji}</span>
+                                    <Icon className="size-2.5 shrink-0" />
                                     <span>{meta.label}</span>
                                   </span>
                                 );

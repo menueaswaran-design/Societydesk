@@ -12,7 +12,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   MapPin,
-  Sparkles,
+
 } from "lucide-react";
 import Button, { IconButton } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";

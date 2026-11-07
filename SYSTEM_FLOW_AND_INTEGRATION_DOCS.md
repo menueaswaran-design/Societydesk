@@ -161,7 +161,7 @@ sequenceDiagram
     alt Option 1: Direct UPI (Zero Gateway Fee)
         R->>Page: Tap "Open GPay / PhonePe" (upi://pay intent)
         R->>M: Direct bank-to-bank transfer
-        M->>DB: Record Payment in Bedy & issue PDF Receipt
+        M->>DB: Add payment in Bedy & issue PDF Receipt
     else Option 2: Instant Online Checkout (Razorpay)
         R->>RZP: Pay via Cards / NetBanking / UPI
         RZP->>DB: Webhook confirms settlement

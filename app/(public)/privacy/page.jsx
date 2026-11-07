@@ -54,8 +54,8 @@ export default function PrivacyPage() {
             <h2 className="text-base font-bold text-neutral-900">4. Your Rights</h2>
             <p>
               Users may request access to, correction of, or deletion of their personal data by contacting us at{" "}
-              <a href="mailto:support@bedy.in" className="text-brand-600 font-semibold underline hover:text-brand-700">
-                support@bedy.in
+              <a href="mailto:support@quadrid.in" className="text-brand-600 font-semibold underline hover:text-brand-700">
+                support@quadrid.in
               </a>
               .
             </p>

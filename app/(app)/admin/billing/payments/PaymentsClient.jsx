@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, FileDown, Receipt, Undo2, Info, Landmark, Plus, User, BedDouble } from "lucide-react";
-import Button, { IconButton, TextAction } from "@/components/ui/Button";
+import { CreditCard, FileDown, Receipt, Pencil, Landmark, Plus, User, BedDouble, Smartphone } from "lucide-react";
+import Button, { IconButton } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
 import Badge from "@/components/ui/Badge";
 import { StatCard } from "@/components/ui/StatCard";
-import { CardNote } from "@/components/ui/Card";
 import { Input, Textarea } from "@/components/ui/Input";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
 import PageHeader from "@/components/ui/PageHeader";
@@ -29,7 +28,6 @@ export default function PaymentsClient({
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState("");
   const [editing, setEditing] = useState(null);
-  const [reversing, setReversing] = useState(null);
   const [recordingOpen, setRecordingOpen] = useState(initialRecordOpen || false);
   const [preselectedInvoice, setPreselectedInvoice] = useState(
     initialInvoiceId ? { id: initialInvoiceId } : null
@@ -104,7 +102,7 @@ export default function PaymentsClient({
         actions={
           <Button onClick={() => setRecordingOpen(true)}>
             <Plus />
-            Record payment
+            Add payment
           </Button>
         }
       />
@@ -140,6 +138,7 @@ export default function PaymentsClient({
           )}
           hint="UPI, bank transfer and cheque"
           tone="blue"
+          icon={Smartphone}
         />
       </div>
 
@@ -213,27 +212,20 @@ export default function PaymentsClient({
                         <button
                           type="button"
                           onClick={() => openReceipt(p)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold transition"
+                          className="inline-flex size-7.5 items-center justify-center rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 transition"
+                          title="Download receipt"
+                          aria-label="Download receipt"
                         >
-                          <FileDown className="size-3.5" />
-                          <span>Receipt</span>
+                          <FileDown className="size-4" />
                         </button>
                       ) : null}
-                      <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={() => setEditing(p)}
-                        className="h-7 text-xs px-2"
-                      >
-                        Edit
-                      </Button>
                       <IconButton
-                        variant="danger"
                         size="xs"
-                        label="Reverse payment"
-                        onClick={() => setReversing(p)}
+                        label="Edit payment"
+                        onClick={() => setEditing(p)}
+                        className="text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                       >
-                        <Undo2 className="size-3.5" />
+                        <Pencil className="size-3.5" />
                       </IconButton>
                     </div>
                   </div>
@@ -310,16 +302,20 @@ export default function PaymentsClient({
                           <button
                             type="button"
                             onClick={() => openReceipt(p)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold transition"
-                            title="Download or view payment receipt"
+                            className="inline-flex size-7.5 items-center justify-center rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 transition"
+                            title="Download receipt"
+                            aria-label="Download receipt"
                           >
-                            <FileDown className="size-3.5" />
-                            <span>Receipt</span>
+                            <FileDown className="size-4" />
                           </button>
                         ) : null}
-                        <TextAction onClick={() => setEditing(p)}>Edit</TextAction>
-                        <IconButton variant="danger" label="Reverse payment" onClick={() => setReversing(p)}>
-                          <Undo2 className="size-3.5" />
+                        <IconButton
+                          size="xs"
+                          label="Edit payment"
+                          onClick={() => setEditing(p)}
+                          className="text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                        >
+                          <Pencil className="size-3.5" />
                         </IconButton>
                       </div>
                     </Td>
@@ -345,12 +341,7 @@ export default function PaymentsClient({
         )}
       </div>
 
-      <CardNote tone="slate" icon={Info}>
-        Amounts cannot be edited once recorded. To correct an entry, reverse it with a reason and record a new payment.
-      </CardNote>
-
       <EditModal payment={editing} onClose={() => setEditing(null)} />
-      <ReverseModal payment={reversing} onClose={() => setReversing(null)} />
       <RecordPaymentModal
         open={recordingOpen}
         onClose={() => {
@@ -468,69 +459,4 @@ function EditModal({ payment, onClose }) {
 
 // ---------------------------------------------------------------------------
 
-function ReverseModal({ payment, onClose }) {
-  const router = useRouter();
-  const [reason, setReason] = useState("");
-  const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  async function submit() {
-    setSubmitting(true);
-    setError(null);
-    try {
-      await api.post(`/api/payments/${payment.id}/reverse`, { reason });
-      router.refresh();
-      close();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function close() {
-    setReason("");
-    setError(null);
-    onClose();
-  }
-
-  return (
-    <Modal
-      open={Boolean(payment)}
-      onClose={close}
-      title="Reverse payment"
-      description="Reversing voids the receipt and restores the outstanding amount on the invoice."
-      size="md"
-    >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-        className="stack"
-      >
-        <ErrorBanner error={error} />
-        <p className="text-xs text-slate-600">
-          Reversing payment of <strong className="text-slate-900">{formatMoney(payment?.amount ?? 0)}</strong> for{" "}
-          <strong className="text-slate-900">{payment?.residentName || "Resident"}</strong> ({payment?.unitLabel}).
-        </p>
-        <Textarea
-          label="Reason for reversal"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="e.g. Duplicate entry, bounced cheque, wrong account"
-          rows={3}
-          required
-        />
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={close}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="danger" loading={submitting}>
-            Confirm reversal
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
