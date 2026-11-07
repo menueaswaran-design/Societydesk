@@ -15,9 +15,14 @@ describe("Email Login Routing (lib/email)", () => {
   const originalVercelUrl = process.env.VERCEL_URL;
 
   afterEach(() => {
-    process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
-    process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
-    process.env.VERCEL_URL = originalVercelUrl;
+    if (originalAppUrl !== undefined) process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
+    else delete process.env.NEXT_PUBLIC_APP_URL;
+
+    if (originalSiteUrl !== undefined) process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
+    else delete process.env.NEXT_PUBLIC_SITE_URL;
+
+    if (originalVercelUrl !== undefined) process.env.VERCEL_URL = originalVercelUrl;
+    else delete process.env.VERCEL_URL;
   });
 
   describe("getLoginUrl()", () => {
@@ -31,10 +36,16 @@ describe("Email Login Routing (lib/email)", () => {
       expect(getLoginUrl()).toBe("https://bedy.in/login");
     });
 
-    test("prevents duplicate /login paths if already configured with /login", () => {
+    test("automatically redirects any *.vercel.app domain to https://bedy.in/login to avoid Vercel login wall", () => {
       process.env.NEXT_PUBLIC_APP_URL = "https://desk-delta-five.vercel.app/login";
-      expect(getLoginUrl()).toBe("https://desk-delta-five.vercel.app/login");
+      expect(getLoginUrl()).toBe("https://bedy.in/login");
 
+      process.env.VERCEL_URL = "desk-delta-five.vercel.app";
+      delete process.env.NEXT_PUBLIC_APP_URL;
+      expect(getLoginUrl()).toBe("https://bedy.in/login");
+    });
+
+    test("prevents duplicate /login paths if already configured with /login", () => {
       process.env.NEXT_PUBLIC_APP_URL = "https://bedy.in/login/";
       expect(getLoginUrl()).toBe("https://bedy.in/login");
     });
@@ -80,11 +91,11 @@ describe("Email Login Routing (lib/email)", () => {
       expect(result).toEqual({ success: false, provider: "console" });
 
       const logCalls = consoleLogSpy.mock.calls.map((c) => c.join(" ")).join("\n");
-      expect(logCalls).toContain("http://localhost:3000/login?email=owner%40srilakshmipg.local");
+      expect(logCalls).toContain("http://localhost:3000/login");
       expect(logCalls).toContain("Property Owner / Admin");
     });
 
-    test("routes Manager welcome emails cleanly to /login", async () => {
+    test("routes Manager welcome emails cleanly to https://bedy.in/login", async () => {
       process.env.NEXT_PUBLIC_APP_URL = "https://bedy.in";
       delete process.env.RESEND_API_KEY;
       delete process.env.SMTP_HOST;
@@ -98,11 +109,11 @@ describe("Email Login Routing (lib/email)", () => {
       });
 
       const logCalls = consoleLogSpy.mock.calls.map((c) => c.join(" ")).join("\n");
-      expect(logCalls).toContain("https://bedy.in/login?email=manager%40srilakshmipg.local");
+      expect(logCalls).toContain("https://bedy.in/login");
       expect(logCalls).toContain("PG / Hostel Manager");
     });
 
-    test("routes Resident welcome emails cleanly to /login with room and bed details", async () => {
+    test("routes Resident welcome emails cleanly to https://bedy.in/login with room and bed details", async () => {
       process.env.NEXT_PUBLIC_APP_URL = "https://bedy.in";
       delete process.env.RESEND_API_KEY;
       delete process.env.SMTP_HOST;
@@ -118,7 +129,7 @@ describe("Email Login Routing (lib/email)", () => {
       });
 
       const logCalls = consoleLogSpy.mock.calls.map((c) => c.join(" ")).join("\n");
-      expect(logCalls).toContain("https://bedy.in/login?email=resident%40srilakshmipg.local");
+      expect(logCalls).toContain("https://bedy.in/login");
       expect(logCalls).toContain("Room 101 · Bed A (Lower)");
     });
   });
