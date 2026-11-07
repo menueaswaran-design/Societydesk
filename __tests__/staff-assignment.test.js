@@ -4,6 +4,7 @@ import {
   addSocietyAssignment,
   getUserAccessibleSocieties,
   getPGManagersForSocieties,
+  ensureStaffAssignmentTable,
 } from "@/lib/db/staffAssignments";
 import { getMultiPGSnapshot } from "@/lib/queries/dashboard";
 import { prisma } from "@/lib/db/prisma";
@@ -129,6 +130,19 @@ describe("Staff & Multi-PG Assignments", () => {
       expect(parsed.managerIds).toEqual(["mgr-1", "mgr-2"]);
       expect(parsed.setAsActive).toBe(true);
       expect(parsed.adminName).toBeUndefined();
+    });
+
+    test("ensureStaffAssignmentTable executes table and index creation statements as distinct single commands", async () => {
+      prisma.$executeRawUnsafe.mockClear();
+      await ensureStaffAssignmentTable();
+      // Ensure none of the calls contain multiple statements (semicolon separated)
+      const calls = prisma.$executeRawUnsafe.mock.calls;
+      for (const [sql] of calls) {
+        if (typeof sql === "string") {
+          const statements = sql.split(";").filter((s) => s.trim().length > 0);
+          expect(statements.length).toBeLessThanOrEqual(1);
+        }
+      }
     });
 
     test("addSocietyAssignment inserts without removing other assignments", async () => {
