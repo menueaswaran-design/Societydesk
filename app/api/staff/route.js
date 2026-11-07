@@ -237,12 +237,12 @@ const POSTImpl = handler(async (req) => {
     newValue: { name: created.name, email: created.email, role: created.role, targetSocietyIds },
   });
 
-  // Send welcome email with login credentials
+  // Send welcome email with login credentials (await is required on serverless platforms)
   const targetSociety = primarySocietyId
     ? await prisma.society.findUnique({ where: { id: primarySocietyId }, select: { name: true } })
     : null;
 
-  sendUserWelcomeEmail({
+  await sendUserWelcomeEmail({
     email: created.email,
     name: created.name,
     role: created.role,

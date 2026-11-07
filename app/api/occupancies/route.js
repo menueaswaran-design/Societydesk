@@ -224,12 +224,12 @@ export const POST = handler(async (req) => {
     },
   });
 
-  // Send welcome email with login credentials to resident
+  // Send welcome email with login credentials to resident (await required on serverless)
   const society = societyId
     ? await prisma.society.findUnique({ where: { id: societyId }, select: { name: true, phone: true } })
     : null;
 
-  sendUserWelcomeEmail({
+  await sendUserWelcomeEmail({
     email: body.email.toLowerCase(),
     name: body.name,
     role: "RESIDENT",

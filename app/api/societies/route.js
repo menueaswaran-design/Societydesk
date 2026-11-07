@@ -188,7 +188,7 @@ const POSTImpl = handler(async (req) => {
   });
 
   if (adminIdentity && body.adminEmail && adminFinalPassword) {
-    sendUserWelcomeEmail({
+    await sendUserWelcomeEmail({
       email: body.adminEmail.toLowerCase(),
       name: body.adminName,
       role: isOwner(user) ? "MANAGER" : (body.adminRole || "MANAGER"),
