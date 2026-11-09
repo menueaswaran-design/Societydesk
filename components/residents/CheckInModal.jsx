@@ -9,9 +9,11 @@ import {
   Eye,
   Trash2,
   CheckCircle2,
+  Check,
 } from "lucide-react";
 import Button, { Spinner } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import { ErrorBanner } from "@/components/ui/Feedback";
 import { api } from "@/lib/client/api";
 
@@ -388,7 +390,8 @@ export default function CheckInModal({
                       : "bg-slate-100 text-slate-500"
                   }`}
                 >
-                  Aadhaar {checkInDocs.some((d) => d.docType === "AADHAAR") ? "✓" : "Pending"}
+                  {checkInDocs.some((d) => d.docType === "AADHAAR") ? <Check className="size-3 text-emerald-600 shrink-0" /> : null}
+                  <span>Aadhaar {checkInDocs.some((d) => d.docType === "AADHAAR") ? "Verified" : "Pending"}</span>
                 </span>
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
@@ -397,7 +400,8 @@ export default function CheckInModal({
                       : "bg-slate-100 text-slate-500"
                   }`}
                 >
-                  PAN {checkInDocs.some((d) => d.docType === "PAN") ? "✓" : "Pending"}
+                  {checkInDocs.some((d) => d.docType === "PAN") ? <Check className="size-3 text-emerald-600 shrink-0" /> : null}
+                  <span>PAN {checkInDocs.some((d) => d.docType === "PAN") ? "Verified" : "Pending"}</span>
                 </span>
               </div>
             </div>
@@ -408,17 +412,16 @@ export default function CheckInModal({
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                     Select Document Needed
                   </label>
-                  <select
+                  <DropdownSelect
                     value={docTypeToUpload}
                     onChange={(e) => setDocTypeToUpload(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:outline-none"
                   >
                     {KYC_DOCUMENT_OPTIONS.map((t) => (
                       <option key={t.value} value={t.value}>
                         {t.label} {t.required ? "(Recommended)" : ""}
                       </option>
                     ))}
-                  </select>
+                  </DropdownSelect>
                 </div>
 
                 <div className="sm:col-span-6">

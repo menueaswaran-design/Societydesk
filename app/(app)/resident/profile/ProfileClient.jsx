@@ -14,6 +14,8 @@ import {
   AlertCircle,
   FileCheck2,
   Bell,
+  Check,
+  AlertTriangle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardHeader, CardNote } from "@/components/ui/Card";
@@ -30,7 +32,7 @@ import NotificationBellToggle from "@/components/notifications/NotificationBellT
 
 export default function ProfileClient({ account, flats, initialDocuments = [] }) {
   const router = useRouter();
-  const [form, setForm] = useState({ name: account?.name ?? "", phone: account?.phone ?? "" });
+  const [form, setForm] = useState({ name: account?.name ?? "" });
   const [documents, setDocuments] = useState(initialDocuments);
   const [error, setError] = useState(null);
   const [errors, setErrors] = useState({});
@@ -54,7 +56,7 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
     setError(null);
     setErrors({});
     try {
-      await api.patch("/api/profile", { name: form.name, phone: form.phone || null });
+      await api.patch("/api/profile", { name: form.name });
       setSaved(true);
       router.refresh();
     } catch (err) {
@@ -65,8 +67,7 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
     }
   }
 
-  const dirty =
-    form.name !== (account?.name ?? "") || form.phone !== (account?.phone ?? "");
+  const dirty = form.name !== (account?.name ?? "");
 
   return (
     <div className="stack">
@@ -136,7 +137,17 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
               isKycComplete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
             }`}
           >
-            {isKycComplete ? "✓ KYC Verified" : "⚠ KYC Pending"}
+            {isKycComplete ? (
+              <>
+                <Check className="size-3 text-emerald-700 shrink-0" />
+                <span>KYC Verified</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="size-3 text-amber-700 shrink-0" />
+                <span>KYC Pending</span>
+              </>
+            )}
           </span>
           <StatusBadge status={account?.status} />
         </div>
@@ -146,7 +157,7 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
         <Card>
           <CardHeader
             title="Personal details"
-            subtitle="Name and phone are editable. Email and role are managed by your society."
+            subtitle="Full name is editable. Phone number, email, and role are verified and managed by your society."
           />
           <form onSubmit={submit} className="flex flex-col gap-4 px-5 py-4">
             <ErrorBanner error={error} />
@@ -159,21 +170,17 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
               error={errors.name}
               required
             />
-            <Input
-              id="phone"
-              label="Phone"
-              type="tel"
-              value={form.phone}
-              onChange={set("phone")}
-              error={errors.phone}
-              placeholder="9876543210"
-              hint="Used for urgent society announcements"
-            />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ReadOnlyField label="Phone number" value={account?.phone ?? "—"} />
               <ReadOnlyField label="Email" value={account?.email ?? "—"} />
-              <ReadOnlyField label="Role" value={titleCase(account?.role ?? "—")} />
             </div>
+
+            <ReadOnlyField label="Role" value={titleCase(account?.role ?? "—")} />
+
+            <p className="text-[11.5px] text-slate-500">
+              Phone number, email, and role are verified credentials managed by your PG / society administration.
+            </p>
 
             {saved ? <SuccessBanner title="Profile updated" icon={CheckCircle2} /> : null}
 
@@ -245,7 +252,17 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
                     isKycComplete ? "text-emerald-700" : "text-amber-700"
                   }`}
                 >
-                  {isKycComplete ? "✓ Complete (Aadhaar & PAN)" : "⚠ Missing Documents"}
+                  {isKycComplete ? (
+                    <>
+                      <Check className="size-3 text-emerald-700 shrink-0" />
+                      <span>Complete (Aadhaar & PAN)</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="size-3 text-amber-700 shrink-0" />
+                      <span>Missing Documents</span>
+                    </>
+                  )}
                 </span>
               </Row>
               <Row label="Member since">{formatDate(account?.createdAt)}</Row>
@@ -306,8 +323,8 @@ export default function ProfileClient({ account, flats, initialDocuments = [] })
       </div>
 
       <CardNote tone="slate" icon={Info} title="Managed by your society">
-        Need your email, role or flat changed? Your society admin handles those so that billing and
-        complaint history stay attached to the right person.
+        Need your phone number, email, role or flat changed? Your society admin handles those so that billing,
+        login credentials, and complaint history stay attached to the right person.
       </CardNote>
 
       <CardNote tone="brand" icon={KeyRound} title="Changing your sign-in method">

@@ -1,6 +1,6 @@
 import { getServerSession } from "@/lib/auth/server";
 import { requirePageRole } from "@/lib/auth/guard";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withDbRetry } from "@/lib/db/prisma";
 import { outstandingOn } from "@/lib/billing/penalty";
 import InvoicesClient from "./InvoicesClient";
 
@@ -22,61 +22,75 @@ export default async function AdminInvoicesPage({ searchParams }) {
   const summaryWhere = { societyId: user.societyId, status: { not: "CANCELLED" } };
   if (period) summaryWhere.billingPeriod = period;
 
-  const [invoices, summary, rawUnits, occupancies, meterLogs] = await Promise.all([
-    prisma.invoice.findMany({
-      where,
-      include: {
-        society: { select: { id: true, name: true, phone: true } },
-        flat: {
-          select: {
-            id: true,
-            flatNumber: true,
-            block: true,
-            residents: {
-              where: { endDate: null },
-              include: { user: { select: { name: true, phone: true } } },
-              orderBy: { isPrimary: "desc" },
-              take: 1,
+  const [invoices, summary, rawUnits, occupancies, meterLogs, societyRecord, autoConfigRecord] =
+    await withDbRetry(() =>
+      Promise.all([
+        prisma.invoice.findMany({
+          where,
+          include: {
+            society: { select: { id: true, name: true, phone: true } },
+            flat: {
+              select: {
+                id: true,
+                flatNumber: true,
+                block: true,
+                residents: {
+                  where: { endDate: null },
+                  include: { user: { select: { name: true, phone: true } } },
+                  orderBy: { isPrimary: "desc" },
+                  take: 1,
+                },
+              },
+            },
+            occupancy: {
+              include: {
+                unit: { select: { id: true, unitNumber: true } },
+                bed: { select: { id: true, bedLabel: true } },
+                user: { select: { id: true, name: true, phone: true } },
+              },
+            },
+            items: true,
+            payments: { include: { receipts: true }, orderBy: { paymentDate: "desc" } },
+          },
+          orderBy: [{ billingPeriod: "desc" }, { invoiceNumber: "desc" }],
+          take: 200,
+        }),
+        prisma.invoice.aggregate({
+          where: summaryWhere,
+          _sum: { totalAmount: true, paidAmount: true, penalty: true, previousDue: true },
+        }),
+        prisma.unit.findMany({
+          where: { societyId: user.societyId },
+          select: { id: true, unitNumber: true, floor: true, rentAmount: true },
+          orderBy: { unitNumber: "asc" },
+        }),
+        prisma.occupancy.findMany({
+          where: { societyId: user.societyId, status: { in: ["ACTIVE", "NOTICE"] } },
+          include: {
+            user: { select: { id: true, name: true, phone: true } },
+            unit: { select: { id: true, unitNumber: true, rentAmount: true, floor: true } },
+            bed: { select: { id: true, bedLabel: true, rentAmount: true } },
+            invoices: {
+              where: { status: { not: "CANCELLED" } },
+              select: { id: true, totalAmount: true, paidAmount: true, dueDate: true, billingPeriod: true, status: true },
             },
           },
-        },
-        occupancy: {
-          include: {
-            unit: { select: { id: true, unitNumber: true } },
-            bed: { select: { id: true, bedLabel: true } },
-            user: { select: { id: true, name: true, phone: true } },
-          },
-        },
-        items: true,
-        payments: { include: { receipts: true }, orderBy: { paymentDate: "desc" } },
-      },
-      orderBy: [{ billingPeriod: "desc" }, { invoiceNumber: "desc" }],
-      take: 200,
-    }),
-    prisma.invoice.aggregate({
-      where: summaryWhere,
-      _sum: { totalAmount: true, paidAmount: true, penalty: true, previousDue: true },
-    }),
-    prisma.unit.findMany({
-      where: { societyId: user.societyId },
-      select: { id: true, unitNumber: true, floor: true, rentAmount: true },
-      orderBy: { unitNumber: "asc" },
-    }),
-    prisma.occupancy.findMany({
-      where: { societyId: user.societyId, status: { in: ["ACTIVE", "NOTICE"] } },
-      include: {
-        user: { select: { id: true, name: true, phone: true } },
-        unit: { select: { id: true, unitNumber: true } },
-        bed: { select: { id: true, bedLabel: true } },
-      },
-      orderBy: [{ unit: { unitNumber: "asc" } }, { bed: { bedLabel: "asc" } }],
-    }),
-    prisma.auditLog.findMany({
-      where: { societyId: user.societyId, entityType: "UNIT_METER" },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    }),
-  ]);
+          orderBy: [{ unit: { unitNumber: "asc" } }, { bed: { bedLabel: "asc" } }],
+        }),
+        prisma.auditLog.findMany({
+          where: { societyId: user.societyId, entityType: "UNIT_METER" },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
+        prisma.society.findUnique({
+          where: { id: user.societyId },
+          select: { id: true, name: true, code: true, dueDay: true, type: true },
+        }),
+        prisma.feeConfiguration.findFirst({
+          where: { societyId: user.societyId, name: "AUTO_INVOICE_CONFIG" },
+        }),
+      ])
+    );
 
   // Map each room's latest stored meter reading from previous month
   const latestMeterByRoom = {};
@@ -155,11 +169,33 @@ export default async function AdminInvoicesPage({ searchParams }) {
 
   const initialGenerateOpen = params?.action === "generate";
 
+  let initialAutoConfig = {
+    mode: "CONFIRMATION",
+    dueDay: societyRecord?.dueDay || 10,
+    penaltyPercent: 2,
+    previousDue: true,
+    skipVacant: true,
+    lastAutoPeriod: null,
+  };
+  if (autoConfigRecord?.flatTypeAmounts) {
+    try {
+      const parsed =
+        typeof autoConfigRecord.flatTypeAmounts === "string"
+          ? JSON.parse(autoConfigRecord.flatTypeAmounts)
+          : autoConfigRecord.flatTypeAmounts;
+      initialAutoConfig = { ...initialAutoConfig, ...parsed };
+    } catch {
+      // fallback
+    }
+  }
+
   return (
     <InvoicesClient
       invoices={withOutstanding}
       units={unitsWithMeters}
       occupancies={occupancies}
+      society={societyRecord}
+      initialAutoConfig={initialAutoConfig}
       filters={{ status, period }}
       initialGenerateOpen={initialGenerateOpen}
       summary={{

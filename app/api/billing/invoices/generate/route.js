@@ -48,7 +48,7 @@ export const POST = handler(async (req) => {
         select: { name: true },
       });
       const pgName = society?.name || "Bedy PG";
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bedy.in";
+      const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://bedy.in").replace(/\/+$/, "");
 
       for (const inv of result.invoices) {
         let recipient = null;

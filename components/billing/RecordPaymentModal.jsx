@@ -13,6 +13,8 @@ import {
   User,
   BedDouble,
   Check,
+  QrCode,
+  Banknote,
   Calendar,
   ArrowRight,
   X,
@@ -26,11 +28,11 @@ import { api, fieldErrors, openDocument } from "@/lib/client/api";
 import { formatDate, formatMoney, formatPeriod, titleCase } from "@/lib/format";
 
 const PAYMENT_METHODS = [
-  { value: "UPI", label: "UPI / QR", icon: "📱" },
-  { value: "CASH", label: "Cash", icon: "💵" },
-  { value: "BANK_TRANSFER", label: "Bank Transfer", icon: "🏦" },
-  { value: "CHEQUE", label: "Cheque", icon: "📝" },
-  { value: "OTHER", label: "Other", icon: "💳" },
+  { value: "UPI", label: "UPI / QR", icon: QrCode },
+  { value: "CASH", label: "Cash", icon: Banknote },
+  { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark },
+  { value: "CHEQUE", label: "Cheque", icon: FileText },
+  { value: "OTHER", label: "Other", icon: CreditCard },
 ];
 
 function getResidentName(inv) {
@@ -153,7 +155,7 @@ export default function RecordPaymentModal({
   async function submit(e) {
     e?.preventDefault();
     if (!selectedInvoiceId) {
-      setError("Please select a resident to record payment for.");
+      setError("Please select a resident to Add payment for.");
       return;
     }
 
@@ -397,7 +399,10 @@ export default function RecordPaymentModal({
                               {formatMoney(inv.outstanding)}
                             </span>
                             {isSelected ? (
-                              <span className="text-[10px] font-bold text-brand-600">✓ Selected</span>
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-600">
+                                <Check className="size-3 shrink-0" />
+                                <span>Selected</span>
+                              </span>
                             ) : (
                               <span className="text-[10px] text-slate-400">Click to pick</span>
                             )}
@@ -450,6 +455,7 @@ export default function RecordPaymentModal({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {PAYMENT_METHODS.slice(0, 4).map((m) => {
                   const isPicked = paymentMethod === m.value;
+                  const Icon = m.icon;
                   return (
                     <button
                       key={m.value}
@@ -461,7 +467,7 @@ export default function RecordPaymentModal({
                           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <span>{m.icon}</span>
+                      <Icon className={`size-3.5 shrink-0 ${isPicked ? "text-brand-600" : "text-slate-500"}`} />
                       <span>{m.label}</span>
                     </button>
                   );

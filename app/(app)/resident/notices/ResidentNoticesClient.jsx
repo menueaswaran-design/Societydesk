@@ -25,7 +25,7 @@ import Avatar from "@/components/ui/Avatar";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
 import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
-import { FilterChips } from "@/components/ui/FilterPills";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import { api } from "@/lib/client/api";
 import { formatDate, titleCase } from "@/lib/format";
 
@@ -89,12 +89,6 @@ const CATEGORY_CONFIG = {
 function getCategoryConfig(category) {
   return CATEGORY_CONFIG[category] ?? CATEGORY_CONFIG.GENERAL;
 }
-
-const READ_STATUS_OPTIONS = [
-  { value: "ALL", label: "All notices" },
-  { value: "UNREAD", label: "Unread" },
-  { value: "READ", label: "Read" },
-];
 
 export default function ResidentNoticesClient({ notices = [], readIds = [] }) {
   const router = useRouter();
@@ -220,7 +214,7 @@ export default function ResidentNoticesClient({ notices = [], readIds = [] }) {
       <ErrorBanner error={error} />
 
       {/* 2. Top Summary KPI Cards (App Design Style) */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         {/* Total Notices */}
         <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs">
           <div className="flex items-start justify-between gap-2">
@@ -268,25 +262,9 @@ export default function ResidentNoticesClient({ notices = [], readIds = [] }) {
           </p>
           <p className="mt-1 text-xs text-slate-500 font-medium">High priority updates</p>
         </div>
-
-        {/* Read Archive */}
-        <div className="group relative overflow-hidden rounded-2xl border border-emerald-100/80 bg-white p-4 sm:p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Completed
-            </p>
-            <span className="inline-flex size-8 sm:size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20">
-              <Check className="size-4 sm:size-4.5" />
-            </span>
-          </div>
-          <p className="tabular mt-2 text-2xl sm:text-[26px] font-extrabold tracking-tight text-emerald-700">
-            {readCount}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 font-medium">Notices marked as read</p>
-        </div>
       </div>
 
-      {/* 3. Controls Toolbar: Search & Read Status Filters */}
+      {/* 3. Controls Toolbar: Search (Left) & Dropdown Filters (Right) */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full sm:max-w-xs">
           <SearchInput
@@ -296,27 +274,39 @@ export default function ResidentNoticesClient({ notices = [], readIds = [] }) {
           />
         </div>
 
-        <FilterChips
-          options={READ_STATUS_OPTIONS}
-          value={readFilter}
-          onChange={setReadFilter}
-        />
-      </div>
+        <div className="flex flex-wrap items-center gap-2.5 sm:justify-end">
+          {/* Read Status Dropdown */}
+          <div className="w-full sm:w-44">
+            <DropdownSelect
+              value={readFilter}
+              onChange={(e) => setReadFilter(e.target.value)}
+              size="md"
+            >
+              <option value="ALL">All notices</option>
+              <option value="UNREAD">Unread {unreadCount > 0 ? `(${unreadCount})` : ""}</option>
+              <option value="READ">Read</option>
+            </DropdownSelect>
+          </div>
 
-      {/* 4. Category Filter Chips */}
-      {distinctCategories.length > 1 && (
-        <FilterChips
-          options={[
-            { value: "", label: "All categories" },
-            ...distinctCategories.map((c) => ({
-              value: c,
-              label: titleCase(c),
-            })),
-          ]}
-          value={selectedCategory}
-          onChange={setSelectedCategory}
-        />
-      )}
+          {/* Category Dropdown */}
+          {distinctCategories.length > 0 && (
+            <div className="w-full sm:w-48">
+              <DropdownSelect
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                size="md"
+              >
+                <option value="">All categories</option>
+                {distinctCategories.map((c) => (
+                  <option key={c} value={c}>
+                    {titleCase(c)}
+                  </option>
+                ))}
+              </DropdownSelect>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* 5. Notices List / Empty State */}
       {visible.length === 0 ? (
@@ -347,7 +337,7 @@ export default function ResidentNoticesClient({ notices = [], readIds = [] }) {
           />
         </div>
       ) : (
-        <ul className="grid gap-4 lg:grid-cols-2">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((n) => {
             const isRead = read.has(n.id);
             const isUrgent = n.category === "URGENT";

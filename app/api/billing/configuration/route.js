@@ -19,7 +19,9 @@ const GETImpl = handler(async (req) => {
   const isAdmin = user.role === "SOCIETY_ADMIN" || user.role === "SUPER_ADMIN";
 
   const configs = await prisma.feeConfiguration.findMany({
-    where: isAdmin ? { societyId } : { societyId, active: true },
+    where: isAdmin
+      ? { societyId, name: { not: "AUTO_INVOICE_CONFIG" } }
+      : { societyId, active: true, name: { not: "AUTO_INVOICE_CONFIG" } },
     orderBy: [{ active: "desc" }, { type: "asc" }],
   });
 

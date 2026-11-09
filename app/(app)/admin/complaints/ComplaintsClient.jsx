@@ -8,13 +8,14 @@ import {
   UserCheck,
   MessagesSquare,
   Paperclip,
-  Send,
+  Send, Wrench, CheckCircle2, RotateCcw, Archive, Clock,
 } from "lucide-react";
 import Button, { TextAction } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Badge from "@/components/ui/Badge";
+import { StatCard } from "@/components/ui/StatCard";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/Feedback";
 import PageHeader from "@/components/ui/PageHeader";
@@ -26,7 +27,7 @@ import {
   COMPLAINT_CATEGORY,
   COMPLAINT_PRIORITY,
   COMPLAINT_STATUS,
-  COMPLAINT_TRANSITIONS,
+
 } from "@/lib/constants";
 import { formatDateTime, titleCase } from "@/lib/format";
 
@@ -42,13 +43,30 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
     const q = query.trim().toLowerCase();
     if (!q) return complaints;
     return complaints.filter((c) =>
-      [c.title, c.description, c.flat?.flatNumber, c.flat?.block, c.createdBy?.name]
+      [c.title, c.description, c.flat?.flatNumber, c.flat?.block, c.createdBy?.name, c.unitLabel, c.unit?.unitNumber]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
   }, [complaints, query]);
 
   const openComplaint = openId ? complaints.find((c) => c.id === openId) : null;
+
+  const activeCount = useMemo(
+    () => complaints.filter((c) => ["OPEN", "ASSIGNED", "IN_PROGRESS", "REOPENED"].includes(c.status)).length,
+    [complaints]
+  );
+  const inProgressCount = useMemo(
+    () => complaints.filter((c) => c.status === "IN_PROGRESS").length,
+    [complaints]
+  );
+  const resolvedCount = useMemo(
+    () => complaints.filter((c) => c.status === "RESOLVED").length,
+    [complaints]
+  );
+  const closedCount = useMemo(
+    () => complaints.filter((c) => c.status === "CLOSED").length,
+    [complaints]
+  );
 
   const totalItems = visible.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -78,7 +96,42 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
         }
       />
 
-      <StatusFilter active={filters.status} />
+      {/* Top Metric Cards */}
+      <div className="grid grid-cols-2 gap-3.5 sm:gap-4 sm:grid-cols-4">
+        <StatCard
+          label="Active Issues"
+          value={activeCount}
+          hint={`${inProgressCount} in progress`}
+          tone={activeCount > 0 ? "amber" : "default"}
+          icon={AlertTriangle}
+        />
+        <StatCard
+          label="Under Work"
+          value={inProgressCount}
+          hint="Repairs underway"
+          tone="blue"
+          icon={Wrench}
+        />
+        <StatCard
+          label="Resolved"
+          value={resolvedCount}
+          hint="Awaiting resident sign-off"
+          tone="green"
+          icon={CheckCircle2}
+        />
+        <StatCard
+          label="Closed"
+          value={closedCount}
+          hint="Completed & archived"
+          tone="default"
+          icon={Archive}
+        />
+      </div>
+
+      <StatusFilter
+        active={filters.status}
+        counts={{ active: activeCount, resolved: resolvedCount, closed: closedCount }}
+      />
 
       <div className="surface overflow-hidden">
         <div className="border-b border-slate-100 p-4">
@@ -227,17 +280,20 @@ export default function ComplaintsClient({ complaints, assignees, flats, filters
 
 // ---------------------------------------------------------------------------
 
-function StatusFilter({ active }) {
+function StatusFilter({ active, counts = { active: 0, resolved: 0, closed: 0 } }) {
   return (
     <FilterPills
       options={[
-        { value: "ALL", label: "All", href: "/admin/complaints", active: !active },
-        ...Object.values(COMPLAINT_STATUS).map((s) => ({
-          value: s,
-          label: titleCase(s),
-          href: `/admin/complaints?status=${s}`,
-          active: active === s,
-        })),
+        { value: "ALL", label: "All", href: "/admin/complaints", active: !active || active === "ALL" },
+        { value: "ACTIVE", label: `Active (${counts.active})`, href: "/admin/complaints?status=ACTIVE", active: active === "ACTIVE" },
+        { value: "RESOLVED", label: `Resolved (${counts.resolved})`, href: "/admin/complaints?status=RESOLVED", active: active === "RESOLVED" },
+        { value: "CLOSED", label: `Closed (${counts.closed})`, href: "/admin/complaints?status=CLOSED", active: active === "CLOSED" },
+
+
+
+
+
+
       ]}
     />
   );
@@ -296,7 +352,7 @@ function ComplaintDetail({ summary, assignees, onClose }) {
     }
   }
 
-  const transitions = detail ? (COMPLAINT_TRANSITIONS[detail.status] ?? []) : [];
+
 
   return (
     <Modal
@@ -345,59 +401,177 @@ function ComplaintDetail({ summary, assignees, onClose }) {
             </div>
           ) : null}
 
-          {/* ---------------------------------------------------- assignment */}
-          <div className="overflow-hidden rounded-xl ring-1 ring-slate-900/5">
-            <div className="flex flex-wrap items-end gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
-              <Select
-                id="assignTo"
-                label="Assigned to"
-                className="min-w-52"
-                value={assignTo}
-                onChange={(e) => setAssignTo(e.target.value)}
-              >
-                <option value="">Unassigned</option>
-                {assignees.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({titleCase(a.role)})
-                  </option>
-                ))}
-              </Select>
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={busy}
-                disabled={assignTo === (detail.assignedToId ?? "")}
-                onClick={() =>
-                  act(() =>
-                    api.post(`/api/complaints/${detail.id}/assign`, {
-                      assignedToId: assignTo || null,
-                    })
-                  )
-                }
-              >
-                <UserCheck />
-                Save assignment
-              </Button>
+          {/* ---------------------------------------------------- Stage, Assignment & Actions */}
+          <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xs">
+            {/* Header: Stage and Assignment */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 bg-neutral-50/70 p-4">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 block">
+                  Current Status
+                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <StatusBadge status={detail.status} />
+                  <span className="text-xs text-neutral-600 font-medium">
+                    {detail.status === "OPEN" && "Awaiting assignment or work"}
+                    {detail.status === "ASSIGNED" && `Assigned to ${detail.assignedTo?.name || "staff"} · Ready to begin`}
+                    {detail.status === "IN_PROGRESS" && "Staff is actively working on this issue"}
+                    {detail.status === "RESOLVED" && "Work completed · Waiting for resident to verify"}
+                    {detail.status === "CLOSED" && "Complaint completed and archived"}
+                    {detail.status === "REOPENED" && "Resident indicated problem was not fixed"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Assignee control */}
+              <div className="flex items-center gap-2 shrink-0">
+                <Select
+                  id="assignTo"
+                  className="min-w-44 text-xs"
+                  value={assignTo}
+                  onChange={(e) => setAssignTo(e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {assignees.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({titleCase(a.role)})
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={busy}
+                  disabled={assignTo === (detail.assignedToId ?? "")}
+                  onClick={() =>
+                    act(() =>
+                      api.post(`/api/complaints/${detail.id}/assign`, {
+                        assignedToId: assignTo || null,
+                      })
+                    )
+                  }
+                >
+                  <UserCheck className="size-3.5" />
+                  Save
+                </Button>
+              </div>
             </div>
 
-            {/* ----------------------------------------------------- status */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 py-3">
-              <span className="text-xs font-semibold text-slate-600">Move to</span>
-              {transitions.length === 0 ? (
-                <span className="text-xs text-slate-400">No further transitions</span>
-              ) : (
-                transitions.map((s) => (
-                  <Button
-                    key={s}
-                    size="sm"
-                    variant={s === "RESOLVED" ? "primary" : "secondary"}
-                    disabled={busy}
-                    onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: s }))}
-                  >
-                    {titleCase(s)}
-                  </Button>
-                ))
-              )}
+            {/* Status Flow Actions */}
+            <div className="p-4 bg-white border-b border-neutral-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="text-xs text-neutral-600">
+                  {detail.status === "RESOLVED" ? (
+                    <div className="flex items-center gap-2 text-emerald-800 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200/80">
+                      <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                      <span>
+                        <strong>Work marked as Resolved:</strong> Resident can verify and close or reopen. You can also finalize and close now.
+                      </span>
+                    </div>
+                  ) : detail.status === "CLOSED" ? (
+                    <span className="text-neutral-500 font-medium">
+                      Closed on {formatDateTime(detail.closedAt || detail.updatedAt)}.
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-neutral-700">Next Action:</span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {/* For OPEN, ASSIGNED, REOPENED */}
+                  {(detail.status === "OPEN" || detail.status === "ASSIGNED" || detail.status === "REOPENED") && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: "IN_PROGRESS" }))}
+                      >
+                        <Wrench className="size-3.5 text-blue-600" />
+                        Start Work
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        disabled={busy}
+                        onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: "RESOLVED" }))}
+                      >
+                        <CheckCircle2 className="size-3.5" />
+                        Mark Resolved
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-neutral-600 hover:text-neutral-900"
+                        disabled={busy}
+                        onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: "CLOSED" }))}
+                      >
+                        Close Directly
+                      </Button>
+                    </>
+                  )}
+
+                  {/* For IN_PROGRESS */}
+                  {detail.status === "IN_PROGRESS" && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        disabled={busy}
+                        onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: "RESOLVED" }))}
+                      >
+                        <CheckCircle2 className="size-3.5" />
+                        Mark as Resolved (Fixed)
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-neutral-600 hover:text-neutral-900"
+                        disabled={busy}
+                        onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: "CLOSED" }))}
+                      >
+                        Close Complaint
+                      </Button>
+                    </>
+                  )}
+
+                  {/* For RESOLVED */}
+                  {detail.status === "RESOLVED" && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: "IN_PROGRESS" }))}
+                      >
+                        <RotateCcw className="size-3.5" />
+                        Reopen (Needs More Work)
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        disabled={busy}
+                        onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: "CLOSED" }))}
+                      >
+                        <CheckCircle2 className="size-3.5" />
+                        Confirm & Close
+                      </Button>
+                    </>
+                  )}
+
+                  {/* For CLOSED */}
+                  {detail.status === "CLOSED" && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={busy}
+                      onClick={() => act(() => api.post(`/api/complaints/${detail.id}/status`, { status: "REOPENED" }))}
+                    >
+                      <RotateCcw className="size-3.5" />
+                      Reopen Complaint
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* --------------------------------------------------- timeline */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellRing, X, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
+import { Bell, BellRing, X, CheckCircle2, ShieldCheck } from "lucide-react";
 import Button, { Spinner } from "@/components/ui/Button";
 import {
   isPushSupported,

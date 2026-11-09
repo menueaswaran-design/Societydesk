@@ -13,9 +13,11 @@ import {
   X,
   FileMinus,
   Coins,
+  RotateCcw,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
 import Pagination from "@/components/ui/Pagination";
@@ -126,29 +128,73 @@ export default function DepositsClient({ initialDeposits = [] }) {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-4 shadow-2xs">
-          <p className="text-xs font-semibold text-emerald-800">Total Deposits Held</p>
-          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-emerald-700">{formatMoney(totalHeld)}</p>
-          <p className="text-[11px] text-emerald-600 mt-0.5">Active under management</p>
+      <div className="grid grid-cols-2 gap-3.5 sm:gap-4 sm:grid-cols-4">
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 truncate" title="Total Deposits Held">
+              Total Deposits Held
+            </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
+              <ShieldCheck className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-emerald-700 truncate" title={formatMoney(totalHeld)}>
+            {formatMoney(totalHeld)}
+          </p>
+          <div className="mt-2 text-xs font-medium text-emerald-600 truncate">
+            Active under management
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-          <p className="text-xs font-semibold text-slate-500">Total Received</p>
-          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">{formatMoney(totalReceived)}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">{deposits.length} total deposits</p>
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-neutral-300 hover:shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Total Received">
+              Total Received
+            </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+              <Coins className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={formatMoney(totalReceived)}>
+            {formatMoney(totalReceived)}
+          </p>
+          <div className="mt-2 text-xs font-medium text-neutral-500 truncate">
+            {deposits.length} total deposits
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 p-4 shadow-2xs">
-          <p className="text-xs font-semibold text-amber-800">Deductions Recorded</p>
-          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-amber-700">{formatMoney(totalDeductions)}</p>
-          <p className="text-[11px] text-amber-600 mt-0.5">Repairs, cleaning & dues</p>
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-amber-300 hover:shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 truncate" title="Deductions Recorded">
+              Deductions Recorded
+            </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-600/20">
+              <FileMinus className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-amber-700 truncate" title={formatMoney(totalDeductions)}>
+            {formatMoney(totalDeductions)}
+          </p>
+          <div className="mt-2 text-xs font-medium text-amber-600 truncate">
+            Repairs, cleaning & dues
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-sky-200/70 bg-sky-50/50 p-4 shadow-2xs">
-          <p className="text-xs font-semibold text-sky-800">Total Refunded</p>
-          <p className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-sky-700">{formatMoney(totalRefunded)}</p>
-          <p className="text-[11px] text-sky-600 mt-0.5">Returned upon check-out</p>
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-sky-300 hover:shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-sky-700 truncate" title="Total Refunded">
+              Total Refunded
+            </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-600/20">
+              <RotateCcw className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-sky-700 truncate" title={formatMoney(totalRefunded)}>
+            {formatMoney(totalRefunded)}
+          </p>
+          <div className="mt-2 text-xs font-medium text-sky-600 truncate">
+            Returned upon check-out
+          </div>
         </div>
       </div>
 
@@ -161,21 +207,21 @@ export default function DepositsClient({ initialDeposits = [] }) {
             placeholder="Search resident or room..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full rounded-xl border border-slate-200/90 bg-white py-2 pl-9.5 pr-3 text-xs text-slate-800 shadow-2xs placeholder:text-slate-400 focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
+            className="w-full h-9.5 rounded-xl border border-slate-200/90 bg-white pl-9.5 pr-3 text-xs sm:text-[13px] text-slate-800 shadow-2xs placeholder:text-slate-400 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none"
           />
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <select
+          <DropdownSelect
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:outline-none"
+            className="w-48"
           >
             <option value="ALL">All Deposits</option>
             <option value="HELD">Currently Held</option>
             <option value="REFUNDED">Refunded</option>
             <option value="PARTIALLY_REFUNDED">Partially Refunded</option>
-          </select>
+          </DropdownSelect>
         </div>
       </div>
 

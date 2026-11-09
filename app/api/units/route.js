@@ -73,8 +73,12 @@ export const POST = handler(async (req) => {
 
   const body = unitCreateSchema.parse(await readJson(req));
 
-  const capacity = Math.max(1, body.bedCapacity || 1);
-  const bedLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
+  const hasCustomBeds = Array.isArray(body.beds) && body.beds.length > 0;
+  const capacity = hasCustomBeds ? body.beds.length : Math.max(1, body.bedCapacity || 1);
+  const bedLetters = [
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+    "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
+  ];
 
   const unit = await prisma.$transaction(async (tx) => {
     const createdUnit = await tx.unit.create({
@@ -94,19 +98,38 @@ export const POST = handler(async (req) => {
 
     // Auto-generate beds for the room
     const bedCreations = [];
-    for (let i = 0; i < capacity; i++) {
-      const label = bedLetters[i] || `Bed ${i + 1}`;
-      bedCreations.push(
-        tx.bed.create({
-          data: {
-            societyId,
-            unitId: createdUnit.id,
-            bedLabel: label,
-            rentAmount: body.rentAmount,
-            status: "VACANT",
-          },
-        })
-      );
+    if (hasCustomBeds) {
+      for (const b of body.beds) {
+        bedCreations.push(
+          tx.bed.create({
+            data: {
+              societyId,
+              unitId: createdUnit.id,
+              bedLabel: b.bedLabel,
+              rentAmount:
+                b.rentAmount != null && !isNaN(b.rentAmount)
+                  ? Number(b.rentAmount)
+                  : body.rentAmount,
+              status: "VACANT",
+            },
+          })
+        );
+      }
+    } else {
+      for (let i = 0; i < capacity; i++) {
+        const label = bedLetters[i] || `Bed ${i + 1}`;
+        bedCreations.push(
+          tx.bed.create({
+            data: {
+              societyId,
+              unitId: createdUnit.id,
+              bedLabel: label,
+              rentAmount: body.rentAmount,
+              status: "VACANT",
+            },
+          })
+        );
+      }
     }
     await Promise.all(bedCreations);
 
@@ -124,4 +147,3 @@ export const POST = handler(async (req) => {
 
   return ok(unit, { status: 201 });
 });
-

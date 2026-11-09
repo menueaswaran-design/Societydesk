@@ -20,7 +20,9 @@ const ALLOWED = [
  * POST /api/uploads
  *
  * Uploads a document/image to Cloudinary (or fallback storage if Cloudinary is pending config).
- * Returns { fileUrl, publicId, resourceType, fileName, bytes }.
+ * For sensitive KYC / identity documents, uses Cloudinary 'authenticated' storage (UIDAI & DPDP compliance)
+ * and isolates local fallback storage outside public static directories.
+ * Returns { fileUrl, publicId, resourceType, fileName, bytes, isPrivate }.
  */
 const POSTImpl = handler(async (req) => {
   const user = await getSessionUser(req);
@@ -49,7 +51,7 @@ const POSTImpl = handler(async (req) => {
   if (!file || typeof file === "string") throw badRequest("No file provided");
   if (file.size > MAX_BYTES) throw badRequest("File must be smaller than 10 MB");
   if (!ALLOWED.includes(file.type)) {
-    throw badRequest(`Unsupported file type. Allowed: JPG, PNG, WEBP, PDF`);
+    throw badRequest("Unsupported file type. Allowed: JPG, PNG, WEBP, PDF");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -59,9 +61,21 @@ const POSTImpl = handler(async (req) => {
   const requestedFolder = String(form.get("folder") || "documents").replace(/[^a-zA-Z0-9/_-]/g, "");
   const folder = `bedy/${societyId || "global"}/${requestedFolder}`;
 
+  // Government & DPDP compliance: KYC & Identity proofs must be securely vaulted
+  const isPrivate =
+    form.get("isPrivate") === "true" ||
+    requestedFolder.toLowerCase().includes("kyc") ||
+    requestedFolder.toLowerCase().includes("document");
+  const uploadType = isPrivate ? "authenticated" : "upload";
+
   if (cloudinaryConfigured()) {
     try {
-      const result = await uploadBase64({ dataUri, folder, resourceType });
+      const result = await uploadBase64({
+        dataUri,
+        folder,
+        resourceType,
+        type: uploadType,
+      });
       return ok(
         {
           fileUrl: result.fileUrl,
@@ -69,6 +83,8 @@ const POSTImpl = handler(async (req) => {
           resourceType: result.resourceType,
           fileName: file.name,
           bytes: result.bytes,
+          isPrivate,
+          type: result.type,
         },
         { status: 201 }
       );
@@ -77,17 +93,25 @@ const POSTImpl = handler(async (req) => {
     }
   }
 
-  // Graceful fallback: Save to public/uploads or return data URI
+  // Graceful fallback: Store in private_uploads (for sensitive KYC) or public/uploads (for public assets)
   try {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", societyId || "global");
-    await fs.mkdir(uploadsDir, { recursive: true });
+
+    // Private KYC files must never reside inside public/ (which would expose them on the open web)
+    const baseDir = isPrivate
+      ? path.join(process.cwd(), "storage", "private_uploads", societyId || "global")
+      : path.join(process.cwd(), "public", "uploads", societyId || "global");
+
+    await fs.mkdir(baseDir, { recursive: true });
     const ext = file.name.split(".").pop() || (file.type === "application/pdf" ? "pdf" : "jpg");
     const safeName = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const filePath = path.join(uploadsDir, safeName);
+    const filePath = path.join(baseDir, safeName);
     await fs.writeFile(filePath, buffer);
-    const fileUrl = `/uploads/${societyId || "global"}/${safeName}`;
+
+    const fileUrl = isPrivate
+      ? `/api/documents/raw/${societyId || "global"}/${safeName}`
+      : `/uploads/${societyId || "global"}/${safeName}`;
 
     return ok(
       {
@@ -96,6 +120,8 @@ const POSTImpl = handler(async (req) => {
         resourceType,
         fileName: file.name,
         bytes: file.size,
+        isPrivate,
+        localPrivatePath: isPrivate ? path.join("storage", "private_uploads", societyId || "global", safeName) : null,
       },
       { status: 201 }
     );
@@ -108,6 +134,7 @@ const POSTImpl = handler(async (req) => {
         resourceType,
         fileName: file.name,
         bytes: file.size,
+        isPrivate,
       },
       { status: 201 }
     );

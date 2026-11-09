@@ -6,7 +6,7 @@ import { audit, AUDIT } from "@/lib/audit";
 import { notFound, forbidden } from "@/lib/errors";
 import { residentCreateSchema, paginationSchema } from "@/lib/validation/schemas";
 import { createFirebaseUser, sendFirebasePasswordReset } from "@/lib/firebase/identity";
-import { sendResidentWelcomeEmail } from "@/lib/email";
+import { sendResidentWelcomeEmail, generateTemporaryPassword } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -110,8 +110,8 @@ const POSTImpl = handler(async (req) => {
   ]);
   if (!flat) throw notFound("Flat");
 
-  // Default password for resident onboarding
-  const tempPassword = "bedy@123";
+  // Auto-generated unique temporary password for resident onboarding
+  const tempPassword = generateTemporaryPassword();
 
   // Provision Firebase auth identity if configured
   let authUid = null;
@@ -181,6 +181,7 @@ const POSTImpl = handler(async (req) => {
     name: body.name,
     password: tempPassword,
     societyName: society?.name,
+    societyId,
     flatNumber: flat.block ? `${flat.block}-${flat.flatNumber}` : flat.flatNumber,
   }).catch((e) => console.warn("[email] Error sending welcome email:", e?.message));
 

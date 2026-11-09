@@ -17,7 +17,7 @@ import {
 export const metadata = {
   title: "Features — Complete PG & Hostel Management Software | Bedy",
   description:
-    "Explore Bedy features: Live bed occupancy matrix, automated WhatsApp rent reminders with UPI, security deposit settlement, room sub-meter electricity engine, and resident maintenance.",
+    "Explore Bedy features: Live bed occupancy matrix, automated WhatsApp rent reminders with UPI, security deposit settlement, room sub-meter electricity engine, and resident maintenance .",
   alternates: {
     canonical: "/features",
   },
@@ -105,11 +105,11 @@ const featureList = [
     icon: AlertTriangle,
     color: "bg-rose-50 text-rose-600 border-rose-200",
     badge: "Cash Flow Protection",
-    title: "Defaulter Tracking & Daily Penalty Rules",
+    title: "Overdue Tracking & Daily Penalty Rules",
     description:
       "Keep cash flow healthy with an automated overdue dashboard. Set grace periods and automatic daily late penalty fees (e.g. ₹100/day after the 5th) that seamlessly attach to pending tenant invoices.",
     highlights: [
-      "Real-time defaulter roster sorted by highest outstanding balance",
+      "Real-time overdue roster sorted by highest outstanding balance",
       "Automated daily late penalty calculations with customizable grace periods",
       "Batch WhatsApp reminders to all overdue tenants in under 30 seconds",
     ],

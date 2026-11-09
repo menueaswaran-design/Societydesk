@@ -17,7 +17,7 @@ import {
   Phone,
   Mail,
   MapPin,
-  Sparkles,
+
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
@@ -116,7 +116,7 @@ export default function SocietiesClient({ societies, admins }) {
       {/* KPI Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard label="Total Properties" value={societies.length} icon={Building2} />
-        <StatCard label="Active Properties" value={active} tone="green" />
+        <StatCard label="Active Properties" value={active} tone="green" icon={CheckCircle2} />
         <StatCard
           label="Total Capacity"
           value={`${totalRooms} Rooms · ${totalBeds} Beds`}
@@ -136,7 +136,7 @@ export default function SocietiesClient({ societies, admins }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search property, manager, code, city..."
-              className="w-full rounded-xl border border-slate-200 py-2 pr-3 pl-9 text-xs sm:text-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
+              className="w-full h-9.5 rounded-xl border border-slate-200 pr-3 pl-9 text-xs sm:text-[13px] placeholder:text-slate-400 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none shadow-2xs transition-all"
             />
           </div>
         </div>
@@ -527,17 +527,16 @@ function PropertyEditor({ society, onClose }) {
                 />
               </div>
 
-              <Input
-                id="adminPassword"
-                label="Initial Sign-In Password"
-                type="text"
-                value={form.adminPassword}
-                onChange={set("adminPassword")}
-                error={errors.adminPassword}
-                required
-                placeholder="Minimum 6 characters"
-                hint="Share this temporary password with the manager for their first sign-in"
-              />
+              <div className="rounded-xl border border-blue-200/80 bg-blue-50/70 p-3 text-xs text-blue-900 flex items-start gap-2.5">
+                <Mail className="size-4 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Auto-Generated Sign-In Password</span>
+                  <p className="text-[11.5px] text-blue-700 mt-0.5 leading-relaxed">
+                    A secure temporary password will be automatically generated and emailed to{" "}
+                    <strong className="text-blue-950 font-semibold">{form.adminEmail || "the manager email"}</strong> upon creation. No manual password entry required.
+                  </p>
+                </div>
+              </div>
             </div>
           ) : null}
 

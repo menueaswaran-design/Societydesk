@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Clock,
   Calendar,
+  CalendarDays,
   Megaphone,
   CreditCard,
   FileText,
@@ -33,7 +34,7 @@ import {
   Zap,
   Utensils,
   Wrench,
-  Sparkles,
+  Shirt,
   Droplets,
 } from "lucide-react";
 
@@ -73,7 +74,7 @@ function getChargeMeta(type) {
     case "LAUNDRY":
       return {
         label: "Laundry",
-        icon: Sparkles,
+        icon: Shirt,
         bg: "bg-purple-50 text-purple-600 border-purple-200",
         badge: "bg-purple-100 text-purple-800",
       };
@@ -156,38 +157,51 @@ export default async function ResidentDashboardPage() {
 
   const hasLinkedUnit = (data.flats && data.flats.length > 0) || (data.occupancies && data.occupancies.length > 0);
 
+  const today = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   const quickActions = [
     {
       href: "/resident/invoices",
-      title: isPgResident ? "Pay rent & bills" : "Pay maintenance",
-      caption: due ? `${formatMoney(due.outstanding)} payable` : "All dues are cleared",
-      icon: Wallet,
+      title: isPgResident ? (due?.isOverdue ? "Overdue Rent" : "Rent & Bills") : "Maintenance",
+      value: due ? formatMoney(due.outstanding) : "₹0",
+      caption: due
+        ? (due.isOverdue ? "Invoice past due" : "Payment pending")
+        : "All dues are cleared",
+      icon: due?.isOverdue ? AlertTriangle : Wallet,
       tone: due ? (due.isOverdue ? "red" : "amber") : "green",
-      badge: due ? "Pay now" : "Clear",
     },
     {
       href: "/resident/complaints",
-      title: "Raise a complaint",
+      title: "Complaints",
+      value: String(data.activeComplaints?.length || 0),
       caption:
         data.activeComplaints?.length > 0
-          ? `${data.activeComplaints.length} active tickets`
-          : "Something needs fixing?",
+          ? `${data.activeComplaints.length} active ${data.activeComplaints.length === 1 ? "ticket" : "tickets"}`
+          : "No open tickets",
       icon: AlertTriangle,
       tone: data.activeComplaints?.length > 0 ? "red" : "brand",
     },
     {
       href: "/resident/notices",
-      title: "Read notices",
+      title: "Notices",
+      value: String(data.unreadNoticeCount || 0),
       caption:
-        data.unreadNoticeCount > 0 ? `${data.unreadNoticeCount} new for you` : "You're all caught up",
+        data.unreadNoticeCount > 0
+          ? `${data.unreadNoticeCount} new for you`
+          : "You're all caught up",
       icon: Megaphone,
-      tone: "violet",
-      badge: data.unreadNoticeCount > 0 ? `${data.unreadNoticeCount} new` : undefined,
+      tone: data.unreadNoticeCount > 0 ? "amber" : "violet",
     },
     {
       href: "/resident/invoices?filter=PAID",
-      title: "Payment receipts",
-      caption: "View and download receipts",
+      title: "Receipts",
+      value: String(data.recentPayments?.length || 0),
+      caption: "View payment receipts",
       icon: Receipt,
       tone: "sky",
     },
@@ -195,94 +209,48 @@ export default async function ResidentDashboardPage() {
 
   return (
     <div className="stack">
-      {/* Redesigned Resident Welcome Hero */}
-      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs">
-        {/* Subtle decorative ambient mesh */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-16 -right-12 size-64 rounded-full bg-brand-50/70 blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-16 left-1/4 size-60 rounded-full bg-emerald-50/50 blur-3xl"
-        />
-
-        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 flex-1 space-y-2">
-            {/* Meta chips row */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100/90 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-700 ring-1 ring-slate-200/80">
-                <Home className="size-3.5 text-slate-500" />
-                {unitLabel || flatLabels.join(", ") || "Your Room"}
-              </span>
-
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-500/20">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {data.unreadNoticeCount > 0
-                  ? `${data.unreadNoticeCount} new notices`
-                  : "All caught up"}
-              </span>
-
-              {isNotice && daysLeft !== null && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-300">
-                  <Clock className="size-3.5 text-amber-600" />
-                  On Notice ({daysLeft}d left)
-                </span>
-              )}
-            </div>
-
-            {/* Greeting & Subtitle */}
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                {greeting()}, {firstName} 👋
-              </h1>
-              <p className="mt-1 text-xs sm:text-[13px] text-slate-500 font-medium max-w-xl leading-relaxed">
-                {hasLinkedUnit
-                  ? isPgResident
-                    ? "Everything you need for your PG stay in one place."
-                    : "Everything you need for your home in one place."
-                  : "Your resident portal"}
-              </p>
-            </div>
-          </div>
-
-          {/* Action Pills */}
-          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-            {due ? (
-              <PayCheckoutButton
-                invoiceId={due.id}
-                invoiceNumber={due.invoiceNumber}
-                amount={due.outstanding}
-                flatLabel={dueLabel}
-                size="md"
-                label="Pay now"
-              />
-            ) : (
-              <Button as="a" href="/resident/invoices" variant="secondary" size="md">
-                <Receipt className="size-4 text-slate-500" />
-                View invoices
-              </Button>
-            )}
-
-            {isPgResident && (
-              <Button
-                as="a"
-                href="/resident/vacate"
-                variant="outline"
-                size="md"
-                className={
-                  isNotice
-                    ? "!border-amber-300 !bg-amber-50 !text-amber-900 font-bold hover:!bg-amber-100"
-                    : "border-slate-200 text-slate-700 hover:bg-slate-50 font-bold"
-                }
-              >
-                <DoorOpen className={`size-4 ${isNotice ? "text-amber-600" : "text-slate-500"}`} />
-                {isNotice ? `On Notice (${daysLeft}d left)` : "Vacate PG / Notice"}
-              </Button>
-            )}
-          </div>
+      {/* ── TOP HEADER (CLEAN, SLEEK DASHBOARD TITLE & DATE) ───────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-1">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
+            Dashboard
+          </h1>
+          <span className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-white px-3 py-1 text-xs font-semibold text-neutral-600 shadow-2xs">
+            <CalendarDays className="size-3.5 text-brand-600" />
+            {today}
+          </span>
+          {isNotice && daysLeft !== null && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-300 shadow-2xs">
+              <Clock className="size-3 text-amber-600" />
+              On Notice ({daysLeft}d left)
+            </span>
+          )}
         </div>
-      </section>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {due ? (
+            <PayCheckoutButton
+              invoiceId={due.id}
+              invoiceNumber={due.invoiceNumber}
+              amount={due.outstanding}
+              flatLabel={dueLabel}
+              size="md"
+              label="Pay now"
+            />
+          ) : null}
+          <Button
+            as="a"
+            href="/resident/invoices"
+            variant={due ? "secondary" : "primary"}
+            size="md"
+            className="font-bold shadow-2xs"
+          >
+            <FileText className="size-4" />
+            View invoices
+          </Button>
+        </div>
+      </div>
 
       {/* Mobile Push Notification Opt-in Prompt */}
       <MobilePushPromptBanner user={user} />
@@ -355,23 +323,25 @@ export default async function ResidentDashboardPage() {
               ) : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="p-4 bg-white shadow-sm border border-slate-100 flex flex-col justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-brand-50 text-brand-600 rounded-xl">
-                      <BedSingle className="size-5" />
+                <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Assigned Room
+                      </span>
+                      <span className="flex size-8 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-600/20">
+                        <BedSingle className="size-4" />
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Assigned Room</p>
-                      <p className="text-base font-bold text-slate-900 mt-0.5">
-                        Room {primaryOccupancy.unit?.unitNumber} · Bed {primaryOccupancy.bed?.bedLabel}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {primaryOccupancy.unit?.ac ? "AC" : "Non-AC"} · {primaryOccupancy.unit?.unitType || "Sharing"}
-                      </p>
-                    </div>
+                    <p className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-neutral-900 truncate">
+                      Room {primaryOccupancy.unit?.unitNumber} · Bed {primaryOccupancy.bed?.bedLabel}
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500 font-medium">
+                      {primaryOccupancy.unit?.ac ? "AC" : "Non-AC"} · {primaryOccupancy.unit?.unitType || "Sharing"}
+                    </p>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500 font-medium">
+                  <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between">
+                    <span className="text-[11px] text-neutral-500 font-medium">
                       {isNotice ? "Move-out Scheduled" : "Vacating this PG?"}
                     </span>
                     <div className="flex items-center gap-1.5">
@@ -384,48 +354,63 @@ export default async function ResidentDashboardPage() {
                       </Link>
                     </div>
                   </div>
-                </Card>
+                </div>
 
-              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex flex-col justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                    <ShieldCheck className="size-5" />
-                  </div>
+                <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all">
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Security Deposit</p>
-                    <p className="text-base font-bold text-slate-900 mt-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Security Deposit
+                      </span>
+                      <span className="flex size-8 items-center justify-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-600/20">
+                        <ShieldCheck className="size-4" />
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate">
                       {data.depositStatus ? formatMoney(data.depositStatus.amount) : "Recorded"}
                     </p>
-                    <p className="text-xs text-emerald-600 font-medium">
+                    <p className="mt-1 text-xs text-emerald-600 font-medium">
                       Status: {data.depositStatus?.status || "HELD"} (Refundable)
                     </p>
                   </div>
+                  <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between">
+                    <span className="text-[11px] text-neutral-500 font-medium">Refund Policy</span>
+                    <Link
+                      href="/resident/vacate"
+                      className="text-xs font-bold text-sky-700 hover:text-sky-800"
+                    >
+                      View Settlement →
+                    </Link>
+                  </div>
                 </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-500 font-medium">Refund Policy</span>
-                  <Link
-                    href="/resident/vacate"
-                    className="text-xs font-bold text-blue-700 hover:text-blue-800"
-                  >
-                    View Settlement →
-                  </Link>
-                </div>
-              </Card>
 
-              <Card className="p-4 bg-white shadow-sm border border-slate-100 flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <Wallet className="size-5" />
+                <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Monthly Rent
+                      </span>
+                      <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
+                        <Wallet className="size-4" />
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate">
+                      {formatMoney(primaryOccupancy.monthlyRent)}
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500 font-medium">
+                      Joined on {formatDate(primaryOccupancy.joinDate)}
+                    </p>
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between">
+                    <span className="text-[11px] text-neutral-500 font-medium">Billing Cycle</span>
+                    <Link
+                      href="/resident/invoices"
+                      className="text-xs font-bold text-brand-700 hover:text-brand-800"
+                    >
+                      View Invoices →
+                    </Link>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Monthly Rent</p>
-                  <p className="text-base font-bold text-slate-900 mt-0.5">
-                    {formatMoney(primaryOccupancy.monthlyRent)}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Joined on {formatDate(primaryOccupancy.joinDate)}
-                  </p>
-                </div>
-              </Card>
               </div>
             </div>
           )}

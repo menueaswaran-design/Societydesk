@@ -149,7 +149,7 @@ export default function FlatsClient({ flats }) {
             value={query}
             onChange={setQuery}
             placeholder="Search flat, block or resident"
-            className="w-full sm:max-w-xs"
+            className="w-full sm:max-w-sm"
           />
           <FilterChips
             value={status}

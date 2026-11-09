@@ -14,7 +14,7 @@ export const POST = handler(async (req) => {
   if (!user) throw unauthorized("Authentication required");
 
   const body = await readJson(req).catch(() => ({}));
-  const title = body.title || "🔔 Bedy Notification Test";
+  const title = body.title || "Bedy Notification Test";
   const message = body.body || `Hello ${user.name}! Push notifications are successfully active for your account.`;
   const url = body.url || (user.role === "RESIDENT" ? "/resident/dashboard" : "/admin/dashboard");
 

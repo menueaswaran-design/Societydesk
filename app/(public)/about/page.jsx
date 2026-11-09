@@ -1,3 +1,4 @@
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Shield, Sparkles, Building2, Users } from "lucide-react";
 
@@ -102,7 +103,7 @@ export default function AboutPage() {
 
             <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-2xs space-y-2">
               <div className="flex items-center gap-2 font-bold text-neutral-900 text-sm">
-                <Users className="size-4 text-info-600" />
+                <WhatsAppIcon className="size-4" />
                 <span>Instant WhatsApp Reminders</span>
               </div>
               <p className="text-xs text-neutral-600 leading-relaxed">

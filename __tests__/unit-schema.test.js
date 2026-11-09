@@ -64,5 +64,46 @@ describe("Unit & Room Validation Schemas (lib/validation/schemas.js)", () => {
     const updatedWithNull = unitUpdateSchema.parse({ buildingId: null });
     expect(updatedWithNull.buildingId).toBeNull();
   });
-});
 
+  test("supports Four Sharing (FOUR), Five Sharing (FIVE), and Six Sharing (SIX) room types", () => {
+    const parsedFour = unitCreateSchema.parse({
+      unitNumber: "401",
+      unitType: "FOUR",
+      bedCapacity: 4,
+      rentAmount: 5500,
+    });
+    expect(parsedFour.unitType).toBe("FOUR");
+    expect(parsedFour.bedCapacity).toBe(4);
+
+    const parsedSix = unitCreateSchema.parse({
+      unitNumber: "601",
+      unitType: "SIX",
+      bedCapacity: 6,
+      rentAmount: 4500,
+    });
+    expect(parsedSix.unitType).toBe("SIX");
+    expect(parsedSix.bedCapacity).toBe(6);
+    expect(parsedSix.rentAmount).toBe(4500);
+  });
+
+  test("supports Dormitory (DORM) with custom beds array and upper/lower berth rents", () => {
+    const parsed = unitCreateSchema.parse({
+      unitNumber: "DORM-01",
+      floor: "2",
+      unitType: "DORM",
+      bedCapacity: 4,
+      rentAmount: 7000,
+      beds: [
+        { bedLabel: "A (Lower)", rentAmount: 7500 },
+        { bedLabel: "B (Upper)", rentAmount: 6500 },
+        { bedLabel: "C (Lower)", rentAmount: 7500 },
+        { bedLabel: "D (Upper)", rentAmount: 6500 },
+      ],
+    });
+
+    expect(parsed.unitType).toBe("DORM");
+    expect(parsed.beds).toHaveLength(4);
+    expect(parsed.beds[0]).toEqual({ bedLabel: "A (Lower)", rentAmount: 7500 });
+    expect(parsed.beds[1]).toEqual({ bedLabel: "B (Upper)", rentAmount: 6500 });
+  });
+});

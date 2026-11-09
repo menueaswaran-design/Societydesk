@@ -126,7 +126,7 @@ export default function ReportsClient({
       inv.totalAmount - inv.paidAmount,
       inv.status,
     ]);
-    exportToCsv(`PG_Defaulters_Dues_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+    exportToCsv(`PG_Overdue_Dues_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
   };
 
   return (
@@ -160,7 +160,7 @@ export default function ReportsClient({
           {activeTab === "defaulters" && (
             <Button variant="secondary" size="sm" onClick={handleExportDefaulters} className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs">
               <Download className="size-3.5" />
-              Export Defaulters CSV
+              Export Overdue Dues CSV
             </Button>
           )}
         </div>
@@ -168,71 +168,89 @@ export default function ReportsClient({
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-4 sm:p-5 border-l-4 border-l-brand-600 bg-white shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Occupancy Rate</span>
-            <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
-              <BedSingle className="size-5" />
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-brand-300 hover:shadow-xs transition-all">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Occupancy Rate">
+                Occupancy Rate
+              </span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-600/20">
+                <BedSingle className="size-4" />
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2 min-w-0 truncate">
+              <span className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={`${metrics.occupancyRate}%`}>
+                {metrics.occupancyRate}%
+              </span>
+              <span className="text-xs font-medium text-neutral-500 truncate">
+                ({metrics.occupiedBeds} / {metrics.totalBeds} beds)
+              </span>
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold text-gray-900">{metrics.occupancyRate}%</span>
-            <span className="text-xs text-gray-500">
-              ({metrics.occupiedBeds} / {metrics.totalBeds} beds)
-            </span>
-          </div>
-          <div className="w-full bg-gray-100 h-2 rounded-full mt-3 overflow-hidden">
+          <div className="w-full bg-neutral-100 h-2 rounded-full mt-3 overflow-hidden">
             <div
               className="bg-brand-600 h-full rounded-full transition-all duration-500"
               style={{ width: `${Math.min(100, metrics.occupancyRate)}%` }}
             />
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-4 sm:p-5 border-l-4 border-l-emerald-600 bg-white shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Monthly Projected Rent</span>
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-              <TrendingUp className="size-5" />
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Monthly Projected Rent">
+                Monthly Projected Rent
+              </span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
+                <TrendingUp className="size-4" />
+              </span>
             </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={formatMoney(metrics.projectedMonthlyRent)}>
               {formatMoney(metrics.projectedMonthlyRent)}
-            </span>
-            <p className="text-xs text-gray-500 mt-1">From {metrics.activeResidents} active residents</p>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-5 border-l-4 border-l-blue-600 bg-white shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Security Deposits Held</span>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-              <ShieldCheck className="size-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-              {formatMoney(metrics.totalDepositsHeld)}
-            </span>
-            <p className="text-xs text-gray-500 mt-1">Total refunded: {formatMoney(metrics.totalDepositsRefunded)}</p>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-5 border-l-4 border-l-amber-500 bg-white shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Available Vacancies</span>
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
-              <Users className="size-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-extrabold text-amber-600">{metrics.vacantBeds}</span>
-            <p className="text-xs text-gray-500 mt-1">
-              Ready for immediate move-in across {metrics.totalRooms} rooms
             </p>
           </div>
-        </Card>
+          <div className="mt-2 text-xs font-medium text-neutral-500 truncate">
+            From {metrics.activeResidents} active residents
+          </div>
+        </div>
+
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-sky-300 hover:shadow-xs transition-all">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Security Deposits Held">
+                Security Deposits Held
+              </span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-600/20">
+                <ShieldCheck className="size-4" />
+              </span>
+            </div>
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={formatMoney(metrics.totalDepositsHeld)}>
+              {formatMoney(metrics.totalDepositsHeld)}
+            </p>
+          </div>
+          <div className="mt-2 text-xs font-medium text-neutral-500 truncate">
+            Total refunded: {formatMoney(metrics.totalDepositsRefunded)}
+          </div>
+        </div>
+
+        <div className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-2xs hover:border-amber-300 hover:shadow-xs transition-all">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 truncate" title="Available Vacancies">
+                Available Vacancies
+              </span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-600/20">
+                <Users className="size-4" />
+              </span>
+            </div>
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-amber-700 truncate" title={String(metrics.vacantBeds)}>
+              {metrics.vacantBeds}
+            </p>
+          </div>
+          <div className="mt-2 text-xs font-medium text-amber-700 truncate">
+            Ready across {metrics.totalRooms} rooms
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -543,8 +561,9 @@ export default function ReportsClient({
           </div>
 
           {pendingInvoices.length === 0 ? (
-            <div className="py-8 text-center text-emerald-600 font-medium text-xs">
-              ✓ No pending or overdue invoices! All payments are up to date.
+            <div className="py-8 flex items-center justify-center gap-1.5 text-center text-emerald-600 font-medium text-xs">
+              <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+              <span>No pending or overdue invoices! All payments are up to date.</span>
             </div>
           ) : (
             <>

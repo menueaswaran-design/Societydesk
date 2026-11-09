@@ -5,12 +5,36 @@ import { cookies } from "next/headers";
 import { getDictionary, resolveKey } from "@/lib/i18n";
 
 const TONES = {
-  brand: "bg-brand-50 text-brand-700 ring-brand-600/15",
-  green: "bg-emerald-50 text-emerald-700 ring-emerald-600/15",
-  amber: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  red: "bg-rose-50 text-rose-700 ring-rose-600/15",
-  sky: "bg-sky-50 text-sky-700 ring-sky-600/15",
-  violet: "bg-violet-50 text-violet-700 ring-violet-600/15",
+  brand: {
+    chip: "bg-brand-50 text-brand-700 ring-1 ring-brand-600/20",
+    value: "text-slate-900",
+    caption: "text-slate-500",
+  },
+  green: {
+    chip: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20",
+    value: "text-emerald-700",
+    caption: "text-emerald-700",
+  },
+  amber: {
+    chip: "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20",
+    value: "text-amber-700",
+    caption: "text-amber-800",
+  },
+  red: {
+    chip: "bg-rose-50 text-rose-600 ring-1 ring-rose-600/20",
+    value: "text-rose-600",
+    caption: "text-rose-700",
+  },
+  sky: {
+    chip: "bg-sky-50 text-sky-700 ring-1 ring-sky-600/20",
+    value: "text-slate-900",
+    caption: "text-slate-500",
+  },
+  violet: {
+    chip: "bg-violet-50 text-violet-700 ring-1 ring-violet-600/20",
+    value: "text-slate-900",
+    caption: "text-slate-500",
+  },
 };
 
 const TITLE_TRANSLATIONS = {
@@ -52,8 +76,8 @@ export async function QuickActions({ items, className = "" }) {
   );
 }
 
-export function QuickAction({ href, icon: Icon, title, caption, tone = "brand", badge, locale = "en", dict }) {
-  const tTone = TONES[tone] ?? TONES.brand;
+export function QuickAction({ href, icon: Icon, title, value, caption, tone = "brand", badge, locale = "en", dict }) {
+  const toneCfg = TONES[tone] || TONES.brand;
 
   let localizedTitle = title;
   if (locale === "ta" && TITLE_TRANSLATIONS[title] && dict) {
@@ -74,34 +98,64 @@ export function QuickAction({ href, icon: Icon, title, caption, tone = "brand", 
     }
   }
 
+  // Derive metric value if not explicitly passed
+  let displayValue = value;
+  let bottomCaption = localizedCaption;
+  if (displayValue === undefined || displayValue === null) {
+    if (typeof caption === "string") {
+      const match = caption.match(/(₹[\d,]+)/);
+      if (match) {
+        displayValue = match[1];
+        bottomCaption = localizedCaption.replace(match[1], "").trim() || "Payment pending";
+      } else {
+        displayValue = localizedCaption;
+        bottomCaption = localizedTitle;
+      }
+    } else {
+      displayValue = localizedTitle;
+    }
+  }
+
   return (
     <Link
       href={href}
-      className="group flex items-center gap-3.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs hover:border-slate-300"
+      className="group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs hover:border-slate-300"
     >
-      <span
-        className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ring-1 [&_svg]:size-5 transition-transform duration-200 group-hover:scale-105 ${tTone}`}
-      >
-        {Icon ? <Icon /> : null}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-1.5">
-          <span className="text-sm font-bold text-slate-900 leading-tight">
-            {localizedTitle}
-          </span>
-          {localizedBadge ? (
-            <span className="shrink-0">
-              <Badge tone="brand" className="text-[10px] px-1.5 py-0.2">{localizedBadge}</Badge>
-            </span>
-          ) : null}
+      {/* Top Row: Heading (Left) & Icon Badge (Right) */}
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <span
+          className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate"
+          title={localizedTitle}
+        >
+          {localizedTitle}
         </span>
-        {localizedCaption ? (
-          <span className="mt-0.5 block text-xs text-slate-500 font-medium leading-normal">
-            {localizedCaption}
-          </span>
-        ) : null}
-      </span>
-      <ArrowUpRight className="size-4 shrink-0 text-slate-400 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-brand-600" />
+        <span
+          className={`flex size-8 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 [&_svg]:size-4 ${toneCfg.chip}`}
+        >
+          {Icon ? <Icon /> : null}
+        </span>
+      </div>
+
+      {/* Middle: Prominent Metric / Value */}
+      <div className="mt-2 min-w-0">
+        <p
+          className={`text-2xl sm:text-[28px] font-extrabold tracking-tight tabular-nums truncate ${toneCfg.value}`}
+          title={String(displayValue ?? "")}
+        >
+          {displayValue}
+        </p>
+      </div>
+
+      {/* Bottom Row: Caption (Left) & Arrow Up Right (Right) */}
+      <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs">
+        <span
+          className={`truncate font-semibold ${toneCfg.caption}`}
+          title={bottomCaption}
+        >
+          {bottomCaption}
+        </span>
+        <ArrowUpRight className="size-3.5 shrink-0 text-slate-400 group-hover:text-slate-700 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      </div>
     </Link>
   );
 }

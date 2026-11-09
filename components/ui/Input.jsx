@@ -1,4 +1,6 @@
+import { useId } from "react";
 import { ChevronDown } from "lucide-react";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 
 const BASE =
   "w-full rounded-xl bg-white text-[13px] text-neutral-900 border border-[#D2D9E6] shadow-2xs transition-all duration-150 placeholder:text-neutral-400 focus:border-brand-600 focus:ring-3 focus:ring-brand-200 focus:outline-none disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-500";
@@ -77,6 +79,7 @@ export function Input({
 
 export function Textarea({
   label,
+  labelRight,
   error,
   hint,
   className = "",
@@ -87,7 +90,7 @@ export function Textarea({
   ...props
 }) {
   return (
-    <Shell label={label} error={error} hint={hint} id={id} required={required} className={className}>
+    <Shell label={label} labelRight={labelRight} error={error} hint={hint} id={id} required={required} className={className}>
       <textarea
         id={id}
         rows={rows}
@@ -100,6 +103,7 @@ export function Textarea({
 }
 
 export function Select({
+  labelRight,
   label,
   error,
   hint,
@@ -111,18 +115,16 @@ export function Select({
   ...props
 }) {
   return (
-    <Shell label={label} error={error} hint={hint} id={id} required={required} className={className}>
-      <div className="relative">
-        <select
-          id={id}
-          aria-invalid={error ? "true" : undefined}
-          className={`${BASE} ${FIELD} cursor-pointer appearance-none pr-9 focus:border-brand-600 focus:ring-3 focus:ring-brand-200 focus:outline-none aria-[invalid=true]:border-error-500 ${inputClassName}`}
-          {...props}
-        >
-          {children}
-        </select>
-        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-neutral-400" />
-      </div>
+    <Shell label={label} labelRight={labelRight} error={error} hint={hint} id={id} required={required} className={className}>
+      <DropdownSelect
+        id={id}
+        error={Boolean(error)}
+        required={required}
+        inputClassName={inputClassName}
+        {...props}
+      >
+        {children}
+      </DropdownSelect>
     </Shell>
   );
 }

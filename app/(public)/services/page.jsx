@@ -104,7 +104,7 @@ export default function ServicesPage() {
             Software Built for High-Occupancy Living Spaces
           </h1>
           <p className="mt-4 text-base sm:text-lg text-neutral-600 leading-relaxed max-w-3xl">
-            Everything you need to automate billing, minimize defaulters, track bed inventories, and keep tenants delighted across one or multiple properties.
+            Everything you need to automate billing, minimize overdue dues, track bed inventories, and keep tenants delighted across one or multiple properties.
           </p>
         </div>
 

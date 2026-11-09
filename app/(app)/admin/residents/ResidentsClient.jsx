@@ -9,6 +9,7 @@ import {
   Search,
   Users,
   CheckCircle2,
+  Check,
   ShieldCheck,
   ShieldAlert,
   ArrowRight,
@@ -23,7 +24,8 @@ import {
   X,
   AlertCircle,
   RotateCcw,
-  Sparkles,
+  UserCheck,
+  LogOut,
   CreditCard,
   Building2,
   BadgeAlert,
@@ -34,6 +36,7 @@ import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Pagination from "@/components/ui/Pagination";
 import { Input, Select } from "@/components/ui/Input";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import { EmptyState, ErrorBanner } from "@/components/ui/Feedback";
 import Avatar from "@/components/ui/Avatar";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
@@ -142,7 +145,7 @@ export default function ResidentsClient({
   const [importError, setImportError] = useState(null);
   const [importSuccess, setImportSuccess] = useState(null);
 
-  // Record payment modal
+  // Add payment modal
   const [paymentOccupancy, setPaymentOccupancy] = useState(null);
 
   // Search & Filters Toolbar State
@@ -460,8 +463,8 @@ export default function ResidentsClient({
         </div>
       </div>
 
-      {/* 2. Compact Resident Statistics Bar (Clickable Metrics) */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+      {/* 2. Top Metric Cards (Filterable) */}
+      <div className="grid grid-cols-2 gap-3.5 sm:gap-4 sm:grid-cols-4">
         {/* Metric 1: Total Residents */}
         <button
           type="button"
@@ -469,22 +472,29 @@ export default function ResidentsClient({
             setFilterStatus("ALL");
             setFilterDues("ALL");
           }}
-          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+          className={`group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs hover:border-brand-300 hover:shadow-xs cursor-pointer ${
             filterStatus === "ALL" && filterDues === "ALL"
-              ? "border-slate-900 bg-slate-900 text-white shadow-xs"
-              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60 text-slate-800"
+              ? "border-neutral-300 ring-1 ring-neutral-300/50"
+              : "border-neutral-200"
           }`}
         >
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-wider block ${
-              filterStatus === "ALL" && filterDues === "ALL" ? "text-slate-300" : "text-slate-500"
-            }`}
-          >
-            Total Residents
-          </span>
-          <span className="text-xl font-extrabold mt-0.5 tracking-tight">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Total Residents">
+              Total Residents
+            </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+              <Users className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={String(occupancies.length)}>
             {occupancies.length}
-          </span>
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500 min-w-0">
+            <span className="truncate">All records</span>
+            <span className="text-[11px] text-neutral-400 group-hover:text-brand-600 transition-colors shrink-0">
+              Reset filter
+            </span>
+          </div>
         </button>
 
         {/* Metric 2: Active Residents */}
@@ -494,24 +504,27 @@ export default function ResidentsClient({
             setFilterStatus("ACTIVE");
             setFilterDues("ALL");
           }}
-          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+          className={`group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
             filterStatus === "ACTIVE" && filterDues === "ALL"
-              ? "border-emerald-600 bg-emerald-600 text-white shadow-xs"
-              : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30 text-slate-800"
+              ? "border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-500/20 shadow-xs"
+              : "border-neutral-200 hover:border-emerald-300 hover:shadow-xs"
           }`}
         >
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-wider block ${
-              filterStatus === "ACTIVE" && filterDues === "ALL" ? "text-emerald-100" : "text-slate-500"
-            }`}
-          >
-            Active Staying
-          </span>
-          <span className="text-xl font-extrabold mt-0.5 tracking-tight text-emerald-700 group-hover:text-emerald-800">
-            <span className={filterStatus === "ACTIVE" && filterDues === "ALL" ? "text-white" : "text-emerald-700"}>
-              {activeCount}
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 truncate" title="Active Staying">
+              Active Staying
             </span>
-          </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-600/20">
+              <UserCheck className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-emerald-700 truncate" title={String(activeCount)}>
+            {activeCount}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-emerald-700 min-w-0">
+            <span className="truncate">Current residents</span>
+            <span className="text-[11px] shrink-0">Filter →</span>
+          </div>
         </button>
 
         {/* Metric 3: Residents on Notice */}
@@ -521,80 +534,57 @@ export default function ResidentsClient({
             setFilterStatus("NOTICE");
             setFilterDues("ALL");
           }}
-          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+          className={`group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
             filterStatus === "NOTICE"
-              ? "border-amber-500 bg-amber-500 text-white shadow-xs"
-              : noticeCount > 0
-              ? "border-amber-200 bg-amber-50/50 hover:bg-amber-100/50 text-slate-800"
-              : "border-slate-200 bg-white hover:border-slate-300 text-slate-800"
+              ? "border-amber-500 bg-amber-50/40 ring-2 ring-amber-500/20 shadow-xs"
+              : "border-neutral-200 hover:border-amber-300 hover:shadow-xs"
           }`}
         >
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-wider block ${
-              filterStatus === "NOTICE" ? "text-amber-100" : "text-amber-700 font-bold"
-            }`}
-          >
-            On Notice
-          </span>
-          <span className="text-xl font-extrabold mt-0.5 tracking-tight">
-            <span className={filterStatus === "NOTICE" ? "text-white" : "text-amber-700"}>
-              {noticeCount}
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 truncate" title="On Notice">
+              On Notice
             </span>
-          </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-600/20">
+              <DoorOpen className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-amber-700 truncate" title={String(noticeCount)}>
+            {noticeCount}
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-amber-700 min-w-0">
+            <span className="truncate">Vacating soon</span>
+            <span className="text-[11px] shrink-0">Filter →</span>
+          </div>
         </button>
 
-        {/* Metric 4: Outstanding Dues */}
-        <button
-          type="button"
-          onClick={() => {
-            setFilterDues("DUE");
-            setFilterStatus("ALL");
-          }}
-          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
-            filterDues === "DUE"
-              ? "border-rose-600 bg-rose-600 text-white shadow-xs"
-              : duesStats.residentsWithDuesCount > 0
-              ? "border-rose-200 bg-rose-50/40 hover:bg-rose-100/40 text-slate-800"
-              : "border-slate-200 bg-white hover:border-slate-300 text-slate-800"
-          }`}
-        >
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-wider block ${
-              filterDues === "DUE" ? "text-rose-100" : "text-rose-600 font-bold"
-            }`}
-          >
-            Outstanding Dues
-          </span>
-          <span className="text-xl font-extrabold mt-0.5 tracking-tight">
-            <span className={filterDues === "DUE" ? "text-white" : "text-rose-600"}>
-              ₹{duesStats.totalDuesAmount.toLocaleString()}
-            </span>
-          </span>
-        </button>
-
-        {/* Metric 5: Checked Out */}
+        {/* Metric 4: Checked Out */}
         <button
           type="button"
           onClick={() => {
             setFilterStatus("LEFT");
             setFilterDues("ALL");
           }}
-          className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+          className={`group relative flex flex-col justify-between overflow-hidden min-w-0 rounded-2xl border bg-white p-4 sm:p-5 text-left transition-all shadow-2xs cursor-pointer ${
             filterStatus === "LEFT"
-              ? "border-slate-700 bg-slate-700 text-white shadow-xs"
-              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60 text-slate-800"
+              ? "border-neutral-400 bg-neutral-50 ring-2 ring-neutral-400/20 shadow-xs"
+              : "border-neutral-200 hover:border-neutral-300 hover:shadow-xs"
           }`}
         >
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-wider block ${
-              filterStatus === "LEFT" ? "text-slate-300" : "text-slate-500"
-            }`}
-          >
-            Checked Out
-          </span>
-          <span className="text-xl font-extrabold mt-0.5 tracking-tight">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 truncate" title="Checked Out">
+              Checked Out
+            </span>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+              <LogOut className="size-4" />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-neutral-900 truncate" title={String(leftCount)}>
             {leftCount}
-          </span>
+          </p>
+          <div className="mt-2 flex items-center justify-between text-xs font-medium text-neutral-500 min-w-0">
+            <span className="truncate">Past residents</span>
+            <span className="text-[11px] shrink-0">Filter →</span>
+          </div>
         </button>
       </div>
 
@@ -609,7 +599,7 @@ export default function ResidentsClient({
               placeholder="Search resident name, phone, room, bed..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full h-9 rounded-xl border border-slate-200/90 bg-white pl-9.5 pr-3 text-xs text-slate-900 shadow-2xs placeholder:text-slate-400 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none"
+              className="w-full h-9.5 rounded-xl border border-slate-200/90 bg-white pl-9.5 pr-8 text-xs sm:text-[13px] text-slate-900 shadow-2xs placeholder:text-slate-400 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none"
             />
             {query && (
               <button
@@ -625,10 +615,9 @@ export default function ResidentsClient({
           {/* Filter Dropdowns Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {/* Room Filter */}
-            <select
+            <DropdownSelect
               value={filterRoom}
               onChange={(e) => setFilterRoom(e.target.value)}
-              className="h-9 rounded-xl border border-slate-200/90 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
             >
               <option value="ALL">All Rooms</option>
               {units.map((u) => (
@@ -636,41 +625,38 @@ export default function ResidentsClient({
                   Room {u.unitNumber}
                 </option>
               ))}
-            </select>
+            </DropdownSelect>
 
             {/* Status Filter */}
-            <select
+            <DropdownSelect
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="h-9 rounded-xl border border-slate-200/90 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
             >
               <option value="ALL">All Statuses ({occupancies.length})</option>
               <option value="ACTIVE">Active ({activeCount})</option>
               <option value="NOTICE">On Notice ({noticeCount})</option>
               <option value="LEFT">Checked Out ({leftCount})</option>
-            </select>
+            </DropdownSelect>
 
             {/* KYC Filter */}
-            <select
+            <DropdownSelect
               value={filterKyc}
               onChange={(e) => setFilterKyc(e.target.value)}
-              className="h-9 rounded-xl border border-slate-200/90 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
             >
               <option value="ALL">All KYC</option>
-              <option value="VERIFIED">KYC Verified ✓</option>
+              <option value="VERIFIED">KYC Verified</option>
               <option value="MISSING">KYC Missing / Incomplete</option>
-            </select>
+            </DropdownSelect>
 
             {/* Dues Filter */}
-            <select
+            <DropdownSelect
               value={filterDues}
               onChange={(e) => setFilterDues(e.target.value)}
-              className="h-9 rounded-xl border border-slate-200/90 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
             >
               <option value="ALL">All Balances</option>
               <option value="DUE">Has Dues ({duesStats.residentsWithDuesCount})</option>
               <option value="PAID">Paid Up</option>
-            </select>
+            </DropdownSelect>
           </div>
 
           {/* Reset Filters */}
@@ -805,7 +791,7 @@ export default function ResidentsClient({
                       <span className="text-[10px] text-slate-500 block font-medium">Balance</span>
                       {data.outstandingBalance > 0 ? (
                         <span className={`font-extrabold ${data.isOverdue ? "text-rose-600" : "text-amber-700"}`}>
-                          ₹{data.outstandingBalance.toLocaleString()} Due
+                          {formatMoney(data.outstandingBalance)} Due
                         </span>
                       ) : (
                         <span className="font-bold text-emerald-600">Paid Up</span>
@@ -1084,6 +1070,7 @@ export default function ResidentsClient({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Select
+                  id="select-room"
                   label="Select Room"
                   required
                   value={checkInForm.unitId}
@@ -1128,6 +1115,7 @@ export default function ResidentsClient({
                 </Select>
 
                 <Select
+                  id="select-bed"
                   label="Select Bed"
                   value={checkInForm.bedId}
                   disabled={!checkInForm.unitId}
@@ -1213,7 +1201,8 @@ export default function ResidentsClient({
                           : "bg-slate-100 text-slate-500"
                       }`}
                     >
-                      Aadhaar {checkInDocs.some((d) => d.docType === "AADHAAR") ? "✓" : "Pending"}
+                      {checkInDocs.some((d) => d.docType === "AADHAAR") ? <Check className="size-3 text-emerald-600 shrink-0" /> : null}
+                      <span>Aadhaar {checkInDocs.some((d) => d.docType === "AADHAAR") ? "Verified" : "Pending"}</span>
                     </span>
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
@@ -1222,7 +1211,8 @@ export default function ResidentsClient({
                           : "bg-slate-100 text-slate-500"
                       }`}
                     >
-                      PAN {checkInDocs.some((d) => d.docType === "PAN") ? "✓" : "Pending"}
+                      {checkInDocs.some((d) => d.docType === "PAN") ? <Check className="size-3 text-emerald-600 shrink-0" /> : null}
+                      <span>PAN {checkInDocs.some((d) => d.docType === "PAN") ? "Verified" : "Pending"}</span>
                     </span>
                   </div>
                 </div>
@@ -1233,7 +1223,7 @@ export default function ResidentsClient({
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                         Select Document Needed
                       </label>
-                      <select
+                      <DropdownSelect
                         value={docTypeToUpload}
                         onChange={(e) => setDocTypeToUpload(e.target.value)}
                         className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:outline-none"
@@ -1243,7 +1233,7 @@ export default function ResidentsClient({
                             {t.label} {t.required ? "(Recommended)" : ""}
                           </option>
                         ))}
-                      </select>
+                      </DropdownSelect>
                     </div>
 
                     <div className="sm:col-span-6">
@@ -1441,7 +1431,7 @@ export default function ResidentsClient({
         </Modal>
       )}
 
-      {/* 9. Record Payment Modal */}
+      {/* 9. Add payment Modal */}
       {paymentOccupancy && (
         <RecordPaymentModal
           open={Boolean(paymentOccupancy)}

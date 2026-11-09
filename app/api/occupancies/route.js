@@ -6,6 +6,7 @@ import { occupancyCheckInSchema, paginationSchema } from "@/lib/validation/schem
 import { badRequest } from "@/lib/errors";
 import { audit, AUDIT } from "@/lib/audit";
 import { createFirebaseUser } from "@/lib/firebase/identity";
+import { sendUserWelcomeEmail, generateTemporaryPassword } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -89,11 +90,11 @@ export const POST = handler(async (req) => {
     }
   }
 
-  // Provision Firebase auth identity with default password bedy@123
-  const defaultPassword = "bedy@123";
+  // Provision Firebase auth identity with auto-generated unique temporary password
+  const tempPassword = generateTemporaryPassword();
   let authUid = null;
   try {
-    const fb = await createFirebaseUser(body.email.toLowerCase(), defaultPassword);
+    const fb = await createFirebaseUser(body.email.toLowerCase(), tempPassword);
     if (fb?.uid) {
       authUid = fb.uid;
     }
@@ -222,6 +223,24 @@ export const POST = handler(async (req) => {
       deposit: body.depositAmount,
     },
   });
+
+  // Send welcome email with login credentials to resident (await required on serverless)
+  const society = societyId
+    ? await prisma.society.findUnique({ where: { id: societyId }, select: { name: true, phone: true } })
+    : null;
+
+  await sendUserWelcomeEmail({
+    email: body.email.toLowerCase(),
+    name: body.name,
+    role: "RESIDENT",
+    password: tempPassword,
+    societyName: society?.name,
+    societyId,
+    roomNo: unit.unitNumber,
+    bedLabel: bed?.bedLabel || null,
+    supportPhone: society?.phone || null,
+    roomLabel: bed ? `Room ${unit.unitNumber} · Bed ${bed.bedLabel}` : `Room ${unit.unitNumber}`,
+  }).catch((e) => console.warn("[email] Error sending resident welcome email:", e?.message));
 
   return ok(result.occupancy, { status: 201 });
 });

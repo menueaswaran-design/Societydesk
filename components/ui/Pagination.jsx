@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import {
   ChevronLeft,
   ChevronRight,
@@ -55,7 +56,8 @@ function getPageNumbers(currentPage, totalPages) {
  * @param {function} onPageChange - Callback when page changes (newPage: number)
  * @param {function} [onPageSizeChange] - Callback when page size changes (newSize: number)
  * @param {number[]} [pageSizeOptions] - List of page size options (e.g. [10, 20, 50])
- * @param {string} [itemName] - Name of items being paginated (default: "invoices")
+ * @param {string} [itemName] - Name of items being paginated (default: "items")
+ * @param {boolean} [showRange] - Whether to show the range text (default: false)
  * @param {string} [className] - Optional extra wrapper class
  */
 export default function Pagination({
@@ -65,7 +67,8 @@ export default function Pagination({
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = [10, 20, 50, 100],
-  itemName = "invoices",
+  itemName = "items",
+  showRange = false,
   className = "",
 }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -81,41 +84,42 @@ export default function Pagination({
 
   return (
     <div
-      className={`flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-neutral-100 bg-white select-none ${className}`}
+      className={`flex items-center justify-between gap-3 px-4 py-3 border-t border-neutral-100 bg-white select-none ${className}`}
     >
-      {/* Left: Showing Range & Optional Page Size Selector */}
-      <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
-        <div>
-          Showing{" "}
-          <span className="font-extrabold text-neutral-900 tabular-nums">
-            {startItem}
-          </span>{" "}
-          to{" "}
-          <span className="font-extrabold text-neutral-900 tabular-nums">
-            {endItem}
-          </span>{" "}
-          of{" "}
-          <span className="font-extrabold text-neutral-900 tabular-nums">
-            {totalItems}
-          </span>{" "}
-          {itemName}
-        </div>
+      {/* Left: Per Page Selector (Single Line) */}
+      <div className="flex items-center gap-3 text-xs text-neutral-500 min-w-0">
+        {showRange && (
+          <div className="whitespace-nowrap">
+            Showing{" "}
+            <span className="font-extrabold text-neutral-900 tabular-nums">
+              {startItem}
+            </span>{" "}
+            to{" "}
+            <span className="font-extrabold text-neutral-900 tabular-nums">
+              {endItem}
+            </span>{" "}
+            of{" "}
+            <span className="font-extrabold text-neutral-900 tabular-nums">
+              {totalItems}
+            </span>{" "}
+            {itemName}
+          </div>
+        )}
 
         {onPageSizeChange && (
-          <div className="flex items-center gap-1.5 pl-2 sm:border-l sm:border-neutral-200">
-            <span className="text-[11px] font-medium text-neutral-400">Per page:</span>
-            <select
-              value={pageSize}
+          <div className="flex items-center gap-2 whitespace-nowrap text-xs text-neutral-600 shrink-0">
+            <span className="font-medium whitespace-nowrap">Per page:</span>
+            <DropdownSelect
+              size="sm"
+              value={String(pageSize)}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               aria-label="Items per page"
-              className="h-7 cursor-pointer rounded-lg border border-neutral-200 bg-white px-2 text-xs font-semibold text-neutral-800 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-colors shadow-2xs"
-            >
-              {pageSizeOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+              className="w-20 shrink-0"
+              options={pageSizeOptions.map((opt) => ({
+                value: String(opt),
+                label: String(opt),
+              }))}
+            />
           </div>
         )}
       </div>

@@ -13,9 +13,15 @@ const PATCHImpl = handler(async (req) => {
 
   const existing = await prisma.user.findUnique({ where: { id: user.id } });
 
+  const updateData = { name: body.name };
+  // Resident phone number is immutable self-service (used for OTP auth & legal tenancy records)
+  if (user.role !== "RESIDENT" && body.phone !== undefined) {
+    updateData.phone = body.phone ?? null;
+  }
+
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { name: body.name, phone: body.phone ?? null },
+    data: updateData,
     select: { id: true, name: true, email: true, phone: true, role: true, societyId: true },
   });
 

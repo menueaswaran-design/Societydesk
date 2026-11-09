@@ -131,9 +131,16 @@ export default function NotificationBellToggle({ user, compact = false }) {
             type="button"
             onClick={handleSendTest}
             disabled={loading}
-            className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
           >
-            {testSent ? "Alert Sent! ✓" : "Test Alert"}
+            {testSent ? (
+              <>
+                <Check className="size-3 text-emerald-600 shrink-0" />
+                <span>Alert Sent!</span>
+              </>
+            ) : (
+              <span>Test Alert</span>
+            )}
           </button>
         )}
         <button

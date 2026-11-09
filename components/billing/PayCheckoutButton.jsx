@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CreditCard, Lock, ShieldCheck, Sparkles, FileText } from "lucide-react";
+import { CheckCircle2, CreditCard, Lock, ShieldCheck, FileText, Check } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import Button, { Spinner } from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -229,7 +229,7 @@ export default function PayCheckoutButton({
                     paymentMethod: selectedMethod === "card" ? "CARD" : selectedMethod === "netbanking" ? "NET_BANKING" : "UPI",
                   })}
                 >
-                  <Sparkles className="text-yellow-400" />
+                  <CreditCard className="size-4" />
                   Simulate Razorpay Payment ({formatMoney(amount)})
                 </Button>
               ) : null}
@@ -245,7 +245,10 @@ export default function PayCheckoutButton({
                 ? "Verifying payment with Razorpay & generating receipt..."
                 : "Initializing secure Razorpay gateway..."}
             </p>
-            <span className="text-xs text-slate-400">🔒 256-bit SSL encrypted connection</span>
+            <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+              <Lock className="size-3 text-slate-400" />
+              <span>256-bit SSL encrypted connection</span>
+            </span>
           </div>
         ) : null}
 
@@ -323,7 +326,10 @@ export default function PayCheckoutButton({
                         placeholder="yourname@upi"
                         className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
-                      <span className="inline-flex items-center px-2 py-1 bg-slate-100 rounded text-[11px] text-slate-600 font-medium">Verified ✓</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 rounded text-[11px] text-slate-600 font-medium">
+                        <Check className="size-3 text-emerald-600" />
+                        <span>Verified</span>
+                      </span>
                     </div>
                   </div>
                 ) : null}

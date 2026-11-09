@@ -114,7 +114,7 @@ const jsonLd = {
       "image": { "@id": "https://bedy.in/#logo" },
       "description":
         "Developer of Bedy, modern cloud software for Paying Guest (PG) accommodations, student hostels, and co-living operators in India.",
-      "email": "contact@bedy.in",
+      "email": "contact@quadrid.in",
     },
     {
       "@type": "ItemList",

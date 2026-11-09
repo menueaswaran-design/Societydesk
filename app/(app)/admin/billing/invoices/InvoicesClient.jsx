@@ -1,4 +1,5 @@
 "use client";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -7,14 +8,12 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
-  Sparkles,
+  FilePlus2,
+  Info,
   Search,
   CheckCircle2,
   Receipt,
-  MessageCircle,
   Trash2,
-  MoreHorizontal,
-  Eye,
   X,
   CheckSquare,
   Square,
@@ -26,12 +25,19 @@ import {
   ExternalLink,
   ShieldCheck,
   Building,
+  Plus,
+  Zap,
+  BellRing,
+  Sparkles,
+  Calendar,
+  SlidersHorizontal,
 } from "lucide-react";
 import Button, { IconButton } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Input, Select, Textarea, Checkbox } from "@/components/ui/Input";
+import { DropdownSelect } from "@/components/ui/Dropdown";
 import { EmptyState, ErrorBanner, SuccessBanner } from "@/components/ui/Feedback";
-import { CardNote, StatLine } from "@/components/ui/Card";
+import { StatLine } from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
 import ElectricityBillingSection from "./ElectricityBillingSection";
@@ -42,7 +48,6 @@ import {
   formatDate,
   formatMoney,
   formatCompactMoney,
-  getRelativeDueDate,
   formatPeriod,
   titleCase,
 } from "@/lib/format";
@@ -55,6 +60,14 @@ import { buildRentReminderMessage, getWhatsAppUrl } from "@/lib/billing/whatsapp
 function currentPeriod() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getOrdinal(n) {
+  const num = Number(n);
+  if (!num) return "th";
+  const s = ["th", "st", "nd", "rd"];
+  const v = num % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
 }
 
 /** Quiet status indicator: small dot + colored text */
@@ -108,79 +121,16 @@ function WhatsAppReminderButton({ invoice, size = "xs", className = "" }) {
       className={`!text-emerald-700 !bg-emerald-50 hover:!bg-emerald-100 !border-emerald-200 transition-colors ${className}`}
       title="Send 1-Click WhatsApp Reminder with Instant UPI Pay Link"
     >
-      <MessageCircle className="size-3 text-emerald-600" />
+      <WhatsAppIcon className="size-3.5" />
       Remind
     </Button>
   );
 }
 
-/** Row action ⋯ dropdown menu */
-function RowMoreMenu({ invoice, onRecordPayment, onOpenDrawer, isOpen, onToggle }) {
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        onToggle?.();
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onToggle]);
-
-  return (
-    <div className="relative inline-block text-left" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="inline-flex size-7.5 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition focus:outline-none"
-        title="More options"
-        aria-label="More options"
-      >
-        <MoreHorizontal className="size-4" />
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 z-50 mt-1.5 w-48 origin-top-right rounded-xl border border-neutral-200 bg-white py-1.5 shadow-xl ring-1 ring-black/5 animate-pop">
-          {invoice.outstanding > 0 && invoice.status !== "CANCELLED" && (
-            <>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  onToggle?.();
-                  onRecordPayment();
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-brand-600 transition"
-              >
-                <Wallet className="size-3.5 text-neutral-400" />
-                Record payment
-              </button>
-            </>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              onToggle?.();
-              onOpenDrawer();
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-brand-600 transition"
-          >
-            <Eye className="size-3.5 text-neutral-400" />
-            View details
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /** Side Drawer showing full invoice, payment history, and actions without leaving list */
 function InvoiceDrawer({ invoice, onClose, onRecordPayment }) {
   if (!invoice) return null;
-  const rel = getRelativeDueDate(invoice.dueDate);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
@@ -239,15 +189,6 @@ function InvoiceDrawer({ invoice, onClose, onRecordPayment }) {
                   <p className="text-xs font-semibold text-slate-800 mt-0.5">
                     {formatDate(invoice.dueDate)}
                   </p>
-                  {rel && (
-                    <span
-                      className={`text-[11px] font-bold ${
-                        rel.isOverdue ? "text-rose-600" : "text-amber-600"
-                      }`}
-                    >
-                      {rel.label}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -301,7 +242,7 @@ function InvoiceDrawer({ invoice, onClose, onRecordPayment }) {
                     }}
                   >
                     <Wallet className="size-4" />
-                    Record payment
+                    Add payment
                   </Button>
                 </div>
               </>
@@ -374,7 +315,7 @@ function BulkRemindModal({ open, onClose, invoices = [] }) {
     <Modal
       open={open}
       onClose={onClose}
-      title={`Remind Defaulters (${invoices.length} selected)`}
+      title={`Remind Overdue (${invoices.length} selected)`}
       description="Quickly notify tenants with their itemized bill and 1-click UPI pay link."
       size="md"
       footer={
@@ -392,7 +333,7 @@ function BulkRemindModal({ open, onClose, invoices = [] }) {
               onClick={handleSendNext}
               className="!bg-emerald-600 hover:!bg-emerald-700 text-white"
             >
-              <MessageCircle className="size-4" />
+              <WhatsAppIcon className="size-4" />
               Send #{currentIndex + 1} ({current.residentName || "Resident"})
             </Button>
           </div>
@@ -435,7 +376,7 @@ function BulkRemindModal({ open, onClose, invoices = [] }) {
                     className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition"
                     title="Send WhatsApp message"
                   >
-                    <MessageCircle className="size-3.5" />
+                    <WhatsAppIcon className="size-3.5" />
                   </button>
                 </div>
               </div>
@@ -457,6 +398,8 @@ export default function InvoicesClient({
   filters,
   units = [],
   occupancies = [],
+  society = null,
+  initialAutoConfig = null,
   initialGenerateOpen = false,
 }) {
   const router = useRouter();
@@ -465,7 +408,6 @@ export default function InvoicesClient({
   const [generateOpen, setGenerateOpen] = useState(initialGenerateOpen || false);
   const [payFor, setPayFor] = useState(null);
   const [drawerInvoice, setDrawerInvoice] = useState(null);
-  const [activeMenuId, setActiveMenuId] = useState(null);
 
   useEffect(() => {
     if (initialGenerateOpen) {
@@ -486,6 +428,162 @@ export default function InvoicesClient({
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkRemindOpen, setBulkRemindOpen] = useState(false);
+
+  // Auto-Billing Configuration & Prompts State
+  const [autoConfig, setAutoConfig] = useState(() => {
+    return (
+      initialAutoConfig || {
+        mode: "CONFIRMATION",
+        dueDay: society?.dueDay || 10,
+        penaltyPercent: 2,
+        previousDue: true,
+        skipVacant: true,
+        lastAutoPeriod: null,
+      }
+    );
+  });
+
+  const [autoSettingsOpen, setAutoSettingsOpen] = useState(false);
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [autoGenerating, setAutoGenerating] = useState(false);
+  const [autoSuccessBanner, setAutoSuccessBanner] = useState(null);
+
+  // Current period (e.g. "2026-11")
+  const currentPeriodStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
+
+  // Eligible active occupants count
+  const eligibleActiveOccupancies = useMemo(() => {
+    return occupancies.filter((o) => o.status === "ACTIVE" || o.status === "NOTICE");
+  }, [occupancies]);
+
+  // How many active occupants are missing an invoice for currentPeriodStr
+  const pendingAutoOccupants = useMemo(() => {
+    const invoicedOccupancyIds = new Set(
+      invoices
+        .filter((inv) => inv.billingPeriod === currentPeriodStr && inv.status !== "CANCELLED")
+        .map((inv) => inv.occupancyId)
+        .filter(Boolean)
+    );
+    return eligibleActiveOccupancies.filter((o) => !invoicedOccupancyIds.has(o.id));
+  }, [invoices, eligibleActiveOccupancies, currentPeriodStr]);
+
+  const pendingAutoCount = pendingAutoOccupants.length;
+
+  const estimatedAutoRent = useMemo(() => {
+    return pendingAutoOccupants.reduce((sum, o) => {
+      const rent =
+        (Number(o.monthlyRent) > 0 ? Number(o.monthlyRent) : 0) ||
+        (Number(o.bed?.rentAmount) > 0 ? Number(o.bed.rentAmount) : 0) ||
+        (Number(o.unit?.rentAmount) > 0 ? Number(o.unit.rentAmount) : 0) ||
+        (Number(o.rentAmount) > 0 ? Number(o.rentAmount) : 0);
+      return sum + rent;
+    }, 0);
+  }, [pendingAutoOccupants]);
+
+  // 1. CONFIRMATION MODE: Prompt pop-up when pending invoices exist
+  useEffect(() => {
+    if (
+      autoConfig.mode === "CONFIRMATION" &&
+      pendingAutoCount > 0 &&
+      autoConfig.lastAutoPeriod !== currentPeriodStr &&
+      !initialGenerateOpen
+    ) {
+      const dismissKey = `auto_confirm_dismissed_${currentPeriodStr}`;
+      if (!sessionStorage.getItem(dismissKey)) {
+        setConfirmModalOpen(true);
+      }
+    }
+  }, [autoConfig.mode, pendingAutoCount, autoConfig.lastAutoPeriod, currentPeriodStr, initialGenerateOpen]);
+
+  // 2. FULL AUTO MODE: Generate automatically without asking for permission
+  useEffect(() => {
+    if (
+      autoConfig.mode === "FULL_AUTO" &&
+      pendingAutoCount > 0 &&
+      autoConfig.lastAutoPeriod !== currentPeriodStr
+    ) {
+      const runKey = `full_auto_run_${currentPeriodStr}`;
+      if (!sessionStorage.getItem(runKey)) {
+        sessionStorage.setItem(runKey, "true");
+        (async () => {
+          try {
+            setAutoGenerating(true);
+            const dueDay = autoConfig.dueDay || society?.dueDay || 10;
+            const formattedDueDate = `${currentPeriodStr}-${String(dueDay).padStart(2, "0")}`;
+            const res = await api.post("/api/billing/invoices/generate", {
+              billingPeriod: currentPeriodStr,
+              dueDate: formattedDueDate,
+              previousDue: autoConfig.previousDue ?? true,
+              penaltyPercent: Number(autoConfig.penaltyPercent) || 0,
+              skipVacant: autoConfig.skipVacant ?? true,
+            });
+
+            await api.post("/api/billing/auto-generate", {
+              ...autoConfig,
+              lastAutoPeriod: currentPeriodStr,
+            });
+
+            setAutoConfig((prev) => ({ ...prev, lastAutoPeriod: currentPeriodStr }));
+            setAutoSuccessBanner(
+              `⚡ Full Auto: ${res.createdCount} invoices were automatically generated for ${formatPeriod(currentPeriodStr)} without requiring permission (Due: ${formatDate(formattedDueDate)}).`
+            );
+            router.refresh();
+          } catch (err) {
+            console.error("Full auto invoice generation error:", err);
+          } finally {
+            setAutoGenerating(false);
+          }
+        })();
+      }
+    }
+  }, [autoConfig, pendingAutoCount, currentPeriodStr, society?.dueDay, router]);
+
+  // Handler for 1-click "Allow & Generate" in Confirmation modal
+  async function handleAllowGenerate() {
+    setAutoGenerating(true);
+    try {
+      const dueDay = autoConfig.dueDay || society?.dueDay || 10;
+      const formattedDueDate = `${currentPeriodStr}-${String(dueDay).padStart(2, "0")}`;
+      const res = await api.post("/api/billing/invoices/generate", {
+        billingPeriod: currentPeriodStr,
+        dueDate: formattedDueDate,
+        previousDue: autoConfig.previousDue ?? true,
+        penaltyPercent: Number(autoConfig.penaltyPercent) || 0,
+        skipVacant: autoConfig.skipVacant ?? true,
+      });
+
+      await api.post("/api/billing/auto-generate", {
+        ...autoConfig,
+        lastAutoPeriod: currentPeriodStr,
+      });
+
+      setAutoConfig((prev) => ({ ...prev, lastAutoPeriod: currentPeriodStr }));
+      setConfirmModalOpen(false);
+      setAutoSuccessBanner(
+        `Created ${res.createdCount} invoices totaling ${formatMoney(res.totalAmount)} for ${formatPeriod(res.billingPeriod)}. Web push & WhatsApp links dispatched.`
+      );
+      router.refresh();
+    } catch (err) {
+      alert("Error generating invoices: " + err.message);
+    } finally {
+      setAutoGenerating(false);
+    }
+  }
+
+  // Handler to update and persist auto configuration
+  async function handleSaveAutoConfig(newConfig) {
+    try {
+      const res = await api.post("/api/billing/auto-generate", newConfig);
+      setAutoConfig(res.config || newConfig);
+      setAutoSettingsOpen(false);
+    } catch (err) {
+      alert("Failed to save automation settings: " + err.message);
+    }
+  }
 
   // Debounce search input
   useEffect(() => {
@@ -675,12 +773,60 @@ export default function InvoicesClient({
           </span>
         }
         actions={
-          <Button onClick={() => setGenerateOpen(true)}>
-            <Sparkles />
-            Generate invoices
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Auto-Billing Status Pill */}
+            <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setAutoSettingsOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/60 transition-all cursor-pointer"
+                title="Click to change Invoice Automation Settings"
+              >
+                {autoConfig.mode === "FULL_AUTO" ? (
+                  <>
+                    <Zap className="size-3.5 text-slate-700" />
+                    <span className="font-semibold text-slate-900">Auto: Full Auto</span>
+                  </>
+                ) : autoConfig.mode === "CONFIRMATION" ? (
+                  <>
+                    <BellRing className="size-3.5 text-slate-700" />
+                    <span className="font-semibold text-slate-900">Auto with Confirmation</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="size-3.5 text-slate-500" />
+                    <span>Auto-Billing: Off</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setInfoModalOpen(true)}
+                className="flex size-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors ml-0.5 cursor-pointer"
+                title="How invoice automation works"
+              >
+                <Info className="size-3.5" />
+              </button>
+            </div>
+
+            <Button onClick={() => setGenerateOpen(true)}>
+              <FilePlus2 className="size-4" />
+              Generate invoices
+            </Button>
+          </div>
         }
       />
+
+      {autoSuccessBanner && (
+        <SuccessBanner
+          title="Invoices Generated Successfully"
+          icon={CheckCircle2}
+          onDismiss={() => setAutoSuccessBanner(null)}
+        >
+          {autoSuccessBanner}
+        </SuccessBanner>
+      )}
 
       {/* Separate KPI Stat Boxes (Per Bedy Design System) */}
       <div className="grid grid-cols-2 gap-3.5 sm:gap-4 lg:grid-cols-4">
@@ -867,11 +1013,12 @@ export default function InvoicesClient({
         {/* Dropdowns: Period & Floor */}
         <div className="flex items-center gap-2 self-start lg:self-auto">
           {floors.length > 0 && (
-            <select
+            <DropdownSelect
+              size="sm"
               value={selectedFloor}
               onChange={(e) => setSelectedFloor(e.target.value)}
               aria-label="Filter by floor"
-              className="h-8 cursor-pointer rounded-full bg-white px-3 text-xs font-semibold text-slate-600 border border-slate-200 transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+              className="w-32"
             >
               <option value="">All Floors</option>
               {floors.map((f) => (
@@ -879,11 +1026,12 @@ export default function InvoicesClient({
                   Floor {f}
                 </option>
               ))}
-            </select>
+            </DropdownSelect>
           )}
 
           {periods.length > 0 && (
-            <select
+            <DropdownSelect
+              size="sm"
               value={filters.period ?? ""}
               onChange={(e) => {
                 const params = new URLSearchParams(window.location.search);
@@ -892,7 +1040,7 @@ export default function InvoicesClient({
                 router.push(`/admin/billing/invoices?${params.toString()}`, { scroll: false });
               }}
               aria-label="Filter by period"
-              className="h-8 cursor-pointer rounded-full bg-white px-3 text-xs font-semibold text-slate-600 border border-slate-200 transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none whitespace-nowrap"
+              className="w-36"
             >
               <option value="">All periods</option>
               {periods.map((p) => (
@@ -900,7 +1048,7 @@ export default function InvoicesClient({
                   {formatPeriod(p)}
                 </option>
               ))}
-            </select>
+            </DropdownSelect>
           )}
         </div>
       </div>
@@ -909,26 +1057,28 @@ export default function InvoicesClient({
       <div className="surface overflow-hidden border border-[#E5EAF3] rounded-2xl shadow-2xs bg-white">
         {/* Search header with shortcut indicator */}
         <div className="border-b border-slate-100 p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
             <input
               ref={searchInputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tenant, room, invoice..."
-              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50/60 focus:bg-white focus:border-brand-500 focus:outline-none transition-colors"
+              aria-label="Search tenant, room, invoice"
+              className="w-full h-9.5 pl-9 pr-8 text-xs sm:text-[13px] rounded-xl border border-slate-200 bg-white placeholder:text-slate-400 text-slate-900 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none shadow-2xs transition-all"
             />
             {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 transition-colors"
               >
                 <X className="size-3.5" />
               </button>
             ) : (
-              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-block text-[10px] bg-white border border-slate-200 rounded px-1.5 py-0.5 text-slate-400 font-mono">
+              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-block text-[10px] bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-400 font-sans pointer-events-none">
                 /
               </kbd>
             )}
@@ -945,7 +1095,7 @@ export default function InvoicesClient({
               }}
               className="!text-rose-700 !bg-rose-50 hover:!bg-rose-100 !border-rose-200 text-xs"
             >
-              <MessageCircle className="size-3 text-rose-600" />
+              <WhatsAppIcon className="size-3.5" />
               Remind all overdue ({overdueInvoicesList.length})
             </Button>
           )}
@@ -967,7 +1117,7 @@ export default function InvoicesClient({
                 onClick={() => setBulkRemindOpen(true)}
                 className="!text-xs !bg-emerald-600 hover:!bg-emerald-700 text-white"
               >
-                <MessageCircle className="size-3.5" />
+                <WhatsAppIcon className="size-3.5" />
                 Remind selected ({selectedInvoicesList.length})
               </Button>
               <button
@@ -993,7 +1143,7 @@ export default function InvoicesClient({
             }
             action={
               <Button onClick={() => setGenerateOpen(true)}>
-                <Sparkles />
+                <FilePlus2 className="size-4" />
                 Generate invoices
               </Button>
             }
@@ -1003,7 +1153,6 @@ export default function InvoicesClient({
             {/* Mobile Cards (Collapsed Stacked Lines) */}
             <div className="divide-y divide-slate-100 sm:hidden">
               {paginatedInvoices.map((inv) => {
-                const rel = getRelativeDueDate(inv.dueDate);
                 return (
                   <div
                     key={inv.id}
@@ -1050,40 +1199,34 @@ export default function InvoicesClient({
                     <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-50">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <StatusDot status={inv.status} />
-                        {rel && (
-                          <span
-                            className={`text-[11px] font-medium whitespace-nowrap ${
-                              rel.isOverdue ? "text-rose-600 font-semibold" : "text-slate-500"
-                            }`}
-                          >
-                            · {rel.label}
+                        {inv.dueDate && (
+                          <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">
+                            · Due {formatDate(inv.dueDate)}
                           </span>
                         )}
                       </div>
 
-                      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                        {(inv.status === "PENDING" || inv.status === "OVERDUE") &&
-                        inv.outstanding > 0 ? (
-                          <WhatsAppReminderButton invoice={inv} size="xs" />
-                        ) : inv.status === "PARTIALLY_PAID" && inv.outstanding > 0 ? (
-                          <Button
-                            size="xs"
-                            variant="primary"
-                            onClick={() => setPayFor(inv)}
-                            className="!text-xs !py-1 !px-2.5"
-                          >
-                            <Wallet className="size-3" />
-                            Record
-                          </Button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setDrawerInvoice(inv)}
-                            className="text-xs font-semibold text-brand-600 hover:text-brand-700"
-                          >
-                            Details →
-                          </button>
-                        )}
+                      <div className="shrink-0 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        {inv.status === "PAID" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                            <CheckCircle2 className="size-3 text-emerald-600" />
+                            Paid
+                          </span>
+                        ) : inv.outstanding > 0 ? (
+                          <>
+                            <WhatsAppReminderButton invoice={inv} size="xs" />
+                            <Button
+                              size="xs"
+                              variant="secondary"
+                              onClick={() => setPayFor(inv)}
+                              className="!text-xs !py-1 !px-2 font-bold"
+                              title="Add payment"
+                            >
+                              <Plus className="size-3" />
+                              Add
+                            </Button>
+                          </>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -1110,11 +1253,6 @@ export default function InvoicesClient({
                     {/* Flat/Room (Sticky Left) */}
                     <th className="py-3 px-3 sticky left-0 z-20 bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] min-w-[140px]">
                       Room / Tenant
-                    </th>
-
-                    {/* Invoice # (Muted Gray Mono) */}
-                    <th className="py-3 px-3 hidden lg:table-cell min-w-[110px]">
-                      Invoice #
                     </th>
 
                     {/* Period (No wrap) */}
@@ -1148,7 +1286,6 @@ export default function InvoicesClient({
                 <tbody className="divide-y divide-neutral-100">
                   {paginatedInvoices.map((inv) => {
                     const isSelected = selectedIds.has(inv.id);
-                    const rel = getRelativeDueDate(inv.dueDate);
 
                     return (
                       <tr
@@ -1185,34 +1322,14 @@ export default function InvoicesClient({
                           </span>
                         </td>
 
-                        {/* Invoice # (Muted Gray Mono) */}
-                        <td className="py-2.5 px-3 hidden lg:table-cell font-mono text-xs text-slate-500 whitespace-nowrap">
-                          {inv.invoiceNumber}
-                        </td>
-
                         {/* Period (No wrap) */}
                         <td className="py-2.5 px-3 hidden md:table-cell whitespace-nowrap text-xs text-slate-600">
                           {formatPeriod(inv.billingPeriod)}
                         </td>
 
-                        {/* Due Date & Relative badge */}
-                        <td className="py-2.5 px-3 whitespace-nowrap text-xs">
-                          {rel ? (
-                            <div>
-                              <span
-                                className={`font-semibold block ${
-                                  rel.isOverdue ? "text-rose-600" : "text-slate-800"
-                                }`}
-                              >
-                                {rel.label}
-                              </span>
-                              <span className="text-[10px] text-slate-400 block">
-                                {formatDate(inv.dueDate)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
+                        {/* Due Date */}
+                        <td className="py-2.5 px-3 whitespace-nowrap text-xs text-slate-700 font-medium">
+                          {inv.dueDate ? formatDate(inv.dueDate) : "—"}
                         </td>
 
                         {/* Total */}
@@ -1241,77 +1358,47 @@ export default function InvoicesClient({
                           )}
                         </td>
 
-                        {/* Outstanding (Highlighted red if overdue, clean dash if settled) */}
+                        {/* Outstanding */}
                         <td className="py-2.5 px-3 text-right tabular-nums text-xs whitespace-nowrap">
                           {inv.outstanding > 0 ? (
-                            <div className="inline-flex flex-col items-end">
-                              <span
-                                className={`font-extrabold ${
-                                  inv.status === "OVERDUE" ? "text-rose-600" : "text-amber-600"
-                                }`}
-                              >
-                                {formatMoney(inv.outstanding)}
-                              </span>
-                              {inv.status === "OVERDUE" && (
-                                <span className="text-[10px] font-bold text-rose-600 uppercase tracking-tight">
-                                  Overdue
-                                </span>
-                              )}
-                            </div>
+                            <span
+                              className={`font-extrabold ${
+                                inv.status === "OVERDUE" ? "text-rose-600" : "text-amber-600"
+                              }`}
+                            >
+                              {formatMoney(inv.outstanding)}
+                            </span>
                           ) : (
                             <span className="text-neutral-400 font-bold text-xs tabular-nums">—</span>
                           )}
                         </td>
 
-                        {/* Sticky Action Column (Dynamic z-index prevents dropdown overlap bug) */}
+                        {/* Sticky Action Column */}
                         <td
-                          className={`py-2.5 pr-4 pl-3 text-right sticky right-0 bg-white group-hover:bg-neutral-50/70 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.06)] whitespace-nowrap ${
-                            activeMenuId === inv.id ? "z-40" : "z-10"
-                          }`}
+                          className="py-2.5 pr-4 pl-3 text-right sticky right-0 z-10 bg-white group-hover:bg-neutral-50/70 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.06)] whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* Primary action */}
-                            {(inv.status === "PENDING" || inv.status === "OVERDUE") &&
-                            inv.outstanding > 0 ? (
-                              <WhatsAppReminderButton invoice={inv} size="xs" />
-                            ) : inv.status === "PARTIALLY_PAID" && inv.outstanding > 0 ? (
-                              <Button
-                                size="xs"
-                                variant="primary"
-                                onClick={() => setPayFor(inv)}
-                                className="!text-xs !py-1 !px-2.5 font-bold"
-                              >
-                                <Wallet className="size-3" />
-                                Record
-                              </Button>
-                            ) : inv.status === "PAID" ? (
+                            {inv.status === "PAID" ? (
                               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
                                 <CheckCircle2 className="size-3 text-emerald-600" />
                                 Paid
                               </span>
                             ) : inv.outstanding > 0 ? (
-                              <Button
-                                size="xs"
-                                variant="secondary"
-                                onClick={() => setPayFor(inv)}
-                                className="!text-xs !py-1 !px-2.5 font-bold"
-                              >
-                                <Wallet className="size-3" />
-                                Record
-                              </Button>
+                              <>
+                                <WhatsAppReminderButton invoice={inv} size="xs" />
+                                <Button
+                                  size="xs"
+                                  variant="secondary"
+                                  onClick={() => setPayFor(inv)}
+                                  className="!text-xs !py-1 !px-2.5 font-bold"
+                                  title="Add payment"
+                                >
+                                  <Plus className="size-3" />
+                                  Add
+                                </Button>
+                              </>
                             ) : null}
-
-                            {/* ⋯ Menu */}
-                            <RowMoreMenu
-                              invoice={inv}
-                              isOpen={activeMenuId === inv.id}
-                              onToggle={() =>
-                                setActiveMenuId((prev) => (prev === inv.id ? null : inv.id))
-                              }
-                              onRecordPayment={() => setPayFor(inv)}
-                              onOpenDrawer={() => setDrawerInvoice(inv)}
-                            />
                           </div>
                         </td>
                       </tr>
@@ -1362,6 +1449,45 @@ export default function InvoicesClient({
         onClose={() => setGenerateOpen(false)}
         units={units}
         occupancies={occupancies}
+        autoConfig={autoConfig}
+        onUpdateAutoConfig={handleSaveAutoConfig}
+        onOpenInfoModal={() => setInfoModalOpen(true)}
+      />
+
+      {/* Auto-Billing Explainer Modal */}
+      <AutoBillingInfoModal
+        open={infoModalOpen}
+        onClose={() => setInfoModalOpen(false)}
+      />
+
+      {/* Auto with Confirmation Prompt Pop-up */}
+      <AutoGenerateConfirmationModal
+        open={confirmModalOpen}
+        onClose={() => {
+          sessionStorage.setItem(`auto_confirm_dismissed_${currentPeriodStr}`, "true");
+          setConfirmModalOpen(false);
+        }}
+        currentPeriod={currentPeriodStr}
+        pendingCount={pendingAutoCount}
+        estimatedTotal={estimatedAutoRent}
+        dueDay={autoConfig.dueDay || society?.dueDay || 10}
+        societyName={society?.name || "Bedy PG"}
+        onAllowGenerate={handleAllowGenerate}
+        onReviewManually={() => {
+          sessionStorage.setItem(`auto_confirm_dismissed_${currentPeriodStr}`, "true");
+          setConfirmModalOpen(false);
+          setGenerateOpen(true);
+        }}
+        generating={autoGenerating}
+      />
+
+      {/* Auto Settings Modal */}
+      <AutoSettingsModal
+        open={autoSettingsOpen}
+        onClose={() => setAutoSettingsOpen(false)}
+        config={autoConfig}
+        onSave={handleSaveAutoConfig}
+        onOpenInfoModal={() => setInfoModalOpen(true)}
       />
 
       {/* Payment Recording Modal */}
@@ -1449,20 +1575,430 @@ function InvoiceBreakdown({ invoice }) {
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Invoice Automation Modals: Explainer, Confirmation Prompt, Settings
+// ---------------------------------------------------------------------------
+
+function AutoBillingInfoModal({ open, onClose }) {
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="How Invoice Automation Works"
+      description="Choose how monthly rent invoices are generated for your residents."
+      size="lg"
+      footer={<Button onClick={onClose}>Understood</Button>}
+    >
+      <div className="space-y-4">
+        {/* Comparison Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Card 1: Full Auto */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col justify-between shadow-2xs">
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-800 border border-slate-200">
+                  <Zap className="size-3 text-slate-700" />
+                  Full Auto
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Zero Permission
+                </span>
+              </div>
+              <h4 className="mt-2.5 text-sm font-bold text-slate-900">
+                Auto-Generate on 1st of Every Month
+              </h4>
+              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                Invoices are created automatically on the 1st of each month without asking for any manual approval or permission.
+              </p>
+              <ul className="mt-3 space-y-1.5 text-xs text-slate-700">
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-slate-600 shrink-0 mt-0.5" />
+                  <span>100% hands-free monthly invoice generation.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-slate-600 shrink-0 mt-0.5" />
+                  <span>Due date automatically set to your chosen recurring due day.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-slate-600 shrink-0 mt-0.5" />
+                  <span>Automated WhatsApp & Web Push payment reminders dispatched instantly.</span>
+                </li>
+              </ul>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
+              Best for: Landlords who want completely automatic billing every month.
+            </div>
+          </div>
+
+          {/* Card 2: Auto with Confirmation */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col justify-between shadow-2xs">
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-800 border border-slate-200">
+                  <BellRing className="size-3 text-slate-700" />
+                  Auto with Confirmation
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Recommended
+                </span>
+              </div>
+              <h4 className="mt-2.5 text-sm font-bold text-slate-900">
+                1-Click Pop-up Confirmation
+              </h4>
+              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                When next month arrives, a clear confirmation pop-up asks: <em>"Allow invoice generation for this month?"</em>
+              </p>
+              <ul className="mt-3 space-y-1.5 text-xs text-slate-700">
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-slate-600 shrink-0 mt-0.5" />
+                  <span>Shows resident count and estimated rent before generating.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-slate-600 shrink-0 mt-0.5" />
+                  <span>Click <strong>"Allow & Generate"</strong> to create all invoices in 1 second.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-slate-600 shrink-0 mt-0.5" />
+                  <span>Opportunity to add electricity readings or custom charges before generating.</span>
+                </li>
+              </ul>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
+              Best for: Landlords who want automatic preparation but retain final approval.
+            </div>
+          </div>
+        </div>
+
+        {/* Same Due Date Guarantee Box */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 flex items-start gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20">
+            <Calendar className="size-4" />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-slate-900">Customizable Due Date Guarantee</p>
+            <p className="text-slate-600 mt-0.5">
+              Across both modes, the due date is consistently locked to your property&apos;s chosen recurring due day so residents always have a predictable payment timeline.
+            </p>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function AutoGenerateConfirmationModal({
+  open,
+  onClose,
+  currentPeriod,
+  pendingCount,
+  estimatedTotal,
+  dueDay = 10,
+  societyName = "Bedy PG",
+  onAllowGenerate,
+  onReviewManually,
+  generating = false,
+}) {
+  const formattedDueDate = `${currentPeriod}-${String(dueDay).padStart(2, "0")}`;
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Monthly Invoices Ready to Generate"
+      description={`Auto with Confirmation mode is active for ${societyName}.`}
+      size="md"
+      footer={
+        <div className="flex items-center justify-between w-full gap-2">
+          <Button variant="secondary" onClick={onClose} disabled={generating}>
+            Remind Later
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={onReviewManually} disabled={generating}>
+              Review Details
+            </Button>
+            <Button onClick={onAllowGenerate} loading={generating}>
+              <Sparkles className="size-4" />
+              Allow & Generate ({pendingCount} Invoices)
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="space-y-3.5">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-slate-900 text-white shrink-0 shadow-xs">
+              <BellRing className="size-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-900">
+                  Ready for {formatPeriod(currentPeriod)}
+                </span>
+                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-800">
+                  Confirmation Requested
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1">
+                Your settings are configured to <strong>Auto with Confirmation</strong>. Invoices are prepared for all eligible active residents. Click <strong>Allow & Generate</strong> to create and dispatch them immediately.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
+          <div className="flex justify-between items-center text-slate-600">
+            <span>Billing Period</span>
+            <span className="font-semibold text-slate-900">{formatPeriod(currentPeriod)}</span>
+          </div>
+          <div className="flex justify-between items-center text-slate-600">
+            <span>Eligible Residents</span>
+            <span className="font-semibold text-slate-900">{pendingCount} active staying</span>
+          </div>
+          <div className="flex justify-between items-center text-slate-600">
+            <span>Payment Due Date</span>
+            <span className="font-semibold text-slate-900">
+              {formatDate(formattedDueDate)} ({dueDay}{getOrdinal(dueDay)} of the month)
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-slate-600 pt-2 border-t border-slate-200">
+            <span className="font-bold text-slate-800">Estimated Total Rent</span>
+            <span className="font-bold font-mono text-brand-700 text-sm">
+              ~{formatMoney(estimatedTotal)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function AutoSettingsModal({ open, onClose, config, onSave, onOpenInfoModal }) {
+  const [mode, setMode] = useState(config?.mode || "CONFIRMATION");
+  const [dueDay, setDueDay] = useState(config?.dueDay || 10);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMode(config?.mode || "CONFIRMATION");
+      setDueDay(config?.dueDay || 10);
+    }
+  }, [open, config]);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await onSave({
+        ...config,
+        mode,
+        dueDay: Number(dueDay) || 10,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Monthly Invoice Automation Settings"
+      description="Configure how recurring rent invoices are generated each month."
+      size="md"
+      footer={
+        <div className="flex items-center justify-between w-full">
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} loading={saving}>
+            Save Automation Settings
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-700">Choose Automation Mode:</span>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenInfoModal();
+            }}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800 cursor-pointer"
+          >
+            <Info className="size-3.5" />
+            (i) How both modes work
+          </button>
+        </div>
+
+        <div className="space-y-2.5">
+          {/* Card 1: Full Auto */}
+          <button
+            type="button"
+            onClick={() => setMode("FULL_AUTO")}
+            className={`w-full flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+              mode === "FULL_AUTO"
+                ? "border-2 border-brand-600 bg-brand-50/40 text-slate-900 ring-2 ring-brand-500/20 shadow-2xs"
+                : "border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-800"
+            }`}
+          >
+            <div className={`flex size-9 items-center justify-center rounded-lg shrink-0 mt-0.5 ${
+              mode === "FULL_AUTO" ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"
+            }`}>
+              <Zap className="size-4.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-900">
+                  Auto-Generate (Full Auto)
+                </span>
+                {mode === "FULL_AUTO" && (
+                  <span className="flex size-4.5 items-center justify-center rounded-full bg-brand-600 text-white">
+                    <Check className="size-3" />
+                  </span>
+                )}
+              </div>
+              <p className="text-xs mt-1 leading-relaxed text-slate-600">
+                Generates invoices on the 1st of every month automatically without requiring any manual approval.
+              </p>
+              <span className={`inline-block mt-2 rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                mode === "FULL_AUTO" ? "bg-brand-100 text-brand-800" : "bg-slate-100 text-slate-700"
+              }`}>
+                Zero Permission Needed · Consistent Due Date
+              </span>
+            </div>
+          </button>
+
+          {/* Card 2: Auto with Confirmation */}
+          <button
+            type="button"
+            onClick={() => setMode("CONFIRMATION")}
+            className={`w-full flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+              mode === "CONFIRMATION"
+                ? "border-2 border-brand-600 bg-brand-50/40 text-slate-900 ring-2 ring-brand-500/20 shadow-2xs"
+                : "border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-800"
+            }`}
+          >
+            <div className={`flex size-9 items-center justify-center rounded-lg shrink-0 mt-0.5 ${
+              mode === "CONFIRMATION" ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"
+            }`}>
+              <BellRing className="size-4.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-900">
+                  Auto with Confirmation (Recommended)
+                </span>
+                {mode === "CONFIRMATION" && (
+                  <span className="flex size-4.5 items-center justify-center rounded-full bg-brand-600 text-white">
+                    <Check className="size-3" />
+                  </span>
+                )}
+              </div>
+              <p className="text-xs mt-1 leading-relaxed text-slate-600">
+                Shows a 1-click confirmation pop-up on the 1st of every month. If you allow, invoices are generated instantly.
+              </p>
+              <span className={`inline-block mt-2 rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                mode === "CONFIRMATION" ? "bg-brand-100 text-brand-800" : "bg-slate-100 text-slate-700"
+              }`}>
+                Ask First with 1-Click Allow · Consistent Due Date
+              </span>
+            </div>
+          </button>
+
+          {/* Card 3: Manual */}
+          <button
+            type="button"
+            onClick={() => setMode("MANUAL")}
+            className={`w-full flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+              mode === "MANUAL"
+                ? "border-2 border-slate-700 bg-slate-50 text-slate-900 ring-2 ring-slate-400/20 shadow-2xs"
+                : "border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-800"
+            }`}
+          >
+            <div className={`flex size-9 items-center justify-center rounded-lg shrink-0 mt-0.5 ${
+              mode === "MANUAL" ? "bg-slate-200 text-slate-800" : "bg-slate-100 text-slate-600"
+            }`}>
+              <Clock className="size-4.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-900">
+                  Manual Generation Only
+                </span>
+                {mode === "MANUAL" && (
+                  <span className="flex size-4.5 items-center justify-center rounded-full bg-slate-700 text-white">
+                    <Check className="size-3" />
+                  </span>
+                )}
+              </div>
+              <p className="text-xs mt-1 leading-relaxed text-slate-600">
+                No automatic generation or prompts. Invoices are generated only when you click "Generate invoices".
+              </p>
+            </div>
+          </button>
+        </div>
+
+        {/* Same Due Date Setting */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+          <label htmlFor="autoDueDay" className="text-xs font-bold text-slate-800 block mb-1">
+            Monthly Due Date (Defaults to 10th of every month)
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-600">Day</span>
+            <input
+              id="autoDueDay"
+              type="number"
+              min="1"
+              max="28"
+              value={dueDay}
+              onChange={(e) => setDueDay(Number(e.target.value) || 10)}
+              className="w-20 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-900 text-center"
+            />
+            <span className="text-xs text-slate-600">of every month</span>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1.5">
+            Both automated modes lock the payment due date to this day every month.
+          </p>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // GenerateModal with Step 1: Config, Step 2: Preview & Confirm
 // ---------------------------------------------------------------------------
 
-function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
+function GenerateModal({
+  open,
+  onClose,
+  units = [],
+  occupancies = [],
+  autoConfig = null,
+  onUpdateAutoConfig = null,
+  onOpenInfoModal = null,
+}) {
   const router = useRouter();
   const [step, setStep] = useState("CONFIG"); // "CONFIG" | "PREVIEW"
 
+  const defaultDueDay = autoConfig?.dueDay || 10;
+  const initialPeriod = currentPeriod();
+  const initialDueDate = `${initialPeriod}-${String(defaultDueDay).padStart(2, "0")}`;
+
   const [form, setForm] = useState({
-    billingPeriod: currentPeriod(),
-    dueDate: "",
-    previousDue: true,
-    penaltyPercent: 2,
-    skipVacant: true,
+    billingPeriod: initialPeriod,
+    dueDate: initialDueDate,
+    previousDue: autoConfig?.previousDue ?? true,
+    penaltyPercent: autoConfig?.penaltyPercent ?? 2,
+    skipVacant: autoConfig?.skipVacant ?? true,
   });
+
+  const [selectedAutoMode, setSelectedAutoMode] = useState(autoConfig?.mode || "CONFIRMATION");
+  const [selectedDueDay, setSelectedDueDay] = useState(autoConfig?.dueDay || 10);
+  const [modalInfoOpen, setModalInfoOpen] = useState(false);
+  const [showAutoOptions, setShowAutoOptions] = useState(false);
 
   // Expandable sections toggles
   const [showElectricity, setShowElectricity] = useState(false);
@@ -1498,6 +2034,39 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
     return map;
   }, [occupancies]);
 
+  // Available billing period options: 5 months before to 20 months in the future
+  const periodOptions = useMemo(() => {
+    const list = [];
+    const now = new Date();
+    const currentY = now.getFullYear();
+    const currentM = now.getMonth();
+
+    // From -5 months (before 5) to +20 months (next 20)
+    for (let offset = -5; offset <= 20; offset++) {
+      const d = new Date(currentY, currentM + offset, 1);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const val = `${yyyy}-${mm}`;
+      const label = d.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+      list.push({
+        value: val,
+        label,
+        isCurrent: offset === 0,
+      });
+    }
+
+    if (form.billingPeriod && !list.some((p) => p.value === form.billingPeriod)) {
+      const [y, m] = form.billingPeriod.split("-");
+      const d = new Date(Number(y), Number(m) - 1, 1);
+      const label = !isNaN(d.getTime())
+        ? d.toLocaleDateString("en-IN", { month: "short", year: "numeric" })
+        : form.billingPeriod;
+      list.unshift({ value: form.billingPeriod, label, isCurrent: false });
+    }
+
+    return list;
+  }, [form.billingPeriod]);
+
   // Extra charges list
   const [extraChargesList, setExtraChargesList] = useState([]);
 
@@ -1522,16 +2091,73 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
   }, [occupancies, form.skipVacant]);
 
   const estimatedCount = eligibleOccupancies.length || units.length || 0;
-  const estimatedBaseRent = eligibleOccupancies.reduce(
-    (sum, o) => sum + (Number(o.rentAmount) || Number(o.unit?.rentAmount) || 0),
-    0
-  );
-  const estimatedExtra = extraChargesList.reduce((sum, c) => {
-    const amt = Number(c.amount) || 0;
-    if (c.targetType === "ALL") return sum + amt * (estimatedCount || 1);
-    return sum + amt;
-  }, 0);
-  const estimatedTotal = estimatedBaseRent + estimatedExtra;
+
+  // Base rent calculation: check monthlyRent -> bed.rentAmount -> unit.rentAmount -> o.rentAmount
+  const estimatedBaseRent = useMemo(() => {
+    return eligibleOccupancies.reduce((sum, o) => {
+      const rent =
+        (Number(o.monthlyRent) > 0 ? Number(o.monthlyRent) : 0) ||
+        (Number(o.bed?.rentAmount) > 0 ? Number(o.bed.rentAmount) : 0) ||
+        (Number(o.unit?.rentAmount) > 0 ? Number(o.unit.rentAmount) : 0) ||
+        (Number(o.rentAmount) > 0 ? Number(o.rentAmount) : 0);
+      return sum + rent;
+    }, 0);
+  }, [eligibleOccupancies]);
+
+  // Carried forward unpaid balances from previous invoices
+  const estimatedPreviousDue = useMemo(() => {
+    if (!form.previousDue) return 0;
+    let total = 0;
+    for (const o of eligibleOccupancies) {
+      if (Array.isArray(o.invoices)) {
+        for (const inv of o.invoices) {
+          if (inv.billingPeriod === form.billingPeriod) continue;
+          const open = Math.max(0, (Number(inv.totalAmount) || 0) - (Number(inv.paidAmount) || 0));
+          if (open > 0) {
+            total += open;
+            if (Number(form.penaltyPercent) > 0) {
+              total += Math.round(open * (Number(form.penaltyPercent) / 100));
+            }
+          }
+        }
+      }
+    }
+    return total;
+  }, [eligibleOccupancies, form.previousDue, form.penaltyPercent, form.billingPeriod]);
+
+  // Extra charges calculation
+  const estimatedExtra = useMemo(() => {
+    return extraChargesList.reduce((sum, c) => {
+      const amt = Number(c.amount) || 0;
+      if (c.targetType === "ALL" || !c.targetType) return sum + amt * (estimatedCount || 1);
+      return sum + amt;
+    }, 0);
+  }, [extraChargesList, estimatedCount]);
+
+  // Estimated electricity calculation
+  const estimatedElectricity = useMemo(() => {
+    if (!showElectricity || !electricityConfig) return 0;
+    if (electricityConfig.mode === "COMMON") {
+      if (Number(electricityConfig.commonPerPerson) > 0) {
+        return Math.round(Number(electricityConfig.commonPerPerson) * (estimatedCount || 1));
+      }
+      if (Number(electricityConfig.commonTotal) > 0) {
+        return Math.round(Number(electricityConfig.commonTotal));
+      }
+      if (Number(electricityConfig.commonUnits) > 0) {
+        return Math.round(Number(electricityConfig.commonUnits) * (Number(electricityConfig.commonRatePerUnit) || 10));
+      }
+    }
+    if (electricityConfig.mode === "ROOM_WISE" && Array.isArray(electricityConfig.rooms)) {
+      return electricityConfig.rooms.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    }
+    if (electricityConfig.mode === "INDIVIDUAL" && Array.isArray(electricityConfig.individuals)) {
+      return electricityConfig.individuals.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    }
+    return 0;
+  }, [showElectricity, electricityConfig, estimatedCount]);
+
+  const estimatedTotal = estimatedBaseRent + estimatedPreviousDue + estimatedExtra + estimatedElectricity;
 
   function handleGoToPreview() {
     if (!form.billingPeriod?.trim()) {
@@ -1559,6 +2185,16 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
                 targetId: c.targetId || undefined,
               }))
           : undefined;
+
+      // Persist auto-generate preference
+      if (selectedAutoMode && onUpdateAutoConfig) {
+        const customDay = form.dueDate ? Number(form.dueDate.split("-")[2]) : selectedDueDay;
+        onUpdateAutoConfig({
+          ...autoConfig,
+          mode: selectedAutoMode,
+          dueDay: Number(customDay) || selectedDueDay || 10,
+        });
+      }
 
       const data = await api.post("/api/billing/invoices/generate", {
         ...form,
@@ -1644,8 +2280,8 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
           {/* Large Preview Highlight Card */}
           <div className="rounded-2xl border border-brand-200 bg-brand-50/60 p-4">
             <div className="flex items-start gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-brand-600 text-white font-bold shrink-0">
-                <Sparkles className="size-5" />
+              <div className="flex size-9 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 text-brand-700 shrink-0">
+                <CheckCircle2 className="size-4.5 text-brand-600" />
               </div>
               <div>
                 <p className="text-sm font-bold text-slate-900">
@@ -1673,19 +2309,31 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
               <span className="font-semibold text-slate-900">{formatPeriod(form.billingPeriod)}</span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>Estimated base rent</span>
+              <span>Estimated base rent ({estimatedCount} resident{estimatedCount === 1 ? "" : "s"})</span>
               <span className="font-semibold font-mono text-slate-900">{formatMoney(estimatedBaseRent)}</span>
             </div>
+            {form.previousDue && (
+              <div className="flex justify-between text-slate-600">
+                <span>Carried forward unpaid dues</span>
+                <span className={`font-semibold font-mono ${estimatedPreviousDue > 0 ? "text-amber-700 font-bold" : "text-slate-900"}`}>
+                  {estimatedPreviousDue > 0 ? `+${formatMoney(estimatedPreviousDue)}` : "₹0 (All clear)"}
+                </span>
+              </div>
+            )}
             {extraChargesList.length > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span>Extra charges ({extraChargesList.length})</span>
                 <span className="font-semibold font-mono text-slate-900">+{formatMoney(estimatedExtra)}</span>
               </div>
             )}
-            <div className="flex justify-between text-slate-600">
-              <span>Electricity meter calculation</span>
-              <span className="font-semibold text-slate-900">{showElectricity ? "Enabled" : "Disabled"}</span>
-            </div>
+            {showElectricity && (
+              <div className="flex justify-between text-slate-600">
+                <span>Estimated electricity</span>
+                <span className="font-semibold font-mono text-slate-900">
+                  {estimatedElectricity > 0 ? `+${formatMoney(estimatedElectricity)}` : "Enabled (included)"}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between text-slate-600">
               <span>Carry forward unpaid balances</span>
               <span className="font-semibold text-slate-900">{form.previousDue ? "Yes" : "No"}</span>
@@ -1704,25 +2352,227 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
         <div className="flex flex-col gap-4">
           <ErrorBanner error={error} />
 
+          {/* Compact Setting Row for Auto-Billing */}
+          <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-2.5 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-700 shrink-0">
+                  <Zap className="size-3.5" />
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0 text-xs">
+                  <span className="font-semibold text-slate-800">Auto-billing:</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-white border border-slate-200 text-slate-700">
+                    {selectedAutoMode === "FULL_AUTO"
+                      ? `Full Auto (Due ${selectedDueDay}${getOrdinal(selectedDueDay)})`
+                      : selectedAutoMode === "CONFIRMATION"
+                      ? `Auto with Confirmation (Due ${selectedDueDay}${getOrdinal(selectedDueDay)})`
+                      : "Off (Manual)"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenInfoModal) onOpenInfoModal();
+                      else setModalInfoOpen(true);
+                    }}
+                    className="inline-flex items-center text-slate-400 hover:text-slate-700 transition-colors p-0.5 cursor-pointer"
+                    title="How auto-billing works"
+                  >
+                    <Info className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAutoOptions((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer shrink-0"
+              >
+                <SlidersHorizontal className="size-3 text-slate-500" />
+                <span>{showAutoOptions ? "Hide" : "Settings"}</span>
+                <ChevronDown className={`size-3 text-slate-400 transition-transform ${showAutoOptions ? "rotate-180" : ""}`} />
+              </button>
+            </div>
+
+            {/* Revealed options only after clicking Settings */}
+            {showAutoOptions && (
+              <div className="pt-2.5 border-t border-slate-200/80 space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {/* Option 1: Full Auto */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAutoMode("FULL_AUTO");
+                      onUpdateAutoConfig?.({ ...autoConfig, mode: "FULL_AUTO", dueDay: selectedDueDay });
+                    }}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      selectedAutoMode === "FULL_AUTO"
+                        ? "border-2 border-brand-600 bg-brand-50/40 text-slate-900 ring-2 ring-brand-500/20 shadow-2xs"
+                        : "border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-800"
+                    }`}
+                  >
+                    <div className={`flex size-7 items-center justify-center rounded-lg shrink-0 mt-0.5 ${
+                      selectedAutoMode === "FULL_AUTO" ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"
+                    }`}>
+                      <Zap className="size-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900">
+                          Auto-Generate (Full Auto)
+                        </span>
+                        {selectedAutoMode === "FULL_AUTO" && (
+                          <span className="flex size-4 items-center justify-center rounded-full bg-brand-600 text-white">
+                            <Check className="size-2.5" />
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] mt-0.5 leading-tight text-slate-600">
+                        Generates on the 1st of every month without asking.
+                      </p>
+                      <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-brand-800">
+                        <span>Zero permission</span>
+                        <span>Due: {selectedDueDay}{getOrdinal(selectedDueDay)} of month</span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Option 2: Auto with Confirmation */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAutoMode("CONFIRMATION");
+                      onUpdateAutoConfig?.({ ...autoConfig, mode: "CONFIRMATION", dueDay: selectedDueDay });
+                    }}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      selectedAutoMode === "CONFIRMATION"
+                        ? "border-2 border-brand-600 bg-brand-50/40 text-slate-900 ring-2 ring-brand-500/20 shadow-2xs"
+                        : "border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 text-slate-800"
+                    }`}
+                  >
+                    <div className={`flex size-7 items-center justify-center rounded-lg shrink-0 mt-0.5 ${
+                      selectedAutoMode === "CONFIRMATION" ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"
+                    }`}>
+                      <BellRing className="size-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900">
+                          Auto with Confirmation
+                        </span>
+                        {selectedAutoMode === "CONFIRMATION" && (
+                          <span className="flex size-4 items-center justify-center rounded-full bg-brand-600 text-white">
+                            <Check className="size-2.5" />
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] mt-0.5 leading-tight text-slate-600">
+                        Shows 1-click confirmation pop-up on the 1st to allow.
+                      </p>
+                      <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-brand-800">
+                        <span>Ask before generating</span>
+                        <span>Due: {selectedDueDay}{getOrdinal(selectedDueDay)} of month</span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-slate-200/80">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="size-3.5 text-brand-600 shrink-0" />
+                    <label htmlFor="recurringDueDaySelect" className="text-xs font-semibold text-slate-700">
+                      Recurring Due Day:
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        id="recurringDueDaySelect"
+                        value={selectedDueDay}
+                        onChange={(e) => {
+                          const day = Number(e.target.value) || 10;
+                          setSelectedDueDay(day);
+                          if (form.billingPeriod) {
+                            setForm((prev) => ({
+                              ...prev,
+                              dueDate: `${prev.billingPeriod}-${String(day).padStart(2, "0")}`,
+                            }));
+                          }
+                          onUpdateAutoConfig?.({ ...autoConfig, dueDay: day, mode: selectedAutoMode });
+                        }}
+                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-900 shadow-2xs hover:border-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                          <option key={d} value={d}>
+                            {d}{getOrdinal(d)} of every month
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {selectedAutoMode !== "MANUAL" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAutoMode("MANUAL");
+                        onUpdateAutoConfig?.({ ...autoConfig, mode: "MANUAL" });
+                      }}
+                      className="text-[11px] text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                    >
+                      Turn off auto-billing
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Input
+            <Select
               id="billingPeriod"
               label="Billing period"
               value={form.billingPeriod}
-              onChange={set("billingPeriod")}
+              onChange={(e) => {
+                const newPeriod = e.target.value;
+                const dueDay = selectedDueDay || autoConfig?.dueDay || 10;
+                const newDueDate =
+                  newPeriod && newPeriod.length === 7
+                    ? `${newPeriod}-${String(dueDay).padStart(2, "0")}`
+                    : form.dueDate;
+                setForm((prev) => ({
+                  ...prev,
+                  billingPeriod: newPeriod,
+                  dueDate: newDueDate,
+                }));
+              }}
               error={errors.billingPeriod}
-              placeholder="2026-10"
-              hint="YYYY-MM"
               required
-            />
+            >
+              {periodOptions.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}{p.isCurrent ? " (Current)" : ""}
+                </option>
+              ))}
+            </Select>
             <Input
               id="dueDate"
               label="Due date"
               type="date"
               value={form.dueDate}
-              onChange={set("dueDate")}
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm((prev) => ({ ...prev, dueDate: val }));
+                if (val && val.includes("-")) {
+                  const parts = val.split("-");
+                  if (parts[2]) {
+                    const day = Number(parts[2]);
+                    if (day >= 1 && day <= 31) {
+                      setSelectedDueDay(day);
+                      onUpdateAutoConfig?.({ ...autoConfig, dueDay: day, mode: selectedAutoMode });
+                    }
+                  }
+                }
+              }}
               error={errors.dueDate}
-              hint="Defaults to the 10th"
+              hint={`Defaults to ${selectedDueDay}${getOrdinal(selectedDueDay)} of month`}
             />
           </div>
 
@@ -1750,9 +2600,16 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
               id="skipVacant"
               checked={form.skipVacant}
               onChange={set("skipVacant")}
-              label="Skip vacant flats / beds"
+              label="Skip vacant rooms / beds"
             />
           </div>
+
+    {modalInfoOpen && (
+            <AutoBillingInfoModal
+              open={modalInfoOpen}
+              onClose={() => setModalInfoOpen(false)}
+            />
+          )}
 
           {/* Electricity Billing Section */}
           <ElectricityBillingSection
@@ -1772,13 +2629,13 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
               className="flex items-center justify-between w-full p-3.5 bg-slate-50/70 hover:bg-slate-100/70 transition-colors text-left"
             >
               <div className="flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-indigo-500 text-white font-bold text-xs shadow-2xs">
-                  ➕
-                </span>
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 shadow-2xs">
+                  <Receipt className="size-4 text-slate-700" />
+                </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-900">Add Extra Charges</span>
-                    <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                    <span className="rounded-full bg-slate-100 border border-slate-200/70 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                       Optional
                     </span>
                   </div>
@@ -1825,7 +2682,7 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
                             },
                           ]);
                         }}
-                        className="py-1 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold border border-indigo-200 text-xs transition-colors"
+                        className="py-1 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200/80 text-slate-700 font-semibold border border-slate-200 text-xs transition-colors cursor-pointer"
                       >
                         + {preset.name}
                       </button>
@@ -1869,7 +2726,8 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
                             className="rounded-lg border border-slate-300 p-1.5 bg-white text-xs font-semibold"
                           />
                           <div className="flex items-center gap-1.5">
-                            <select
+                            <DropdownSelect
+                              size="sm"
                               value={charge.targetType}
                               onChange={(e) => {
                                 const updated = [...extraChargesList];
@@ -1882,7 +2740,7 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
                               <option value="ALL">All Residents</option>
                               <option value="ROOM">Specific Room</option>
                               <option value="INDIVIDUAL">Specific Resident</option>
-                            </select>
+                            </DropdownSelect>
                             <button
                               type="button"
                               onClick={() => {
@@ -1899,7 +2757,8 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
                         {charge.targetType === "ROOM" && (
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] text-slate-500 shrink-0">Select Room:</span>
-                            <select
+                            <DropdownSelect
+                              size="sm"
                               value={charge.targetId}
                               onChange={(e) => {
                                 const updated = [...extraChargesList];
@@ -1914,14 +2773,15 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
                                   Room {r.unitNumber}
                                 </option>
                               ))}
-                            </select>
+                            </DropdownSelect>
                           </div>
                         )}
 
                         {charge.targetType === "INDIVIDUAL" && (
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] text-slate-500 shrink-0">Select Resident:</span>
-                            <select
+                            <DropdownSelect
+                              size="sm"
                               value={charge.targetId}
                               onChange={(e) => {
                                 const updated = [...extraChargesList];
@@ -1937,7 +2797,7 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
                                   {o.bed ? ` · Bed ${o.bed.bedLabel}` : ""})
                                 </option>
                               ))}
-                            </select>
+                            </DropdownSelect>
                           </div>
                         )}
                       </div>
@@ -1948,9 +2808,10 @@ function GenerateModal({ open, onClose, units = [], occupancies = [] }) {
             )}
           </div>
 
-          <CardNote tone="brand" icon={Sparkles}>
-            Flats and rooms already invoiced for this period are skipped, so it is safe to run this more than once.
-          </CardNote>
+          <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/80 px-3.5 py-2.5 text-xs text-slate-600">
+            <Info className="size-4 text-slate-400 shrink-0" />
+            <span>Rooms and beds already invoiced for this period will automatically be skipped.</span>
+          </div>
         </div>
       )}
     </Modal>
@@ -2027,7 +2888,7 @@ function PaymentModal({ invoice, onClose }) {
     <Modal
       open={Boolean(invoice)}
       onClose={close}
-      title={receipt ? "Payment recorded" : "Record payment"}
+      title={receipt ? "Payment recorded" : "Add payment"}
       description={
         invoice
           ? `${invoice.invoiceNumber} · ${
@@ -2044,7 +2905,7 @@ function PaymentModal({ invoice, onClose }) {
               Cancel
             </Button>
             <Button onClick={submit} loading={saving}>
-              Record payment
+              Add payment
             </Button>
           </>
         )

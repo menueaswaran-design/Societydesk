@@ -1,8 +1,9 @@
 "use client";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Search, PartyPopper, Clock, Wallet, Flame, FileText, MessageCircle } from "lucide-react";
+import { AlertTriangle, Search, PartyPopper, Clock, Wallet, Flame, FileText } from "lucide-react";
 import Table, { Tr, Td, RowActions } from "@/components/ui/Table";
 import Badge from "@/components/ui/Badge";
 import Button, { TextAction } from "@/components/ui/Button";
@@ -39,7 +40,7 @@ function WhatsAppDefaulterNoticeButton({ defaulter, size = "xs" }) {
       className="!text-emerald-700 !bg-emerald-50 hover:!bg-emerald-100 !border-emerald-200"
       title="Send 1-Click WhatsApp Overdue Notice with Instant UPI Pay Link"
     >
-      <MessageCircle className="size-3 text-emerald-600" />
+      <WhatsAppIcon className="size-3.5" />
       Send Notice
     </Button>
   );
@@ -105,8 +106,8 @@ export default function DefaultersClient({ defaulters, summary }) {
   return (
     <div className="stack">
       <PageHeader
-        title="Defaulters"
-        description="Unpaid invoices past their due date, one row per flat."
+        title="Overdue"
+        description="Unpaid rent invoices past their due date, tracked by room and resident."
         meta={
           <span className="text-[11px] font-semibold text-slate-500">
             {visible.length} of {defaulters.length} flats
@@ -115,7 +116,7 @@ export default function DefaultersClient({ defaulters, summary }) {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Flats in arrears" value={summary.flatCount} tone="red" icon={AlertTriangle} />
+        <StatCard label="Rooms overdue" value={summary.flatCount} tone="red" icon={AlertTriangle} />
         <StatCard label="Invoices unpaid" value={summary.invoiceCount} icon={FileText} />
         <StatCard
           label="Total outstanding"
@@ -142,15 +143,15 @@ export default function DefaultersClient({ defaulters, summary }) {
           <SearchInput
             value={query}
             onChange={(val) => { setQuery(val); setPage(1); }}
-            placeholder="Search flat or resident"
-            className="w-full lg:ml-auto lg:max-w-xs"
+            placeholder="Search room or resident"
+            className="w-full sm:max-w-sm lg:ml-auto"
           />
         </div>
 
         {visible.length === 0 ? (
           <EmptyState
             icon={defaulters.length === 0 ? PartyPopper : Search}
-            title={defaulters.length === 0 ? "Nobody is in arrears" : "No matching flats"}
+            title={defaulters.length === 0 ? "No overdue dues" : "No matching rooms"}
             description={
               defaulters.length === 0
                 ? "Every issued invoice is within its due date or already settled."

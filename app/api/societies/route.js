@@ -1,20 +1,41 @@
+import { cookies } from "next/headers";
 import { handler, ok, readJson } from "@/lib/api";
-import { unprocessable } from "@/lib/errors";
+import { unprocessable, forbidden } from "@/lib/errors";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireSuperAdmin } from "@/lib/auth/permissions";
+import { isSuperAdmin, isOwner } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { audit, AUDIT } from "@/lib/audit";
 import { societyCreateSchema } from "@/lib/validation/schemas";
 import { createFirebaseUser, discardFirebaseUser } from "@/lib/firebase/identity";
+import { sendUserWelcomeEmail, generateTemporaryPassword } from "@/lib/email";
+import {
+  addSocietyAssignment,
+  getUserAccessibleSocieties,
+} from "@/lib/db/staffAssignments";
 export const dynamic = "force-dynamic";
 
-
-/** GET /api/societies - platform-wide list (super admin only). */
+/** GET /api/societies - platform-wide list for super admin, or owned properties for owner. */
 const GETImpl = handler(async (req) => {
   const user = await getSessionUser(req);
-  requireSuperAdmin(user);
+  if (!isSuperAdmin(user) && !isOwner(user)) {
+    throw forbidden("Admin access required");
+  }
 
+  if (isSuperAdmin(user)) {
+    const societies = await prisma.society.findMany({
+      include: {
+        _count: { select: { flats: true, users: true, invoices: true, complaints: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return ok(societies);
+  }
+
+  // Owner: return properties accessible to this owner
+  const accessible = await getUserAccessibleSocieties(user);
+  const ids = accessible.map((s) => s.id);
   const societies = await prisma.society.findMany({
+    where: { id: { in: ids } },
     include: {
       _count: { select: { flats: true, users: true, invoices: true, complaints: true } },
     },
@@ -25,17 +46,14 @@ const GETImpl = handler(async (req) => {
 });
 
 /**
- * POST /api/societies - create a tenant and, optionally, its first admin.
- * Both writes are atomic so a society never exists without an owner.
- *
- * When the admin block is filled, the Firebase email/password login is
- * provisioned first (it cannot join the Postgres transaction), then the
- * transaction stores the uid; if the transaction fails, the freshly created
- * Firebase account is discarded again so no orphan login is left behind.
+ * POST /api/societies - create a PG property tenant and optionally assign managers.
+ * Permitted for SUPER_ADMIN and OWNER.
  */
 const POSTImpl = handler(async (req) => {
   const user = await getSessionUser(req);
-  requireSuperAdmin(user);
+  if (!isSuperAdmin(user) && !isOwner(user)) {
+    throw forbidden("Only super administrators and property owners can add PG properties");
+  }
 
   const body = societyCreateSchema.parse(await readJson(req));
 
@@ -46,7 +64,8 @@ const POSTImpl = handler(async (req) => {
     ).toUpperCase();
 
   let adminIdentity = null;
-  if (body.adminName && body.adminEmail && body.adminPassword) {
+  let adminFinalPassword = null;
+  if (body.adminName && body.adminEmail) {
     const adminEmail = body.adminEmail.toLowerCase();
     const existing = await prisma.user.findUnique({ where: { email: adminEmail }, select: { id: true } });
     if (existing) {
@@ -54,10 +73,12 @@ const POSTImpl = handler(async (req) => {
         adminEmail: "An account with this email already exists",
       });
     }
-    adminIdentity = await createFirebaseUser(adminEmail, body.adminPassword);
+    adminFinalPassword = (body.adminPassword || "").trim() || generateTemporaryPassword();
+    adminIdentity = await createFirebaseUser(adminEmail, adminFinalPassword);
   }
 
   let society;
+  let createdManager = null;
   try {
     society = await prisma.$transaction(async (tx) => {
       const created = await tx.society.create({
@@ -69,8 +90,8 @@ const POSTImpl = handler(async (req) => {
           city: body.city ?? null,
           state: body.state ?? null,
           pincode: body.pincode ?? null,
-          phone: body.phone ?? null,
-          email: body.email || null,
+          phone: body.phone ?? user.phone ?? null,
+          email: body.email || (isOwner(user) ? user.email : null),
           bankName: body.bankName ?? null,
           bankAccountNo: body.bankAccountNo ?? null,
           bankIfsc: body.bankIfsc ?? null,
@@ -81,14 +102,14 @@ const POSTImpl = handler(async (req) => {
       });
 
       if (adminIdentity) {
-        await tx.user.create({
+        createdManager = await tx.user.create({
           data: {
             societyId: created.id,
             name: body.adminName,
             email: body.adminEmail.toLowerCase(),
             phone: body.adminPhone || null,
             authUid: adminIdentity.uid,
-            role: body.adminRole || "MANAGER",
+            role: isOwner(user) ? "MANAGER" : (body.adminRole || "MANAGER"),
             status: "ACTIVE",
           },
         });
@@ -97,10 +118,64 @@ const POSTImpl = handler(async (req) => {
       return created;
     });
   } catch (err) {
-    if (adminIdentity?.created) {
-      await discardFirebaseUser(body.adminEmail.toLowerCase(), body.adminPassword);
+    if (adminIdentity?.created && adminFinalPassword) {
+      await discardFirebaseUser(body.adminEmail.toLowerCase(), adminFinalPassword);
     }
     throw err;
+  }
+
+  // 1. If created by an OWNER, link the owner to this new PG in StaffAssignment
+  if (isOwner(user)) {
+    await addSocietyAssignment(user.id, society.id, "OWNER");
+
+    // If owner requested to set as active PG (or had no active PG)
+    if (body.setAsActive || !user.societyId) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { societyId: society.id },
+      });
+      const cookieStore = await cookies();
+      cookieStore.set("sd_active_society", society.id, {
+        path: "/",
+        httpOnly: false,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
+  }
+
+  // 2. If a new manager account was provisioned, link them in StaffAssignment
+  if (createdManager) {
+    await addSocietyAssignment(createdManager.id, society.id, "MANAGER");
+  }
+
+  // 3. If owner assigned existing managers to this new PG (strict owner-tree verification)
+  if (Array.isArray(body.managerIds) && body.managerIds.length) {
+    let allowedManagerIds = body.managerIds;
+    if (isOwner(user)) {
+      const ownerAccessible = await getUserAccessibleSocieties(user);
+      const ownerSocietyIds = ownerAccessible.map((s) => s.id);
+
+      if (ownerSocietyIds.length) {
+        const verifiedRows = await prisma.$queryRawUnsafe(
+          `
+          SELECT DISTINCT "userId" 
+          FROM "StaffAssignment" 
+          WHERE "userId" = ANY($1::text[]) AND "societyId" = ANY($2::text[])
+          `,
+          body.managerIds,
+          ownerSocietyIds
+        );
+        const verifiedSet = new Set(verifiedRows.map((r) => r.userId));
+        allowedManagerIds = body.managerIds.filter((id) => verifiedSet.has(id));
+      } else {
+        allowedManagerIds = [];
+      }
+    }
+
+    for (const mgrId of allowedManagerIds) {
+      await addSocietyAssignment(mgrId, society.id, "MANAGER");
+    }
   }
 
   await audit({
@@ -111,6 +186,17 @@ const POSTImpl = handler(async (req) => {
     entityId: society.id,
     newValue: { name: society.name, code: society.code },
   });
+
+  if (adminIdentity && body.adminEmail && adminFinalPassword) {
+    await sendUserWelcomeEmail({
+      email: body.adminEmail.toLowerCase(),
+      name: body.adminName,
+      role: isOwner(user) ? "MANAGER" : (body.adminRole || "MANAGER"),
+      password: adminFinalPassword,
+      societyName: society.name,
+      societyId: society.id,
+    }).catch((e) => console.warn("[email] Error sending society admin welcome email:", e?.message));
+  }
 
   return ok(society, { status: 201 });
 });
