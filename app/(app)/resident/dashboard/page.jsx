@@ -16,11 +16,16 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import {
   Wallet,
   AlertTriangle,
+  AlertCircle,
+  Clock,
+  Calendar,
+  CalendarDays,
   Megaphone,
   CreditCard,
   FileText,
   Home,
   CheckCircle2,
+  Check,
   ArrowUpRight,
   Receipt,
   BedSingle,
@@ -152,38 +157,51 @@ export default async function ResidentDashboardPage() {
 
   const hasLinkedUnit = (data.flats && data.flats.length > 0) || (data.occupancies && data.occupancies.length > 0);
 
+  const today = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   const quickActions = [
     {
       href: "/resident/invoices",
-      title: isPgResident ? "Pay rent & bills" : "Pay maintenance",
-      caption: due ? `${formatMoney(due.outstanding)} payable` : "All dues are cleared",
-      icon: Wallet,
+      title: isPgResident ? (due?.isOverdue ? "Overdue Rent" : "Rent & Bills") : "Maintenance",
+      value: due ? formatMoney(due.outstanding) : "₹0",
+      caption: due
+        ? (due.isOverdue ? "Invoice past due" : "Payment pending")
+        : "All dues are cleared",
+      icon: due?.isOverdue ? AlertTriangle : Wallet,
       tone: due ? (due.isOverdue ? "red" : "amber") : "green",
-      badge: due ? "Pay now" : "Clear",
     },
     {
       href: "/resident/complaints",
-      title: "Raise a complaint",
+      title: "Complaints",
+      value: String(data.activeComplaints?.length || 0),
       caption:
         data.activeComplaints?.length > 0
-          ? `${data.activeComplaints.length} active tickets`
-          : "Something needs fixing?",
+          ? `${data.activeComplaints.length} active ${data.activeComplaints.length === 1 ? "ticket" : "tickets"}`
+          : "No open tickets",
       icon: AlertTriangle,
       tone: data.activeComplaints?.length > 0 ? "red" : "brand",
     },
     {
       href: "/resident/notices",
-      title: "Read notices",
+      title: "Notices",
+      value: String(data.unreadNoticeCount || 0),
       caption:
-        data.unreadNoticeCount > 0 ? `${data.unreadNoticeCount} new for you` : "You're all caught up",
+        data.unreadNoticeCount > 0
+          ? `${data.unreadNoticeCount} new for you`
+          : "You're all caught up",
       icon: Megaphone,
-      tone: "violet",
-      badge: data.unreadNoticeCount > 0 ? `${data.unreadNoticeCount} new` : undefined,
+      tone: data.unreadNoticeCount > 0 ? "amber" : "violet",
     },
     {
       href: "/resident/invoices?filter=PAID",
-      title: "Payment receipts",
-      caption: "View and download receipts",
+      title: "Receipts",
+      value: String(data.recentPayments?.length || 0),
+      caption: "View payment receipts",
       icon: Receipt,
       tone: "sky",
     },
@@ -191,56 +209,48 @@ export default async function ResidentDashboardPage() {
 
   return (
     <div className="stack">
-      <Welcome
-        eyebrow={unitLabel || flatLabels.join(", ") || "Your home"}
-        title={`${greeting()}, ${firstName}`}
-        description={
-          hasLinkedUnit
-            ? isPgResident
-              ? "Everything you need for your PG stay in one place."
-              : "Everything you need for your home in one place."
-            : "Your resident portal"
-        }
-        badge={
-          data.unreadNoticeCount > 0
-            ? `${data.unreadNoticeCount} unread notice${data.unreadNoticeCount === 1 ? "" : "s"}`
-            : "All caught up"
-        }
-        actions={
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {due ? (
-              <PayCheckoutButton
-                invoiceId={due.id}
-                invoiceNumber={due.invoiceNumber}
-                amount={due.outstanding}
-                flatLabel={dueLabel}
-                size="lg"
-                label="Pay now"
-              />
-            ) : (
-              <Button as="a" href="/resident/invoices" variant="secondary" size="lg">
-                View invoices
-              </Button>
-            )}
-            {isPgResident && (
-              <Button
-                as="a"
-                href="/resident/vacate"
-                variant="secondary"
-                size="lg"
-                className={
-                  isNotice
-                    ? "!border-amber-400 !bg-amber-100 !text-amber-900 font-bold shadow-2xs"
-                    : "!border-slate-300 font-bold hover:!bg-slate-100 shadow-2xs"
-                }
-              >
-                <DoorOpen className="size-4 text-amber-600" />
-                {isNotice ? `On Notice (${daysLeft}d left)` : "Vacate PG / Notice"}
-              </Button>
-            )}
-          </div>
-        }
-      />
+      {/* ── TOP HEADER (CLEAN, SLEEK DASHBOARD TITLE & DATE) ───────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-1">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
+            Dashboard
+          </h1>
+          <span className="inline-flex items-center gap-2 rounded-full border border-neutral-200/90 bg-white px-3 py-1 text-xs font-semibold text-neutral-600 shadow-2xs">
+            <CalendarDays className="size-3.5 text-brand-600" />
+            {today}
+          </span>
+          {isNotice && daysLeft !== null && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-300 shadow-2xs">
+              <Clock className="size-3 text-amber-600" />
+              On Notice ({daysLeft}d left)
+            </span>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {due ? (
+            <PayCheckoutButton
+              invoiceId={due.id}
+              invoiceNumber={due.invoiceNumber}
+              amount={due.outstanding}
+              flatLabel={dueLabel}
+              size="md"
+              label="Pay now"
+            />
+          ) : null}
+          <Button
+            as="a"
+            href="/resident/invoices"
+            variant={due ? "secondary" : "primary"}
+            size="md"
+            className="font-bold shadow-2xs"
+          >
+            <FileText className="size-4" />
+            View invoices
+          </Button>
+        </div>
+      </div>
 
       {/* Mobile Push Notification Opt-in Prompt */}
       <MobilePushPromptBanner user={user} />
@@ -406,112 +416,171 @@ export default async function ResidentDashboardPage() {
           )}
 
           {due ? (
-            <Card className="p-6 sm:p-8">
-              <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[auto_1fr_auto]">
-                <ProgressRing
-                  value={paidPct}
-                  tone={due.isOverdue ? "rose" : "amber"}
-                  size={154}
-                  thickness={13}
-                  label={formatMoney(due.outstanding)}
-                  caption="still payable"
-                />
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-200 hover:shadow-sm">
+              {/* Header Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/70 px-5 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex size-6 items-center justify-center rounded-md bg-emerald-100 text-emerald-800">
+                    <Receipt className="size-3.5" />
+                  </span>
+                  <span className="text-xs font-bold text-slate-800">
+                    Invoice #{due.invoiceNumber}
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {formatPeriod(due.billingPeriod)}
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-xs text-slate-700 font-semibold inline-flex items-center gap-1">
+                    <Home className="size-3 text-slate-400" />
+                    {dueLabel}
+                  </span>
+                </div>
 
-                <div className="min-w-0">
-                  <p className="label-xs">{isPgResident ? "Your rent bill" : "Your maintenance"}</p>
-                  <p className="mt-1 text-xl font-semibold text-slate-900">
-                    Invoice {due.invoiceNumber}
-                  </p>
-                  <p className="mt-0.5 text-[13px] text-slate-500">
-                    {formatPeriod(due.billingPeriod)} · {dueLabel} · Due {formatDate(due.dueDate)}
-                  </p>
-                  <div className="mt-4 max-w-lg space-y-2 rounded-xl bg-slate-50/90 p-4 ring-1 ring-slate-900/5">
-                    {due.items && due.items.length > 0 ? (
-                      <div className="space-y-1.5 pb-2 border-b border-slate-200/80">
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center justify-between">
-                          <span>Charges Breakdown</span>
-                          <span className="font-medium text-slate-400">
-                            {due.items.length} charge{due.items.length === 1 ? "" : "s"}
-                          </span>
-                        </div>
-                        {due.items.map((it) => {
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={due.isOverdue ? "OVERDUE" : due.status} />
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-medium">
+                    <Clock className="size-3.5 text-slate-400" />
+                    Due {formatDate(due.dueDate)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Main Content: 2-Panel Balance */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+                {/* Left Panel: Amount & Payment (5 cols) */}
+                <div className="p-5 sm:p-6 lg:col-span-5 flex flex-col justify-between bg-gradient-to-b from-slate-50/50 to-white">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                      Total Amount Payable
+                    </span>
+                    <p className={`tabular text-3xl sm:text-4xl font-extrabold tracking-tight mt-1.5 ${
+                      due.isOverdue ? "text-rose-600" : "text-emerald-700"
+                    }`}>
+                      {formatMoney(due.outstanding)}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 font-medium">
+                      {due.isOverdue ? "Payment is overdue · Please clear your dues" : "Due on or before the 5th of this month"}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 space-y-2">
+                    <div className="w-full [&>button]:w-full">
+                      <PayCheckoutButton
+                        invoiceId={due.id}
+                        invoiceNumber={due.invoiceNumber}
+                        amount={due.outstanding}
+                        flatLabel={dueLabel}
+                        size="lg"
+                        label="Pay now"
+                      />
+                    </div>
+                    <Link
+                      href="/resident/invoices"
+                      className="inline-flex h-10.5 w-full items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-brand-700 hover:border-slate-300 transition-all select-none"
+                    >
+                      <FileText className="size-4 text-slate-400" />
+                      <span>View All Invoices</span>
+                      <ArrowUpRight className="size-4 text-slate-400" />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Right Panel: Clean Charges Table (7 cols) */}
+                <div className="p-5 sm:p-6 lg:col-span-7 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Itemized Charges
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">
+                        {due.items?.length || 1} line item{due.items?.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-2.5 text-xs">
+                      {due.items && due.items.length > 0 ? (
+                        due.items.map((it) => {
                           const meta = getChargeMeta(it.type);
                           const Icon = meta.icon;
                           return (
-                            <div key={it.id} className="flex items-center justify-between gap-2.5 text-xs">
-                              <span className="flex items-center gap-1.5 min-w-0 text-slate-700">
-                                <span className={`flex size-5 shrink-0 items-center justify-center rounded border ${meta.bg}`}>
-                                  <Icon className="size-3" />
+                            <div key={it.id} className="flex items-center justify-between gap-3">
+                              <span className="flex items-center gap-2 min-w-0 text-slate-800 font-medium">
+                                <span className={`flex size-6 shrink-0 items-center justify-center rounded-lg border shadow-2xs ${meta.bg}`}>
+                                  <Icon className="size-3.5" />
                                 </span>
-                                <span className="truncate" title={it.name}>
-                                  {it.name}
-                                </span>
+                                <span className="truncate">{it.name}</span>
                               </span>
-                              <span className="tabular font-semibold text-slate-900 shrink-0">
+                              <span className="tabular font-bold text-slate-900 shrink-0 text-xs sm:text-[13px]">
                                 {formatMoney(it.amount)}
                               </span>
                             </div>
                           );
-                        })}
-                      </div>
-                    ) : (
-                      <StatLine label="Base Bill" value={formatMoney(due.subtotal || due.totalAmount)} tone="muted" />
-                    )}
-
-                    {due.previousDue > 0 && (
-                      <div className="flex items-center justify-between text-xs text-amber-700">
-                        <span>Previous Unpaid Dues</span>
-                        <span className="tabular font-semibold">+{formatMoney(due.previousDue)}</span>
-                      </div>
-                    )}
-                    {due.penalty > 0 && (
-                      <div className="flex items-center justify-between text-xs text-rose-600">
-                        <span>Late Payment Penalty</span>
-                        <span className="tabular font-semibold">+{formatMoney(due.penalty)}</span>
-                      </div>
-                    )}
-                    {due.discount > 0 && (
-                      <div className="flex items-center justify-between text-xs text-emerald-600">
-                        <span>Discount / Concession</span>
-                        <span className="tabular font-semibold">-{formatMoney(due.discount)}</span>
-                      </div>
-                    )}
-                    {due.paidAmount > 0 && (
-                      <div className="flex items-center justify-between text-xs text-emerald-700 font-medium">
-                        <span>Paid so far</span>
-                        <span className="tabular">-{formatMoney(due.paidAmount)}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-xs">
-                      <span className="font-semibold text-slate-700">Net Payable</span>
-                      <span className={`tabular text-sm font-bold ${due.isOverdue ? "text-rose-600" : "text-amber-700"}`}>
-                        {formatMoney(due.outstanding)}
-                      </span>
+                        })
+                      ) : (
+                        <div className="flex items-center justify-between font-medium text-slate-700">
+                          <span>Base Rent / Maintenance</span>
+                          <span className="tabular font-bold text-slate-900">
+                            {formatMoney(due.subtotal || due.totalAmount)}
+                          </span>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Adjustments: Arrears, Late Fee, Discount, Paid */}
+                    {(due.previousDue > 0 || due.penalty > 0 || due.discount > 0 || due.paidAmount > 0) && (
+                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+                        {due.previousDue > 0 && (
+                          <div className="flex items-center justify-between text-amber-800 font-medium">
+                            <span className="flex items-center gap-1.5">
+                              <span className="size-1.5 rounded-full bg-amber-500" />
+                              Previous Unpaid Dues
+                            </span>
+                            <span className="tabular font-semibold">+{formatMoney(due.previousDue)}</span>
+                          </div>
+                        )}
+                        {due.penalty > 0 && (
+                          <div className="flex items-center justify-between text-rose-700 font-medium">
+                            <span className="flex items-center gap-1.5">
+                              <span className="size-1.5 rounded-full bg-rose-500" />
+                              Late Payment Penalty
+                            </span>
+                            <span className="tabular font-semibold">+{formatMoney(due.penalty)}</span>
+                          </div>
+                        )}
+                        {due.discount > 0 && (
+                          <div className="flex items-center justify-between text-emerald-700 font-medium">
+                            <span className="flex items-center gap-1.5">
+                              <span className="size-1.5 rounded-full bg-emerald-500" />
+                              Concession / Discount
+                            </span>
+                            <span className="tabular font-semibold">-{formatMoney(due.discount)}</span>
+                          </div>
+                        )}
+                        {due.paidAmount > 0 && (
+                          <div className="flex items-center justify-between text-emerald-800 font-medium">
+                            <span>Already Paid</span>
+                            <span className="tabular font-semibold">-{formatMoney(due.paidAmount)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Net Payable Summary Row */}
+                  <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs sm:text-sm font-extrabold">
+                    <span className="text-slate-700 uppercase tracking-wide text-[11px]">
+                      Net Amount Payable
+                    </span>
+                    <span className={`tabular text-base sm:text-lg ${
+                      due.isOverdue ? "text-rose-600" : "text-emerald-700"
+                    }`}>
+                      {formatMoney(due.outstanding)}
+                    </span>
                   </div>
                 </div>
-
-                <div className="flex flex-col gap-3 lg:items-end">
-                  <StatusBadge status={due.isOverdue ? "OVERDUE" : due.status} />
-                  <PayCheckoutButton
-                    invoiceId={due.id}
-                    invoiceNumber={due.invoiceNumber}
-                    amount={due.outstanding}
-                    flatLabel={dueLabel}
-                    size="lg"
-                    label="Pay now"
-                  />
-                  <Link
-                    href="/resident/invoices"
-                    className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-700 transition-colors hover:text-brand-800"
-                  >
-                    All invoices
-                    <ArrowUpRight className="size-4" />
-                  </Link>
-                </div>
               </div>
-            </Card>
+            </div>
           ) : (
             <Card className="flex flex-col items-start gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
               <span className="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-600/15">
@@ -545,27 +614,29 @@ export default async function ResidentDashboardPage() {
                 <EmptyState icon={Megaphone} title="No notices" compact />
               ) : (
                 <ul className="divide-y divide-slate-100">
-                  {data.notices.map((n) => (
-                    <li
-                      key={n.id}
-                      className="flex items-start justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70"
-                    >
-                      <div className="min-w-0">
-                        <p
-                          className={`truncate text-[15px] ${
-                            n.readByMe ? "font-medium text-slate-600" : "font-semibold text-slate-900"
-                          }`}
-                        >
-                          {n.title}
-                        </p>
-                        <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                          {titleCase(n.category)} ·{" "}
-                          {n.publishedAt ? formatDate(n.publishedAt) : formatDate(n.createdAt)}
-                        </p>
-                      </div>
-                      {!n.readByMe ? (
-                        <span className="mt-2 size-2.5 shrink-0 rounded-full bg-brand-500" />
-                      ) : null}
+                  {data.notices.slice(0, 3).map((n) => (
+                    <li key={n.id}>
+                      <Link
+                        href="/resident/notices"
+                        className="flex items-start justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70 block"
+                      >
+                        <div className="min-w-0">
+                          <p
+                            className={`truncate text-[15px] ${
+                              n.readByMe ? "font-medium text-slate-600" : "font-semibold text-slate-900"
+                            }`}
+                          >
+                            {n.title}
+                          </p>
+                          <p className="mt-0.5 truncate text-[13px] text-slate-500">
+                            {titleCase(n.category)} ·{" "}
+                            {n.publishedAt ? formatDate(n.publishedAt) : formatDate(n.createdAt)}
+                          </p>
+                        </div>
+                        {!n.readByMe ? (
+                          <span className="mt-2 size-2.5 shrink-0 rounded-full bg-brand-500" />
+                        ) : null}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -575,7 +646,7 @@ export default async function ResidentDashboardPage() {
             <Card>
               <CardHeader
                 title="Recent payments"
-                subtitle="Your last 6 receipts"
+                subtitle="Latest receipts"
                 icon={CreditCard}
                 action={<ViewAll href="/resident/invoices?filter=PAID" />}
               />
@@ -583,25 +654,27 @@ export default async function ResidentDashboardPage() {
                 <EmptyState icon={Receipt} title="No payments recorded yet" compact />
               ) : (
                 <ul className="divide-y divide-slate-100">
-                  {data.recentPayments.map((p) => (
-                    <li
-                      key={p.id}
-                      className="flex items-center justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-[15px] font-semibold text-slate-900">
-                          {p.receipts?.[0]?.receiptNumber || p.invoice?.invoiceNumber || "Payment"}
-                        </p>
-                        <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                          {formatDate(p.paymentDate)} · {p.invoice?.billingPeriod ? formatPeriod(p.invoice.billingPeriod) : "Direct"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="tabular text-sm font-bold text-emerald-600">
-                          {formatMoney(p.amount)}
-                        </p>
-                        <p className="text-[11px] text-slate-400 capitalize">{p.paymentMethod?.toLowerCase()}</p>
-                      </div>
+                  {data.recentPayments.slice(0, 3).map((p) => (
+                    <li key={p.id}>
+                      <Link
+                        href="/resident/invoices?filter=PAID"
+                        className="flex items-center justify-between gap-3 px-6 py-4 transition-colors hover:bg-slate-50/70 block"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-[15px] font-semibold text-slate-900">
+                            {p.receipts?.[0]?.receiptNumber || p.invoice?.invoiceNumber || "Payment"}
+                          </p>
+                          <p className="mt-0.5 truncate text-[13px] text-slate-500">
+                            {formatDate(p.paymentDate)} · {p.invoice?.billingPeriod ? formatPeriod(p.invoice.billingPeriod) : "Direct"}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="tabular text-sm font-bold text-emerald-600">
+                            {formatMoney(p.amount)}
+                          </p>
+                          <p className="text-[11px] text-slate-400 capitalize">{p.paymentMethod?.toLowerCase()}</p>
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>

@@ -791,7 +791,7 @@ export default function ResidentsClient({
                       <span className="text-[10px] text-slate-500 block font-medium">Balance</span>
                       {data.outstandingBalance > 0 ? (
                         <span className={`font-extrabold ${data.isOverdue ? "text-rose-600" : "text-amber-700"}`}>
-                          ₹{data.outstandingBalance.toLocaleString()} Due
+                          {formatMoney(data.outstandingBalance)} Due
                         </span>
                       ) : (
                         <span className="font-bold text-emerald-600">Paid Up</span>

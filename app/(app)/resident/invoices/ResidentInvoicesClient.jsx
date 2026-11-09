@@ -152,22 +152,22 @@ export default function ResidentInvoicesClient({ invoices }) {
 
       {/* Due monthly maintenance spotlight */}
       {dueInvoices.length > 0 ? (
-        <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-4 sm:p-5 shadow-soft">
-          <div className="flex items-center justify-between gap-3 border-b border-amber-200/60 pb-3">
+        <div className="rounded-2xl border border-slate-200/90 bg-slate-50/50 p-4 sm:p-5 shadow-2xs">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500 text-white shadow-2xs font-bold">
+              <span className="flex size-8 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-600/20 text-sm font-bold shadow-2xs">
                 ₹
               </span>
               <div>
-                <h3 className="text-sm font-bold text-amber-950">
+                <h3 className="text-sm font-bold text-slate-900">
                   {dueInvoices.length === 1 ? "Pending Monthly Bill" : `${dueInvoices.length} Pending Monthly Bills`}
                 </h3>
-                <p className="text-xs text-amber-800">
+                <p className="text-xs text-slate-500">
                   Pay securely with Razorpay via UPI (GPay, PhonePe, Paytm), Debit/Credit Cards, or Net Banking.
                 </p>
               </div>
             </div>
-            <span className="tabular text-lg sm:text-xl font-bold text-amber-950">
+            <span className="tabular text-lg sm:text-xl font-extrabold text-slate-900">
               {formatMoney(outstanding)}
             </span>
           </div>
@@ -183,7 +183,7 @@ export default function ResidentInvoicesClient({ invoices }) {
               return (
                 <div
                   key={inv.id}
-                  className="flex flex-col justify-between rounded-lg border border-amber-200/80 bg-white/90 p-3.5 shadow-2xs"
+                  className="flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs hover:border-slate-300 transition-colors"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
@@ -417,7 +417,7 @@ export default function ResidentInvoicesClient({ invoices }) {
                   { label: "Due", className: "hidden lg:table-cell" },
                   { label: "Amount", align: "right" },
                   { label: "Status" },
-                  { label: "Action", align: "right" },
+                  { label: "", align: "right" },
                 ]}
               >
                 {visible.map((inv) => {

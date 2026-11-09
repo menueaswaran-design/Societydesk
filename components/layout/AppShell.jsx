@@ -21,6 +21,8 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronsUpDown,
   Check,
   Loader2,
@@ -32,7 +34,6 @@ import {
 import { api } from "@/lib/client/api";
 import { titleCase } from "@/lib/format";
 import Avatar from "@/components/ui/Avatar";
-import Badge from "@/components/ui/Badge";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import PushNotificationPrompt from "@/components/notifications/PushNotificationPrompt";
@@ -193,22 +194,13 @@ const NAV = {
   ],
 };
 
-const ROLE_TONE = {
-  SUPER_ADMIN: "violet",
-  OWNER: "brand",
-  MANAGER: "blue",
-  SOCIETY_ADMIN: "brand",
-  SECURITY_ADMIN: "amber",
-  FLAT_ADMIN: "blue",
-  RESIDENT: "emerald",
-};
-
 export default function AppShell({ user, society, flats, occupancies, accessibleSocieties = [], children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
   const [menu, setMenu] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { t } = useTranslation();
 
   const isPgWorkspace = society?.type !== "SOCIETY"; // PG is primary!
@@ -255,9 +247,13 @@ export default function AppShell({ user, society, flats, occupancies, accessible
     <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-blue-200 uppercase">
-            {group.label}
-          </p>
+          {!sidebarCollapsed ? (
+            <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-blue-200 uppercase">
+              {group.label}
+            </p>
+          ) : (
+            <div className="my-2 mx-auto w-6 border-t border-white/10" />
+          )}
           <ul className="space-y-1">
             {group.items.map((item) => (
               <li key={item.href}>
@@ -266,6 +262,7 @@ export default function AppShell({ user, society, flats, occupancies, accessible
                   label={item.label}
                   pathname={pathname}
                   onNavigate={() => setIsNavigating(true)}
+                  collapsed={sidebarCollapsed}
                 />
               </li>
             ))}
@@ -275,7 +272,7 @@ export default function AppShell({ user, society, flats, occupancies, accessible
     </nav>
   );
 
-  const identity = (
+  const brandHeader = (
     <Link
       href={
         user.role === "RESIDENT"
@@ -284,34 +281,92 @@ export default function AppShell({ user, society, flats, occupancies, accessible
             ? "/super-admin/dashboard"
             : "/admin/dashboard"
       }
-      className="flex items-center gap-2.5 px-4 py-3 w-full hover:opacity-90 transition-opacity"
+      className={`flex items-center gap-2.5 px-4 py-3.5 w-full hover:opacity-90 transition-opacity ${
+        sidebarCollapsed ? "justify-center px-2" : ""
+      }`}
+      title="Bedy"
     >
       <span className="relative inline-flex shrink-0">
         <img
           src="/logo.png"
           alt="Bedy"
-          className="size-8 rounded-xl object-contain bg-white p-0.5 shadow-sm ring-1 ring-white/20"
+          className="size-8.5 rounded-xl object-contain bg-white p-0.5 shadow-sm ring-1 ring-white/20"
         />
       </span>
-      <span className="text-lg font-black tracking-tight text-white leading-none">
-        Bedy
-      </span>
+      {!sidebarCollapsed && (
+        <div className="min-w-0 flex-1">
+          <span className="text-[19px] font-extrabold tracking-[-0.05em] text-white">
+            bedy
+          </span>
+        </div>
+      )}
     </Link>
   );
 
+  const propertyBadge = (
+    <div className="border-t border-white/10 p-3 bg-white/5">
+      {sidebarCollapsed ? (
+        <div
+          className="flex justify-center p-2 rounded-xl bg-white/5 border border-white/10"
+          title={`${society?.name ?? (isPgWorkspace ? "Bedy PG" : "Bedy")} · ${titleCase(user.role)}${roomLabel ? ` (${roomLabel})` : ""}`}
+        >
+          <Building className="size-4 text-blue-200" />
+        </div>
+      ) : (
+        <div className="rounded-xl bg-white/5 px-3 py-2.5 border border-white/10">
+          <p className="truncate text-xs font-bold text-white tracking-tight leading-snug">
+            {society?.name ?? (isPgWorkspace ? "Bedy PG" : "Bedy")}
+          </p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="rounded bg-white/15 px-1.5 py-0.5 text-[9.5px] font-bold text-white/90 uppercase tracking-wide">
+              {isPgWorkspace ? "PG / HOSTEL" : "SOCIETY"}
+            </span>
+            <p className="truncate text-[11px] font-medium text-blue-200">
+              {titleCase(user.role)}
+            </p>
+          </div>
+          {roomLabel ? (
+            <p className="mt-1.5 truncate text-[11px] text-white/45">
+              {roomLabel}
+            </p>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="flex min-h-screen bg-[#F8FAFF]">
+    <div className="flex min-h-screen bg-slate-50">
       {isNavigating ? (
-        <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10 pointer-events-none overflow-hidden">
-          <div className="h-full w-full bg-gradient-to-r from-brand-600 via-brand-500 to-[#6995FF] animate-progress shadow-[0_0_8px_rgba(49,84,217,0.5)]" />
+        <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-brand-500/10">
+          <div className="h-full w-full bg-linear-to-r from-brand-500 via-indigo-600 to-sky-400 animate-progress" />
         </div>
       ) : null}
 
-      {/* Sidebar - Royal Cobalt Brand Blue from HTML Design System */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start bg-gradient-to-b from-[#1E398A] to-[#172B68] text-white border-r border-[#1B326E] shadow-sm lg:flex">
-        <div className="flex h-14 items-center border-b border-white/10 bg-transparent">{identity}</div>
+      {/* Sidebar */}
+      <aside
+        className={`brand-canvas sticky top-0 hidden h-screen shrink-0 flex-col lg:flex relative transition-all duration-200 ease-in-out ${
+          sidebarCollapsed ? "w-[72px]" : "w-64"
+        }`}
+      >
+        {/* Floating Collapse / Expand Toggle Button on the right boundary */}
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed((v) => !v)}
+          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="absolute -right-3 top-1/2 -translate-y-1/2 z-40 hidden lg:flex size-6 items-center justify-center rounded-full bg-white text-slate-600 shadow-md border border-slate-200/90 hover:bg-slate-50 hover:text-brand-600 transition-all hover:scale-110 cursor-pointer"
+        >
+          {sidebarCollapsed ? (
+            <ChevronRight className="size-3.5 stroke-[2.5]" />
+          ) : (
+            <ChevronLeft className="size-3.5 stroke-[2.5]" />
+          )}
+        </button>
+
+        <div className="border-b border-white/10">{brandHeader}</div>
         {nav}
-        <PropertyPanel society={society} isPgWorkspace={isPgWorkspace} user={user} roomLabel={roomLabel} accessibleSocieties={accessibleSocieties} />
+        {propertyBadge}
       </aside>
 
       {/* Mobile drawer */}
@@ -324,7 +379,7 @@ export default function AppShell({ user, society, flats, occupancies, accessible
           />
           <div className="animate-slide-left relative z-10 flex h-full w-64 max-w-[85vw] flex-col bg-gradient-to-b from-[#1E398A] to-[#172B68] text-white border-r border-[#1B326E] shadow-pop">
             <div className="flex h-14 items-center justify-between border-b border-white/10 pr-2">
-              <div className="min-w-0 flex-1">{identity}</div>
+              <div className="min-w-0 flex-1">{brandHeader}</div>
               <button
                 onClick={() => setDrawer(false)}
                 aria-label="Close menu"
@@ -334,14 +389,14 @@ export default function AppShell({ user, society, flats, occupancies, accessible
               </button>
             </div>
             {nav}
-            <PropertyPanel society={society} isPgWorkspace={isPgWorkspace} user={user} roomLabel={roomLabel} accessibleSocieties={accessibleSocieties} />
+            {propertyBadge}
           </div>
         </div>
       ) : null}
 
       {/* Main Content Area */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-[#E5EAF3] bg-white shadow-2xs">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-2xs">
           <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8">
             <button
               onClick={() => setDrawer(true)}
@@ -407,27 +462,18 @@ export default function AppShell({ user, society, flats, occupancies, accessible
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 px-4 pt-4 pb-24 sm:px-6 sm:pt-6 sm:pb-24 lg:px-8 lg:py-7">
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
           <div className="mx-auto w-full max-w-[90rem]">{children}</div>
         </main>
       </div>
 
       {/* Push Notification Permission Card for Logged-in Users */}
       <PushNotificationPrompt user={user} />
-
-      {/* Mobile Bottom Navigation Bar */}
-      <MobileBottomNav
-        user={user}
-        isPgWorkspace={isPgWorkspace}
-        pathname={pathname}
-        onNavigate={() => setIsNavigating(true)}
-        t={t}
-      />
     </div>
   );
 }
 
-function NavLink({ item, label, pathname, onNavigate }) {
+function NavLink({ item, label, pathname, onNavigate, collapsed = false }) {
   const Icon = item.icon;
   const active = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(`${item.href}/`));
 
@@ -435,12 +481,15 @@ function NavLink({ item, label, pathname, onNavigate }) {
     <Link
       href={item.href}
       prefetch={true}
+      title={label ?? item.label}
       onClick={() => {
         if (pathname !== item.href && !pathname.startsWith(`${item.href}/`)) {
           onNavigate?.();
         }
       }}
-      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-all duration-150 ${
+      className={`group relative flex items-center rounded-xl text-[13px] font-semibold transition-all duration-150 ${
+        collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2"
+      } ${
         active
           ? "bg-white text-brand-700 shadow-md font-bold"
           : "text-white/85 hover:bg-white/10 hover:text-white"
@@ -449,13 +498,13 @@ function NavLink({ item, label, pathname, onNavigate }) {
       {active ? (
         <span
           aria-hidden="true"
-          className="absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-white shadow-xs"
+          className="absolute top-1/2 -left-2.5 h-5 w-1 -translate-y-1/2 rounded-r-full bg-emerald-400"
         />
       ) : null}
       <Icon
-        className={`size-4.5 shrink-0 transition-colors ${active ? "text-brand-600" : "text-blue-200 group-hover:text-white"}`}
+        className={`size-4.5 shrink-0 transition-colors ${active ? "text-emerald-400" : "text-white/45 group-hover:text-white/80"}`}
       />
-      <span className="truncate">{label ?? item.label}</span>
+      {!collapsed && <span className="truncate">{label ?? item.label}</span>}
     </Link>
   );
 }
@@ -825,299 +874,4 @@ function UserMenu({ user, society, accessibleSocieties = [], roomLabel, onSignOu
       </div>
     </div>
   );
-}
-
-function MobileBottomNav({ user, isPgWorkspace, pathname, onNavigate, t }) {
-  if (user.role === "SUPER_ADMIN") {
-    const items = [
-      { href: "/super-admin/dashboard", label: "Overview", icon: LayoutDashboard },
-      { href: "/super-admin/societies", label: "Properties", icon: Building },
-      { href: "/super-admin/team", label: "Admins", icon: ShieldCheck },
-    ];
-    return (
-      <nav
-        aria-label="Super Admin Bottom Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5EAF3] bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(49,84,217,0.06)] lg:hidden"
-        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="grid grid-cols-3 items-center px-3 pt-1.5 pb-1 max-w-md mx-auto">
-          {items.map((it) => {
-            const Icon = it.icon;
-            const active =
-              pathname === it.href ||
-              (it.href !== "/super-admin/dashboard" && pathname.startsWith(`${it.href}/`));
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                prefetch={true}
-                onClick={() => {
-                  if (pathname !== it.href && !pathname.startsWith(`${it.href}/`)) {
-                    onNavigate?.();
-                  }
-                }}
-                className={`group flex flex-col items-center justify-center py-1 text-center transition-all ${
-                  active ? "text-brand-600 font-semibold" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <Icon
-                  className={`size-5 transition-transform ${
-                    active ? "scale-110 text-brand-600" : "text-slate-400"
-                  }`}
-                />
-                <span className="text-[11px] mt-1 tracking-tight">{it.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
-
-  const isAdmin = ["OWNER", "MANAGER", "SOCIETY_ADMIN"].includes(user.role);
-  if (isAdmin) {
-    const items = [
-      {
-        href: "/admin/rooms",
-        label: isPgWorkspace ? "Beds" : "Flats",
-        icon: BedSingle,
-        match: (p) =>
-          p === "/admin/rooms" ||
-          p.startsWith("/admin/rooms/") ||
-          p.startsWith("/admin/residents"),
-      },
-      {
-        href: "/admin/billing/payments",
-        label: t("nav.payments", "Payments"),
-        icon: CreditCard,
-        match: (p) =>
-          p === "/admin/billing/payments" || p.startsWith("/admin/billing/payments/"),
-      },
-      {
-        href: "/admin/dashboard",
-        label: t("nav.dashboard", "Dashboard"),
-        icon: LayoutDashboard,
-        isCenter: true,
-        match: (p) => p === "/admin/dashboard",
-      },
-      {
-        href: "/admin/billing/defaulters",
-        label: t("nav.defaulters", "Overdue"),
-        icon: AlertTriangle,
-        match: (p) =>
-          p === "/admin/billing/defaulters" || p.startsWith("/admin/billing/defaulters/"),
-      },
-      {
-        href: "/admin/billing/invoices",
-        label: t("nav.invoices", "Invoices"),
-        icon: FileText,
-        match: (p) =>
-          p === "/admin/billing/invoices" || p.startsWith("/admin/billing/invoices/"),
-      },
-    ];
-
-    return (
-      <nav
-        aria-label="Admin Bottom Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5EAF3] bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(49,84,217,0.07)] lg:hidden"
-        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="grid grid-cols-5 items-center px-1 pt-1.5 pb-1 max-w-lg mx-auto">
-          {items.map((it) => {
-            const Icon = it.icon;
-            const active = it.match(pathname);
-
-            if (it.isCenter) {
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  prefetch={true}
-                  onClick={() => {
-                    if (pathname !== it.href) onNavigate?.();
-                  }}
-                  className="group flex flex-col items-center justify-center -mt-3.5 relative focus:outline-none"
-                  aria-label={it.label}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <div
-                    className={`flex size-11 items-center justify-center rounded-2xl transition-all duration-200 active:scale-95 ${
-                      active
-                        ? "bg-gradient-to-tr from-brand-600 to-brand-500 text-white shadow-lg shadow-brand-500/35 ring-4 ring-white"
-                        : "bg-white text-slate-600 border border-[#E5EAF3] shadow-md hover:text-brand-600 ring-4 ring-white"
-                    }`}
-                  >
-                    <Icon className="size-5.5" />
-                  </div>
-                  <span
-                    className={`text-[10px] mt-0.5 tracking-tight font-bold transition-colors ${
-                      active ? "text-brand-600" : "text-slate-500 group-hover:text-slate-800"
-                    }`}
-                  >
-                    {it.label}
-                  </span>
-                </Link>
-              );
-            }
-
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                prefetch={true}
-                onClick={() => {
-                  if (!it.match(pathname)) onNavigate?.();
-                }}
-                className={`group flex flex-col items-center justify-center py-1 px-0.5 text-center transition-all active:scale-95 focus:outline-none ${
-                  active ? "text-brand-600 font-semibold" : "text-slate-500 hover:text-slate-800"
-                }`}
-                aria-label={it.label}
-                aria-current={active ? "page" : undefined}
-              >
-                <div className="relative flex items-center justify-center">
-                  <Icon
-                    className={`size-5 transition-transform duration-150 ${
-                      active
-                        ? "scale-105 text-brand-600"
-                        : "text-slate-400 group-hover:text-slate-600"
-                    }`}
-                  />
-                  {active ? (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -top-1 size-1 rounded-full bg-brand-600"
-                    />
-                  ) : null}
-                </div>
-                <span className="text-[10px] mt-1 tracking-tight truncate max-w-full">
-                  {it.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
-
-  if (user.role === "RESIDENT") {
-    const resident5 = [
-      {
-        href: "/resident/invoices",
-        label: t("nav.invoices", "Invoices"),
-        icon: FileText,
-        match: (p) => p === "/resident/invoices" || p.startsWith("/resident/invoices/"),
-      },
-      {
-        href: "/resident/vacate",
-        label: "Notice",
-        icon: DoorOpen,
-        match: (p) => p === "/resident/vacate",
-      },
-      {
-        href: "/resident/dashboard",
-        label: t("nav.dashboard", "Home"),
-        icon: LayoutDashboard,
-        isCenter: true,
-        match: (p) => p === "/resident/dashboard",
-      },
-      {
-        href: "/resident/complaints",
-        label: t("nav.complaints", "Complaints"),
-        icon: AlertTriangle,
-        match: (p) => p === "/resident/complaints" || p.startsWith("/resident/complaints/"),
-      },
-      {
-        href: "/resident/profile",
-        label: t("nav.profile", "Profile"),
-        icon: UserCircle,
-        match: (p) => p === "/resident/profile",
-      },
-    ];
-
-    return (
-      <nav
-        aria-label="Resident Bottom Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5EAF3] bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(49,84,217,0.07)] lg:hidden"
-        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="grid grid-cols-5 items-center px-1 pt-1.5 pb-1 max-w-lg mx-auto">
-          {resident5.map((it) => {
-            const Icon = it.icon;
-            const active = it.match(pathname);
-
-            if (it.isCenter) {
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  prefetch={true}
-                  onClick={() => {
-                    if (pathname !== it.href) onNavigate?.();
-                  }}
-                  className="group flex flex-col items-center justify-center -mt-3.5 relative focus:outline-none"
-                  aria-label={it.label}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <div
-                    className={`flex size-11 items-center justify-center rounded-2xl transition-all duration-200 active:scale-95 ${
-                      active
-                        ? "bg-gradient-to-tr from-brand-600 to-brand-500 text-white shadow-lg shadow-brand-500/35 ring-4 ring-white"
-                        : "bg-white text-slate-600 border border-[#E5EAF3] shadow-md hover:text-brand-600 ring-4 ring-white"
-                    }`}
-                  >
-                    <Icon className="size-5.5" />
-                  </div>
-                  <span
-                    className={`text-[10px] mt-0.5 tracking-tight font-bold transition-colors ${
-                      active ? "text-brand-600" : "text-slate-500 group-hover:text-slate-800"
-                    }`}
-                  >
-                    {it.label}
-                  </span>
-                </Link>
-              );
-            }
-
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                prefetch={true}
-                onClick={() => {
-                  if (!it.match(pathname)) onNavigate?.();
-                }}
-                className={`group flex flex-col items-center justify-center py-1 px-0.5 text-center transition-all active:scale-95 focus:outline-none ${
-                  active ? "text-brand-600 font-semibold" : "text-slate-500 hover:text-slate-800"
-                }`}
-                aria-label={it.label}
-                aria-current={active ? "page" : undefined}
-              >
-                <div className="relative flex items-center justify-center">
-                  <Icon
-                    className={`size-5 transition-transform duration-150 ${
-                      active
-                        ? "scale-105 text-brand-600"
-                        : "text-slate-400 group-hover:text-slate-600"
-                    }`}
-                  />
-                  {active ? (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -top-1 size-1 rounded-full bg-brand-600"
-                    />
-                  ) : null}
-                </div>
-                <span className="text-[10px] mt-1 tracking-tight truncate max-w-full">
-                  {it.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
-
-  return null;
 }

@@ -1,7 +1,7 @@
 "use client";
 import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -49,6 +49,13 @@ export default function AdminDashboardClient({
 
   const [dismissNoticeBanner, setDismissNoticeBanner] = useState(false);
   const [switchingSocietyId, setSwitchingSocietyId] = useState(null);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, []);
 
   async function handleSwitchPG(targetId) {
     if (targetId === currentSocietyId || switchingSocietyId) return;
@@ -569,7 +576,7 @@ export default function AdminDashboardClient({
                     const isOverdue = inv.status === "OVERDUE";
                     const outstanding = Math.max(0, inv.totalAmount - (inv.paidAmount || 0));
 
-                    const payUrl = `${typeof window !== "undefined" ? window.location.origin : "https://bedy.in"}/pay/${inv.id}`;
+                    const payUrl = `${origin || "https://bedy.in"}/pay/${inv.id}`;
 
                     // Build instant WhatsApp message link
                     const waText = isOverdue
